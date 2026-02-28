@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a2e">
+<title>Workout</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #0f0f1a;
+  --card: #1a1a2e;
+  --card-border: #2a2a4a;
+  --accent: #e94560;
+  --accent-dim: #c73a52;
+  --text: #eee;
+  --text-dim: #888;
+  --text-muted: #555;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --superset-bg: #16213e;
+  --circuit-bg: #1a1630;
+  --input-bg: #0d0d1a;
+  --rest-bg: #162e16;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+  overflow-x: hidden;
+}
+
+/* --- Setup Screen --- */
+.setup-screen {
+  padding: 40px 20px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.setup-screen h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.setup-screen p {
+  color: var(--text-dim);
+  margin-bottom: 30px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group select,
+.form-group input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.2s;
+}
+.btn:active { background: var(--accent-dim); }
+.btn-secondary {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  margin-top: 10px;
+}
+
+/* --- Header --- */
+.header {
+  padding: 16px 20px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 100;
+  border-bottom: 1px solid var(--card-border);
+}
+.header-left h2 { font-size: 18px; }
+.header-left span { font-size: 13px; color: var(--text-dim); }
+.header-right { display: flex; gap: 8px; }
+.header-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Day Navigation --- */
+.day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  gap: 10px;
+}
+.day-nav-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.day-nav-btn:disabled { opacity: 0.3; cursor: default; }
+.day-info {
+  text-align: center;
+  flex: 1;
+}
+.day-info .day-label { font-size: 18px; font-weight: 700; }
+.day-info .day-date { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
+/* --- Progress Bar --- */
+.progress-bar {
+  margin: 0 20px 16px;
+  height: 4px;
+  background: var(--card);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+/* --- Exercise Groups --- */
+.workout-content {
+  padding: 0 16px 100px;
+}
+
+.group-container {
+  margin-bottom: 16px;
+}
+
+.group-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.group-label.superset { background: #1e3a5f; color: #60a5fa; }
+.group-label.circuit { background: #3b1f5e; color: #c084fc; }
+
+.exercise-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.exercise-card.in-superset { border-left: 3px solid #60a5fa; }
+.exercise-card.in-circuit { border-left: 3px solid #c084fc; }
+
+.exercise-name {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.exercise-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.meta-item {
+  text-align: center;
+  padding: 8px 4px;
+  background: var(--input-bg);
+  border-radius: 8px;
+}
+.meta-item .meta-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+.meta-item .meta-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.exercise-instruction {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: var(--input-bg);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+/* --- Set Logging --- */
+.sets-log {
+  margin-top: 12px;
+}
+.sets-log-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr 44px;
+  gap: 8px;
+  padding: 0 4px 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.set-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr 44px;
+  gap: 8px;
+  margin-bottom: 6px;
+  align-items: center;
+}
+.set-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-align: center;
+}
+.set-input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 15px;
+  text-align: center;
+}
+.set-input::placeholder { color: var(--text-muted); }
+.set-check {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 2px solid var(--card-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.set-check.done {
+  background: var(--green);
+  border-color: var(--green);
+  color: #000;
+}
+
+/* --- Notes --- */
+.exercise-notes {
+  margin-top: 10px;
+}
+.notes-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 14px;
+  resize: none;
+  min-height: 40px;
+}
+.notes-input::placeholder { color: var(--text-muted); }
+
+/* --- Rest Day --- */
+.rest-day {
+  text-align: center;
+  padding: 80px 30px;
+}
+.rest-day .rest-icon { font-size: 64px; margin-bottom: 20px; }
+.rest-day h2 { font-size: 28px; margin-bottom: 12px; }
+.rest-day p { color: var(--text-dim); font-size: 15px; line-height: 1.6; }
+
+/* --- History --- */
+.history-screen { padding: 20px; }
+.history-screen h2 { margin-bottom: 16px; }
+.history-item {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 8px;
+}
+.history-item .hi-date { font-size: 13px; color: var(--text-dim); }
+.history-item .hi-exercise { font-weight: 600; margin-top: 2px; }
+.history-item .hi-sets { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+
+/* --- Utility --- */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ======== SETUP SCREEN ======== -->
+<div id="setupScreen" class="setup-screen">
+  <h1>Workout</h1>
+  <p>Select your profile to get started.</p>
+  <div id="userList"></div>
+  <div id="noUsers" class="hidden" style="color:var(--text-dim); text-align:center; padding:40px 0;">
+    No users configured yet.<br>Run the Python build script with --assign to add users.
+  </div>
+</div>
+
+<!-- ======== WORKOUT SCREEN ======== -->
+<div id="workoutScreen" class="hidden">
+  <div class="header">
+    <div class="header-left">
+      <h2 id="headerName"></h2>
+      <span id="headerProgram"></span>
+    </div>
+    <div class="header-right">
+      <button class="header-btn" onclick="showHistory()" title="History">&#x1f4ca;</button>
+      <button class="header-btn" onclick="logout()" title="Switch User">&#x2630;</button>
+    </div>
+  </div>
+
+  <div class="day-nav">
+    <button class="day-nav-btn" id="prevDay" onclick="changeDay(-1)">&#8249;</button>
+    <div class="day-info">
+      <div class="day-label" id="dayLabel"></div>
+      <div class="day-date" id="dayDate"></div>
+    </div>
+    <button class="day-nav-btn" id="nextDay" onclick="changeDay(1)">&#8250;</button>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <div id="workoutContent" class="workout-content"></div>
+</div>
+
+<!-- ======== HISTORY SCREEN ======== -->
+<div id="historyScreen" class="hidden">
+  <div class="header">
+    <div class="header-left">
+      <h2>History</h2>
+    </div>
+    <div class="header-right">
+      <button class="header-btn" onclick="showWorkout()">&#x2715;</button>
+    </div>
+  </div>
+  <div id="historyContent" class="history-screen"></div>
+</div>
+
+<script>
+// ==================== DATA ====================
+let programData = null;
+let currentUser = null;
+let currentDayIndex = 0;
+let allDays = [];
+
+// ==================== INIT ====================
+async function init() {
+  try {
+    const resp = await fetch('program.json');
+    programData = await resp.json();
+  } catch (e) {
+    // Try inline data (for testing)
+    document.getElementById('noUsers').classList.remove('hidden');
+    return;
+  }
+
+  const saved = localStorage.getItem('workout_current_user');
+  if (saved && programData.users[saved]) {
+    selectUser(saved);
+  } else {
+    showSetup();
+  }
+}
+
+// ==================== SETUP ====================
+function showSetup() {
+  document.getElementById('setupScreen').classList.remove('hidden');
+  document.getElementById('workoutScreen').classList.add('hidden');
+  document.getElementById('historyScreen').classList.add('hidden');
+
+  const userList = document.getElementById('userList');
+  userList.innerHTML = '';
+
+  if (!programData || !programData.users || Object.keys(programData.users).length === 0) {
+    document.getElementById('noUsers').classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('noUsers').classList.add('hidden');
+
+  for (const [name, info] of Object.entries(programData.users)) {
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = name;
+    btn.style.marginBottom = '10px';
+    btn.onclick = () => selectUser(name);
+
+    const sub = document.createElement('div');
+    sub.style.cssText = 'font-size:13px;color:var(--text-dim);margin-bottom:16px;text-align:center;';
+    sub.textContent = `${info.program} · Started ${info.startDate}`;
+
+    userList.appendChild(btn);
+    userList.appendChild(sub);
+  }
+}
+
+function selectUser(name) {
+  currentUser = name;
+  localStorage.setItem('workout_current_user', name);
+
+  const userInfo = programData.users[name];
+  const program = programData.programs[userInfo.program];
+
+  // Flatten all days
+  allDays = [];
+  for (const week of program.weeks) {
+    for (const day of week.days) {
+      allDays.push({ ...day, week: week.week });
+    }
+  }
+
+  // Calculate current day from start date
+  const start = new Date(userInfo.startDate + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+  currentDayIndex = Math.max(0, Math.min(diffDays, allDays.length - 1));
+
+  document.getElementById('headerName').textContent = name;
+  document.getElementById('headerProgram').textContent = userInfo.program;
+
+  showWorkout();
+}
+
+// ==================== WORKOUT ====================
+function showWorkout() {
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('workoutScreen').classList.remove('hidden');
+  document.getElementById('historyScreen').classList.add('hidden');
+  renderDay();
+}
+
+function changeDay(delta) {
+  const newIndex = currentDayIndex + delta;
+  if (newIndex >= 0 && newIndex < allDays.length) {
+    saveCurrentDay();
+    currentDayIndex = newIndex;
+    renderDay();
+  }
+}
+
+function renderDay() {
+  const day = allDays[currentDayIndex];
+  const userInfo = programData.users[currentUser];
+  const startDate = new Date(userInfo.startDate + 'T00:00:00');
+  const dayDate = new Date(startDate);
+  dayDate.setDate(dayDate.getDate() + currentDayIndex);
+
+  // Navigation
+  document.getElementById('dayLabel').textContent = `Week ${day.week} · Day ${day.day}`;
+  document.getElementById('dayDate').textContent = dayDate.toLocaleDateString('en-US', {
+    weekday: 'long', month: 'short', day: 'numeric'
+  });
+  document.getElementById('prevDay').disabled = currentDayIndex === 0;
+  document.getElementById('nextDay').disabled = currentDayIndex === allDays.length - 1;
+
+  // Progress
+  const progress = ((currentDayIndex + 1) / allDays.length) * 100;
+  document.getElementById('progressFill').style.width = progress + '%';
+
+  const content = document.getElementById('workoutContent');
+
+  if (day.isRest) {
+    content.innerHTML = `
+      <div class="rest-day">
+        <div class="rest-icon">&#x1f9d8;</div>
+        <h2>Rest Day</h2>
+        <p>${day.restNote || 'Take it easy today. Recovery is where growth happens.'}</p>
+      </div>`;
+    return;
+  }
+
+  // Load saved data for this day
+  const savedData = loadDayData(currentDayIndex);
+
+  let html = '';
+  for (const group of day.exerciseGroups) {
+    html += '<div class="group-container">';
+
+    if (group.type === 'superset') {
+      html += '<span class="group-label superset">Superset</span>';
+    } else if (group.type === 'circuit') {
+      html += '<span class="group-label circuit">Circuit</span>';
+    }
+
+    for (const ex of group.exercises) {
+      const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
+      const exData = savedData[exKey] || {};
+      const cardClass = group.type !== 'single' ? `in-${group.type}` : '';
+
+      html += `<div class="exercise-card ${cardClass}">
+        <div class="exercise-name">${ex.name}</div>
+        <div class="exercise-meta">
+          <div class="meta-item"><div class="meta-value">${ex.sets}×${ex.reps}</div><div class="meta-label">Sets×Reps</div></div>
+          <div class="meta-item"><div class="meta-value">${ex.tempo}</div><div class="meta-label">Tempo</div></div>
+          ${ex.rest ? `<div class="meta-item"><div class="meta-value">${ex.rest}</div><div class="meta-label">Rest</div></div>` : ''}
+          ${ex.rpe ? `<div class="meta-item"><div class="meta-value">${ex.rpe}</div><div class="meta-label">RPE</div></div>` : ''}
+        </div>
+        <div class="exercise-instruction">${ex.instruction}</div>
+        <div class="sets-log">
+          <div class="sets-log-header">
+            <div>Set</div><div style="text-align:center">Weight</div><div style="text-align:center">Reps</div><div></div>
+          </div>`;
+
+      for (let s = 1; s <= ex.sets; s++) {
+        const setData = exData['set' + s] || {};
+        html += `<div class="set-row">
+          <div class="set-num">${s}</div>
+          <input class="set-input" type="number" inputmode="decimal" placeholder="kg"
+            data-key="${exKey}" data-set="${s}" data-field="weight"
+            value="${setData.weight || ''}" onchange="onSetChange(this)">
+          <input class="set-input" type="number" inputmode="numeric" placeholder="${ex.reps}"
+            data-key="${exKey}" data-set="${s}" data-field="reps"
+            value="${setData.reps || ''}" onchange="onSetChange(this)">
+          <button class="set-check ${setData.done ? 'done' : ''}"
+            data-key="${exKey}" data-set="${s}"
+            onclick="toggleSet(this)">✓</button>
+        </div>`;
+      }
+
+      html += `</div>
+        <div class="exercise-notes">
+          <textarea class="notes-input" placeholder="Notes..."
+            data-key="${exKey}" data-field="notes"
+            onchange="onNotesChange(this)">${exData.notes || ''}</textarea>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  content.innerHTML = html;
+}
+
+// ==================== DATA PERSISTENCE ====================
+function getStorageKey(dayIndex) {
+  return `workout_${currentUser}_day${dayIndex}`;
+}
+
+function loadDayData(dayIndex) {
+  try {
+    const raw = localStorage.getItem(getStorageKey(dayIndex));
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveDayData(dayIndex, data) {
+  localStorage.setItem(getStorageKey(dayIndex), JSON.stringify(data));
+}
+
+function saveCurrentDay() {
+  const data = collectCurrentData();
+  if (Object.keys(data).length > 0) {
+    saveDayData(currentDayIndex, data);
+  }
+}
+
+function collectCurrentData() {
+  const data = {};
+  document.querySelectorAll('.set-input').forEach(input => {
+    const key = input.dataset.key;
+    const set = 'set' + input.dataset.set;
+    const field = input.dataset.field;
+    if (!data[key]) data[key] = {};
+    if (!data[key][set]) data[key][set] = {};
+    if (input.value) data[key][set][field] = input.value;
+  });
+  document.querySelectorAll('.set-check.done').forEach(btn => {
+    const key = btn.dataset.key;
+    const set = 'set' + btn.dataset.set;
+    if (!data[key]) data[key] = {};
+    if (!data[key][set]) data[key][set] = {};
+    data[key][set].done = true;
+  });
+  document.querySelectorAll('.notes-input').forEach(ta => {
+    const key = ta.dataset.key;
+    if (ta.value.trim()) {
+      if (!data[key]) data[key] = {};
+      data[key].notes = ta.value.trim();
+    }
+  });
+  return data;
+}
+
+function onSetChange(input) {
+  saveCurrentDay();
+}
+
+function onNotesChange(ta) {
+  saveCurrentDay();
+}
+
+function toggleSet(btn) {
+  btn.classList.toggle('done');
+  saveCurrentDay();
+}
+
+// ==================== HISTORY ====================
+function showHistory() {
+  saveCurrentDay();
+  document.getElementById('workoutScreen').classList.add('hidden');
+  document.getElementById('historyScreen').classList.remove('hidden');
+
+  const container = document.getElementById('historyContent');
+  let html = '<h2>Workout History</h2>';
+
+  let found = false;
+  for (let i = allDays.length - 1; i >= 0; i--) {
+    const day = allDays[i];
+    if (day.isRest) continue;
+
+    const data = loadDayData(i);
+    if (Object.keys(data).length === 0) continue;
+
+    found = true;
+    const userInfo = programData.users[currentUser];
+    const startDate = new Date(userInfo.startDate + 'T00:00:00');
+    const dayDate = new Date(startDate);
+    dayDate.setDate(dayDate.getDate() + i);
+
+    for (const group of day.exerciseGroups) {
+      for (const ex of group.exercises) {
+        const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
+        const exData = data[exKey];
+        if (!exData) continue;
+
+        let setsStr = [];
+        for (let s = 1; s <= ex.sets; s++) {
+          const sd = exData['set' + s];
+          if (sd && (sd.weight || sd.reps)) {
+            setsStr.push(`${sd.weight || '?'}kg × ${sd.reps || '?'}`);
+          }
+        }
+        if (setsStr.length === 0) continue;
+
+        html += `<div class="history-item">
+          <div class="hi-date">W${day.week}D${day.day} · ${dayDate.toLocaleDateString('en-US', {month:'short', day:'numeric'})}</div>
+          <div class="hi-exercise">${ex.name}</div>
+          <div class="hi-sets">${setsStr.join(' / ')}</div>
+          ${exData.notes ? `<div class="hi-sets" style="margin-top:4px;font-style:italic;">${exData.notes}</div>` : ''}
+        </div>`;
+      }
+    }
+  }
+
+  if (!found) html += '<p style="color:var(--text-dim);text-align:center;padding:40px 0;">No logged workouts yet.</p>';
+  container.innerHTML = html;
+}
+
+function logout() {
+  saveCurrentDay();
+  localStorage.removeItem('workout_current_user');
+  showSetup();
+}
+
+// ==================== SAVE ON EXIT ====================
+window.addEventListener('beforeunload', saveCurrentDay);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveCurrentDay();
+});
+
+// ==================== START ====================
+init();
+</script>
+</body>
+</html>
