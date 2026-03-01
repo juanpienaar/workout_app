@@ -486,6 +486,2059 @@
           ]
         }
       ]
+    },
+    "Athletic Performance": {
+      "name": "Athletic Performance",
+      "weeks": [
+        {
+          "week": 1,
+          "days": [
+            {
+              "day": 1,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Bench Press",
+                      "sets": 4,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "8.0",
+                      "instruction": "Drive through heels"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Incline Dumbbell Press",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "7.0",
+                      "instruction": "Control eccentric"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "3a",
+                      "name": "Cable Fly (High to Low)",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-2-0",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Squeeze at bottom"
+                    },
+                    {
+                      "order": "3b",
+                      "name": "Dips (Chest Focus)",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "Lean forward"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Overhead Press",
+                      "sets": 4,
+                      "reps": "6",
+                      "tempo": "2-0-1-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Brace core tight"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Lateral Raise",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "Slight forward lean"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Face Pull",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "Pull to eye level"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Tricep Pushdown",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Keep elbows tucked"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 2,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Active recovery"
+            },
+            {
+              "day": 3,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Conventional Deadlift",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "8.0",
+                      "instruction": "Hips high start"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Pull Up",
+                      "sets": 4,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Full ROM"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Barbell Row",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "2-0-1-1",
+                      "rest": "120s",
+                      "rpe": "7.0",
+                      "instruction": "Pull to sternum"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Lat Pulldown",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-1",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Lean back slightly"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Chest Supported Dumbbell Row",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Squeeze shoulder blades"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Cable Face Pull",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "6.0",
+                      "instruction": "External rotation"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Barbell Curl",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "No momentum"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 4,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Active recovery"
+            },
+            {
+              "day": 5,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Back Squat",
+                      "sets": 4,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "8.0",
+                      "instruction": "Break at hips"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Barbell Front Squat",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "7.0",
+                      "instruction": "Elbows high"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Romanian Deadlift",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Hinge at hips"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Leg Press Machine",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "3-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Full depth"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Leg Extension",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Control negative"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Lying Leg Curl",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Squeeze at top"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Calf Raise Machine",
+                      "sets": 4,
+                      "reps": "15",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Full stretch"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 6,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Incline Barbell Bench Press",
+                      "sets": 4,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "8.0",
+                      "instruction": "Retract scapula"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Dumbbell Bench Press",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "7.0",
+                      "instruction": "Deep stretch"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "3a",
+                      "name": "Cable Crossover",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-2-0",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Slight bend in elbow"
+                    },
+                    {
+                      "order": "3b",
+                      "name": "Push Up",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-0",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Plank position"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Dumbbell Shoulder Press",
+                      "sets": 4,
+                      "reps": "8",
+                      "tempo": "2-0-1-0",
+                      "rest": "120s",
+                      "rpe": "7.0",
+                      "instruction": "Press slightly back"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Cable Lateral Raise",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "Control path"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Reverse Fly",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "Pinch shoulder blades"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Skull Crusher",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "3-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Keep elbows in"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 7,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Row",
+                      "sets": 4,
+                      "reps": "6",
+                      "tempo": "2-0-1-1",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Explosive pull"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Weighted Pull Up",
+                      "sets": 3,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Add load gradually"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Seated Cable Row",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-1",
+                      "rest": "120s",
+                      "rpe": "7.0",
+                      "instruction": "Upright posture"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Straight Arm Pulldown",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Slight arm bend"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Dumbbell Row",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Row to hip"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Cable Rear Delt Fly",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "6.0",
+                      "instruction": "Slight bend forward"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "EZ Bar Curl",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Full supination"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "week": 2,
+          "days": [
+            {
+              "day": 1,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Active recovery"
+            },
+            {
+              "day": 2,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Back Squat",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Depth then drive"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Dumbbell Bulgarian Split Squat",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Vertical torso"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Sumo Deadlift",
+                      "sets": 3,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Wide stance"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Hack Squat",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "3-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Controlled descent"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Leg Extension",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Peak contraction"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Seated Leg Curl",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Pause at top"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Leg Press Calf Raise",
+                      "sets": 4,
+                      "reps": "20",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Full ROM"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 3,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Bench Press",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Pause on chest"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Incline Dumbbell Press",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "45 degree angle"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "3a",
+                      "name": "Dumbbell Fly",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "3-0-2-0",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Deep stretch"
+                    },
+                    {
+                      "order": "3b",
+                      "name": "Dips (Chest Focus)",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "Add weight if able"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Push Press",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "1-0-X-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Explosive drive"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Arnold Press",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-2-0",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Full rotation"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Face Pull",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "High pull"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Close Grip Bench Press",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "90s",
+                      "rpe": "8.0",
+                      "instruction": "Tuck elbows"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 4,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Active recovery"
+            },
+            {
+              "day": 5,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Conventional Deadlift",
+                      "sets": 4,
+                      "reps": "4",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Explosive off floor"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Weighted Pull Up",
+                      "sets": 4,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Control descent"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Pendlay Row",
+                      "sets": 3,
+                      "reps": "6",
+                      "tempo": "1-0-X-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Dead stop each rep"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Lat Pulldown",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-1",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Wide grip"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Dumbbell Row",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Elbow to ceiling"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Straight Arm Pulldown",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Maintain arm angle"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Hammer Curl",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Neutral grip"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 6,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Front Squat",
+                      "sets": 4,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "8.0",
+                      "instruction": "Stay upright"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Leg Press Machine",
+                      "sets": 4,
+                      "reps": "12",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "7.0",
+                      "instruction": "Deep ROM"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Romanian Deadlift",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Feel hamstring stretch"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Barbell Lunge",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Long stride"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Leg Extension",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Squeeze quads"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Lying Leg Curl",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Control tempo"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Standing Calf Raise",
+                      "sets": 4,
+                      "reps": "15",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Full stretch bottom"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 7,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Active recovery"
+            }
+          ]
+        },
+        {
+          "week": 3,
+          "days": [
+            {
+              "day": 1,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Incline Barbell Bench Press",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Upper chest focus"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Dumbbell Bench Press",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Neutral grip option"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "3a",
+                      "name": "Cable Fly (Low to High)",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-2-0",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Upper chest angle"
+                    },
+                    {
+                      "order": "3b",
+                      "name": "Diamond Push Up",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "Close hand position"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Overhead Press",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "2-0-1-0",
+                      "rest": "150s",
+                      "rpe": "9.0",
+                      "instruction": "Drive through legs"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Lateral Raise",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "Lead with elbows"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Cable Rear Delt Fly",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "Squeeze rear delts"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Overhead Cable Extension",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "3-0-1-1",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Stretch triceps"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 2,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Row",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "2-0-X-1",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Explosive concentric"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Pull Up",
+                      "sets": 4,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Add weight"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "T-Bar Row",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "2-0-1-1",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Pull to chest"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Low Row Machine",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-1",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Full contraction"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Chest Supported Dumbbell Row",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Isolate back"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Face Pull",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "External rotate"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Incline Dumbbell Curl",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Long head emphasis"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 3,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Active recovery"
+            },
+            {
+              "day": 4,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Back Squat",
+                      "sets": 5,
+                      "reps": "5",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Build to heavy set"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Barbell Front Squat",
+                      "sets": 3,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Core engaged"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Barbell Hip Thrust",
+                      "sets": 4,
+                      "reps": "8",
+                      "tempo": "2-1-1-1",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Full hip extension"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Hack Squat",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "3-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Quad focused"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Leg Extension",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Top squeeze"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Lying Leg Curl",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Full flexion"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Calf Raise Machine",
+                      "sets": 4,
+                      "reps": "20",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "Stretch hold"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 5,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Active recovery"
+            },
+            {
+              "day": 6,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Bench Press",
+                      "sets": 4,
+                      "reps": "4",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Heavy singles prep"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Incline Dumbbell Press",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Control weight"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "3a",
+                      "name": "Cable Crossover",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-2-0",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Constant tension"
+                    },
+                    {
+                      "order": "3b",
+                      "name": "Push Up",
+                      "sets": 3,
+                      "reps": "20",
+                      "tempo": "2-0-1-0",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Max effort"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Dumbbell Shoulder Press",
+                      "sets": 4,
+                      "reps": "8",
+                      "tempo": "2-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Overhead lockout"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Cable Lateral Raise",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "Smooth motion"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Reverse Fly",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "Rear delt burn"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Skull Crusher",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "3-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Keep upper arm still"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 7,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Conventional Deadlift",
+                      "sets": 4,
+                      "reps": "3",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Build intensity"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Weighted Pull Up",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "9.0",
+                      "instruction": "Heavy load"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Barbell Row",
+                      "sets": 3,
+                      "reps": "6",
+                      "tempo": "2-0-1-1",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Maintain position"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Seated Cable Row",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-1",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Chest out"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Dumbbell Row",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "One arm focus"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Straight Arm Pulldown",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Lat activation"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "EZ Bar Curl",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Strict form"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "week": 4,
+          "days": [
+            {
+              "day": 1,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Back Squat",
+                      "sets": 5,
+                      "reps": "3",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Peak load"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Dumbbell Bulgarian Split Squat",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "3-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Balance challenge"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Romanian Deadlift",
+                      "sets": 4,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Hip hinge master"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Leg Press Machine",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "3-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "High volume"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Leg Extension",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Burn out"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Seated Leg Curl",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Peak squeeze"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Leg Press Calf Raise",
+                      "sets": 4,
+                      "reps": "25",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Volume work"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 2,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Active recovery"
+            },
+            {
+              "day": 3,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Bench Press",
+                      "sets": 5,
+                      "reps": "3",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Near max effort"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Incline Barbell Bench Press",
+                      "sets": 3,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Heavy incline"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "3a",
+                      "name": "Dumbbell Fly",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "3-0-2-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "Stretch focus"
+                    },
+                    {
+                      "order": "3b",
+                      "name": "Dips (Chest Focus)",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "Weighted"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Push Press",
+                      "sets": 4,
+                      "reps": "4",
+                      "tempo": "1-0-X-0",
+                      "rest": "150s",
+                      "rpe": "9.0",
+                      "instruction": "Power development"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Lateral Raise",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "Tempo control"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Face Pull",
+                      "sets": 3,
+                      "reps": "20",
+                      "tempo": "2-0-1-1",
+                      "rest": "45s",
+                      "rpe": "7.0",
+                      "instruction": "High reps"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Close Grip Bench Press",
+                      "sets": 3,
+                      "reps": "6",
+                      "tempo": "3-0-1-0",
+                      "rest": "90s",
+                      "rpe": "8.0",
+                      "instruction": "Tricep builder"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 4,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Conventional Deadlift",
+                      "sets": 5,
+                      "reps": "2",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "9.0",
+                      "instruction": "Competition prep"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Weighted Pull Up",
+                      "sets": 4,
+                      "reps": "4",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "9.0",
+                      "instruction": "Max strength"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Pendlay Row",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "1-0-X-0",
+                      "rest": "120s",
+                      "rpe": "9.0",
+                      "instruction": "Explosive power"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Lat Pulldown",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "2-0-1-1",
+                      "rest": "90s",
+                      "rpe": "8.0",
+                      "instruction": "Heavy load"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Chest Supported Dumbbell Row",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Isolation work"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Cable Face Pull",
+                      "sets": 3,
+                      "reps": "20",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Rear delt volume"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Barbell Curl",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "2-0-1-0",
+                      "rest": "90s",
+                      "rpe": "8.0",
+                      "instruction": "Heavy curls"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 5,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Active recovery"
+            },
+            {
+              "day": 6,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "1",
+                      "name": "Barbell Front Squat",
+                      "sets": 4,
+                      "reps": "5",
+                      "tempo": "3-0-1-0",
+                      "rest": "180s",
+                      "rpe": "8.0",
+                      "instruction": "Maintain form"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Barbell Lunge",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "2-0-1-0",
+                      "rest": "120s",
+                      "rpe": "8.0",
+                      "instruction": "Explosive step"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Sumo Deadlift",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "3-0-1-0",
+                      "rest": "150s",
+                      "rpe": "8.0",
+                      "instruction": "Wide stance power"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "Leg Press Machine",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "3-0-1-0",
+                      "rest": "90s",
+                      "rpe": "7.0",
+                      "instruction": "Control eccentric"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "5a",
+                      "name": "Leg Extension",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Quad pump"
+                    },
+                    {
+                      "order": "5b",
+                      "name": "Lying Leg Curl",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Hamstring pump"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "Standing Calf Raise",
+                      "sets": 4,
+                      "reps": "20",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "7.0",
+                      "instruction": "Complete ROM"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 7,
+              "isRest": true,
+              "exercises": [],
+              "restNote": "Recovery week prep"
+            }
+          ]
+        }
+      ]
     }
   },
   "users": {
@@ -495,9 +2548,14 @@
       "passwordHash": "6ca2bf5027a70d4c1ce7b7676ecc4547ba84c72707e128e417b2e7dba7a5a001"
     },
     "Jack Collet": {
-      "program": "Hypertrophy A",
+      "program": "Athletic Performance",
       "startDate": "2026-03-01",
       "passwordHash": "6ca2bf5027a70d4c1ce7b7676ecc4547ba84c72707e128e417b2e7dba7a5a001"
+    },
+    "Caroline Pienaar": {
+      "passwordHash": "fcc4287a65d320cd614acd3ec1d85ed759cfbcd356ef7745fe725daf55375fc9",
+      "program": "",
+      "startDate": ""
     }
   }
 }
