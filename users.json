@@ -1,0 +1,11 @@
+{
+  "Juan": {
+    "program": "Hypertrophy A",
+    "startDate": "2026-03-02",
+    "passwordHash": "6ca2bf5027a70d4c1ce7b7676ecc4547ba84c72707e128e417b2e7dba7a5a001"
+  },
+  "Sarah": {
+    "program": "Hypertrophy A",
+    "startDate": "2026-03-09"
+  }
+}
