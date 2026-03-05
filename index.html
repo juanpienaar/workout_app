@@ -336,6 +336,16 @@ body {
 .day-info .day-label { font-size: 18px; font-weight: 700; }
 .day-info .day-date { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
 
+/* Sticky day detail header */
+.day-detail-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--card-border);
+}
+
 /* Back to week button */
 .back-btn {
   display: inline-flex;
@@ -717,6 +727,53 @@ body {
   color: white;
 }
 
+/* --- Archive Button --- */
+.archive-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #FF7043, #E8475F);
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(232,71,95,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  transition: all 0.2s;
+}
+.archive-btn:active { transform: scale(0.9); }
+
+.archive-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 20px;
+  margin-bottom: 4px;
+}
+.archive-toggle button {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.archive-toggle button.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
 .hidden { display: none !important; }
 </style>
 </head>
@@ -816,6 +873,10 @@ body {
 
   <!-- WEEK OVERVIEW (initial view after login) -->
   <div id="weekOverview">
+    <div class="archive-toggle" id="archiveToggle">
+      <button id="btnCurrent" class="active" onclick="setArchiveView('current')">Current</button>
+      <button id="btnArchived" onclick="setArchiveView('archived')">Archived</button>
+    </div>
     <div class="week-nav">
       <button class="week-nav-btn" id="prevWeek" onclick="changeWeek(-1)">&#8249;</button>
       <div class="week-info">
@@ -826,22 +887,25 @@ body {
     </div>
     <div class="week-summary" id="weekSummary"></div>
     <div id="weekCards" class="week-overview"></div>
+    <button class="archive-btn" id="archiveBtn" onclick="archiveCurrentWeek()" title="Archive this week">&#x1f4e6;</button>
   </div>
 
   <!-- DAY DETAIL (when you tap into a day) -->
   <div id="dayDetail" class="hidden">
-    <button class="back-btn" onclick="backToWeek()">&#8249; Back to Week</button>
-    <div class="day-nav">
-      <button class="day-nav-btn" id="prevDay" onclick="changeDay(-1)">&#8249;</button>
-      <div class="day-info">
-        <div class="day-label" id="dayLabel"></div>
-        <div class="day-date" id="dayDate"></div>
+    <div class="day-detail-sticky">
+      <button class="back-btn" onclick="backToWeek()">&#8249; Back to Week</button>
+      <div class="day-nav">
+        <button class="day-nav-btn" id="prevDay" onclick="changeDay(-1)">&#8249;</button>
+        <div class="day-info">
+          <div class="day-label" id="dayLabel"></div>
+          <div class="day-date" id="dayDate"></div>
+        </div>
+        <button class="day-nav-btn" id="nextDay" onclick="changeDay(1)">&#8250;</button>
       </div>
-      <button class="day-nav-btn" id="nextDay" onclick="changeDay(1)">&#8250;</button>
-    </div>
-    <div class="day-detail-stats" id="dayDetailStats"></div>
-    <div class="progress-bar">
-      <div class="progress-fill" id="progressFill"></div>
+      <div class="day-detail-stats" id="dayDetailStats"></div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
     </div>
     <div id="workoutContent" class="workout-content"></div>
   </div>
@@ -1039,7 +1103,20 @@ function selectUser(name) {
   document.getElementById('headerName').textContent = name;
   document.getElementById('headerProgram').textContent = userInfo.program;
 
-  viewMode = 'week';
+  // Default to today's day detail view
+  if (userInfo.startDate) {
+    const start = new Date(userInfo.startDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+    const todayDayIndex = Math.max(0, Math.min(diffDays, allDays.length - 1));
+    currentDayIndex = todayDayIndex;
+    viewMode = 'day';
+  } else {
+    viewMode = 'week';
+  }
+
+  archiveView = 'current';
   showWorkout();
 }
 
@@ -1053,6 +1130,7 @@ function showWorkout() {
     document.getElementById('weekOverview').classList.remove('hidden');
     document.getElementById('dayDetail').classList.add('hidden');
     renderWeekOverview();
+    updateArchiveUI();
   } else {
     document.getElementById('weekOverview').classList.add('hidden');
     document.getElementById('dayDetail').classList.remove('hidden');
@@ -1062,10 +1140,11 @@ function showWorkout() {
 
 // ==================== WEEK OVERVIEW ====================
 function changeWeek(delta) {
-  const newIdx = currentWeekIndex + delta;
-  if (newIdx >= 0 && newIdx < weekMap.length) {
-    currentWeekIndex = newIdx;
+  const next = findNextVisibleWeek(currentWeekIndex, delta);
+  if (next !== null) {
+    currentWeekIndex = next;
     renderWeekOverview();
+    updateArchiveUI();
   }
 }
 
@@ -1092,8 +1171,8 @@ function renderWeekOverview() {
     document.getElementById('weekDates').textContent = '';
   }
 
-  document.getElementById('prevWeek').disabled = currentWeekIndex === 0;
-  document.getElementById('nextWeek').disabled = currentWeekIndex === weekMap.length - 1;
+  document.getElementById('prevWeek').disabled = findNextVisibleWeek(currentWeekIndex, -1) === null;
+  document.getElementById('nextWeek').disabled = findNextVisibleWeek(currentWeekIndex, 1) === null;
 
   // Calculate week-level stats
   let weekTotalSets = 0, weekDoneSets = 0, weekTonnage = 0;
@@ -1222,18 +1301,27 @@ function openDay(globalDayIndex) {
 function backToWeek() {
   if (!isViewOnly) saveCurrentDay();
   viewMode = 'week';
+  // Set archive view based on whether current week is archived
+  archiveView = isWeekArchived(currentWeekIndex) ? 'archived' : 'current';
   document.getElementById('dayDetail').classList.add('hidden');
   document.getElementById('weekOverview').classList.remove('hidden');
   renderWeekOverview();
+  updateArchiveUI();
 }
 
 function changeDay(delta) {
-  // Navigate within current week only
-  const wk = weekMap[currentWeekIndex];
+  // Navigate across all days (not restricted to current week)
   const newIndex = currentDayIndex + delta;
-  if (newIndex >= wk.startDayIndex && newIndex <= wk.endDayIndex) {
+  if (newIndex >= 0 && newIndex < allDays.length) {
     if (!isViewOnly) saveCurrentDay();
     currentDayIndex = newIndex;
+    // Update currentWeekIndex to match
+    for (let w = 0; w < weekMap.length; w++) {
+      if (currentDayIndex >= weekMap[w].startDayIndex && currentDayIndex <= weekMap[w].endDayIndex) {
+        currentWeekIndex = w;
+        break;
+      }
+    }
     renderDay();
   }
 }
@@ -1249,8 +1337,8 @@ function renderDay() {
   document.getElementById('dayDate').textContent = dayDate
     ? dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
     : `Day ${day.day}`;
-  document.getElementById('prevDay').disabled = currentDayIndex <= wk.startDayIndex;
-  document.getElementById('nextDay').disabled = currentDayIndex >= wk.endDayIndex;
+  document.getElementById('prevDay').disabled = currentDayIndex <= 0;
+  document.getElementById('nextDay').disabled = currentDayIndex >= allDays.length - 1;
 
   // Progress within current week
   const daysInWeek = wk.endDayIndex - wk.startDayIndex + 1;
@@ -1666,6 +1754,106 @@ function toggleTheme() {
   const saved = localStorage.getItem('workout_theme') || 'dark';
   applyTheme(saved);
 })();
+
+// ==================== ARCHIVE ====================
+let archiveView = 'current'; // 'current' or 'archived'
+
+function getArchivedWeeks() {
+  try {
+    const raw = localStorage.getItem(`workout_${currentUser}_archived_weeks`);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveArchivedWeeks(weeks) {
+  localStorage.setItem(`workout_${currentUser}_archived_weeks`, JSON.stringify(weeks));
+}
+
+function isWeekArchived(weekIndex) {
+  return getArchivedWeeks().includes(weekIndex);
+}
+
+function archiveCurrentWeek() {
+  const archived = getArchivedWeeks();
+  if (!archived.includes(currentWeekIndex)) {
+    archived.push(currentWeekIndex);
+    saveArchivedWeeks(archived);
+  }
+  // Move to next non-archived week or stay in current view
+  const nextWeek = findNextVisibleWeek(currentWeekIndex, 1);
+  if (nextWeek !== null) {
+    currentWeekIndex = nextWeek;
+  } else {
+    const prevWeek = findNextVisibleWeek(currentWeekIndex, -1);
+    if (prevWeek !== null) {
+      currentWeekIndex = prevWeek;
+    } else {
+      // All weeks archived, switch to archived view
+      archiveView = 'archived';
+    }
+  }
+  renderWeekOverview();
+  updateArchiveUI();
+}
+
+function unarchiveCurrentWeek() {
+  const archived = getArchivedWeeks();
+  const idx = archived.indexOf(currentWeekIndex);
+  if (idx !== -1) {
+    archived.splice(idx, 1);
+    saveArchivedWeeks(archived);
+  }
+  renderWeekOverview();
+  updateArchiveUI();
+}
+
+function findNextVisibleWeek(fromIndex, direction) {
+  const archived = getArchivedWeeks();
+  let i = fromIndex + direction;
+  while (i >= 0 && i < weekMap.length) {
+    const isArch = archived.includes(i);
+    if (archiveView === 'current' && !isArch) return i;
+    if (archiveView === 'archived' && isArch) return i;
+    i += direction;
+  }
+  return null;
+}
+
+function setArchiveView(view) {
+  archiveView = view;
+  // Find first visible week for this view
+  const archived = getArchivedWeeks();
+  let found = false;
+  for (let i = 0; i < weekMap.length; i++) {
+    const isArch = archived.includes(i);
+    if ((view === 'current' && !isArch) || (view === 'archived' && isArch)) {
+      currentWeekIndex = i;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    // No weeks in this view, just show first week
+    currentWeekIndex = 0;
+  }
+  renderWeekOverview();
+  updateArchiveUI();
+}
+
+function updateArchiveUI() {
+  document.getElementById('btnCurrent').classList.toggle('active', archiveView === 'current');
+  document.getElementById('btnArchived').classList.toggle('active', archiveView === 'archived');
+  const archBtn = document.getElementById('archiveBtn');
+  if (archiveView === 'archived') {
+    archBtn.innerHTML = '&#x1f4e4;'; // unarchive icon
+    archBtn.title = 'Unarchive this week';
+    archBtn.onclick = unarchiveCurrentWeek;
+  } else {
+    archBtn.innerHTML = '&#x1f4e6;'; // archive icon
+    archBtn.title = 'Archive this week';
+    archBtn.onclick = archiveCurrentWeek;
+  }
+}
 
 // ==================== LOGOUT CONFIRM ====================
 function confirmLogout() {
