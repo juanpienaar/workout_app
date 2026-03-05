@@ -155,7 +155,129 @@ body {
   justify-content: center;
 }
 
-/* --- Day Navigation --- */
+/* --- Week Navigation --- */
+.week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  gap: 10px;
+}
+.week-nav-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.week-nav-btn:disabled { opacity: 0.3; cursor: default; }
+.week-info { text-align: center; flex: 1; }
+.week-info .week-label { font-size: 18px; font-weight: 700; }
+.week-info .week-dates { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
+/* --- Week Overview Cards --- */
+.week-overview { padding: 0 16px 100px; }
+.day-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.1s;
+  position: relative;
+}
+.day-card:active { transform: scale(0.98); }
+.day-card.today-card { border-color: var(--accent); }
+.day-card.rest-card { opacity: 0.6; cursor: default; }
+.day-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.day-card-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.day-card-weekday {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.day-card-exercises {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.day-card-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--card-border);
+}
+.day-stat {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.day-stat .stat-value { font-weight: 700; color: var(--text); }
+.day-stat .stat-label { color: var(--text-dim); }
+.day-stat.complete .stat-value { color: var(--green); }
+
+/* Completion ring on day card */
+.day-card-ring {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.day-card-ring svg { transform: rotate(-90deg); }
+.day-card-ring circle { fill: none; stroke-width: 4; }
+.day-card-ring .ring-bg { stroke: var(--card-border); }
+.day-card-ring .ring-fg { stroke: var(--accent); stroke-linecap: round; }
+.day-card-ring .ring-fg.complete { stroke: var(--green); }
+.day-card-pct {
+  position: absolute;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Week summary bar */
+.week-summary {
+  display: flex;
+  gap: 12px;
+  padding: 12px 20px;
+  margin-bottom: 4px;
+}
+.week-summary-item {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  flex: 1;
+  text-align: center;
+}
+.week-summary-item .ws-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+.week-summary-item .ws-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* --- Day Navigation (detail view) --- */
 .day-nav {
   display: flex;
   align-items: center;
@@ -181,6 +303,39 @@ body {
 .day-info { text-align: center; flex: 1; }
 .day-info .day-label { font-size: 18px; font-weight: 700; }
 .day-info .day-date { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
+/* Back to week button */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  margin: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+.back-btn:active { background: var(--accent); }
+
+/* Day detail stats bar */
+.day-detail-stats {
+  display: flex;
+  gap: 12px;
+  padding: 0 20px 12px;
+}
+.day-detail-stat {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  flex: 1;
+  text-align: center;
+}
+.day-detail-stat .dds-value { font-size: 18px; font-weight: 700; }
+.day-detail-stat .dds-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 
 /* --- Progress Bar --- */
 .progress-bar {
@@ -352,14 +507,6 @@ body {
   justify-content: center;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-}
-.rest-timer-display {
-  font-size: 96px;
-  font-weight: 200;
-  font-variant-numeric: tabular-nums;
-  color: #fff;
-  margin-bottom: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, monospace;
 }
 .rest-timer-label {
   font-size: 16px;
@@ -562,20 +709,37 @@ body {
     </div>
   </div>
 
-  <div class="day-nav">
-    <button class="day-nav-btn" id="prevDay" onclick="changeDay(-1)">&#8249;</button>
-    <div class="day-info">
-      <div class="day-label" id="dayLabel"></div>
-      <div class="day-date" id="dayDate"></div>
+  <!-- WEEK OVERVIEW (initial view after login) -->
+  <div id="weekOverview">
+    <div class="week-nav">
+      <button class="week-nav-btn" id="prevWeek" onclick="changeWeek(-1)">&#8249;</button>
+      <div class="week-info">
+        <div class="week-label" id="weekLabel"></div>
+        <div class="week-dates" id="weekDates"></div>
+      </div>
+      <button class="week-nav-btn" id="nextWeek" onclick="changeWeek(1)">&#8250;</button>
     </div>
-    <button class="day-nav-btn" id="nextDay" onclick="changeDay(1)">&#8250;</button>
+    <div class="week-summary" id="weekSummary"></div>
+    <div id="weekCards" class="week-overview"></div>
   </div>
 
-  <div class="progress-bar">
-    <div class="progress-fill" id="progressFill"></div>
+  <!-- DAY DETAIL (when you tap into a day) -->
+  <div id="dayDetail" class="hidden">
+    <button class="back-btn" onclick="backToWeek()">&#8249; Back to Week</button>
+    <div class="day-nav">
+      <button class="day-nav-btn" id="prevDay" onclick="changeDay(-1)">&#8249;</button>
+      <div class="day-info">
+        <div class="day-label" id="dayLabel"></div>
+        <div class="day-date" id="dayDate"></div>
+      </div>
+      <button class="day-nav-btn" id="nextDay" onclick="changeDay(1)">&#8250;</button>
+    </div>
+    <div class="day-detail-stats" id="dayDetailStats"></div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div id="workoutContent" class="workout-content"></div>
   </div>
-
-  <div id="workoutContent" class="workout-content"></div>
 </div>
 
 <!-- ======== HISTORY SCREEN ======== -->
@@ -595,10 +759,13 @@ body {
 // ==================== DATA ====================
 let programData = null;
 let currentUser = null;
-let currentDayIndex = 0;
+let currentWeekIndex = 0;  // which program week we're viewing (0-based)
+let currentDayIndex = 0;   // global day index across all weeks
 let allDays = [];
+let weekMap = [];           // array of { weekNum, startDayIndex, endDayIndex }
 let isViewOnly = false;
 let pendingUser = null;
+let viewMode = 'week'; // 'week' or 'day'
 
 // ==================== HASHING ====================
 async function sha256(message) {
@@ -618,7 +785,6 @@ async function init() {
     return;
   }
 
-  // Check for saved authenticated session
   const savedUser = localStorage.getItem('workout_current_user');
   const savedAuth = localStorage.getItem('workout_auth_token');
   if (savedUser && programData.users[savedUser]) {
@@ -650,7 +816,6 @@ function showSetup() {
   document.getElementById('noUsers').classList.add('hidden');
 
   for (const [name, info] of Object.entries(programData.users)) {
-    // Skip users without a program or whose program doesn't exist
     if (!info.program || !programData.programs[info.program]) continue;
 
     const btn = document.createElement('button');
@@ -671,14 +836,11 @@ function showSetup() {
 // ==================== PASSWORD MODAL ====================
 function promptPassword(name) {
   const userInfo = programData.users[name];
-
-  // If no password set, go straight in with edit access
   if (!userInfo.passwordHash) {
     isViewOnly = false;
     selectUser(name);
     return;
   }
-
   pendingUser = name;
   document.getElementById('modalUserName').textContent = name;
   document.getElementById('passwordInput').value = '';
@@ -695,10 +857,8 @@ function closeModal() {
 async function submitPassword() {
   const password = document.getElementById('passwordInput').value;
   if (!password) return;
-
   const hash = await sha256(password);
   const userInfo = programData.users[pendingUser];
-
   if (hash === userInfo.passwordHash) {
     isViewOnly = false;
     localStorage.setItem('workout_auth_token', hash);
@@ -718,7 +878,6 @@ function viewOnly() {
   selectUser(pendingUser);
 }
 
-// Handle Enter key in password field
 document.getElementById('passwordInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') submitPassword();
 });
@@ -732,47 +891,236 @@ function selectUser(name) {
   const program = programData.programs[userInfo.program];
 
   allDays = [];
+  weekMap = [];
+  let dayIdx = 0;
+
   for (const week of program.weeks) {
+    const startIdx = dayIdx;
     for (const day of week.days) {
       allDays.push({ ...day, week: week.week });
+      dayIdx++;
     }
+    weekMap.push({ weekNum: week.week, startDayIndex: startIdx, endDayIndex: dayIdx - 1 });
   }
 
+  // Determine which week to show initially (based on today's date)
+  currentWeekIndex = 0;
   if (userInfo.startDate) {
     const start = new Date(userInfo.startDate + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-    currentDayIndex = Math.max(0, Math.min(diffDays, allDays.length - 1));
-  } else {
-    currentDayIndex = 0;
+    // Find which week contains today
+    const todayDayIndex = Math.max(0, Math.min(diffDays, allDays.length - 1));
+    for (let w = 0; w < weekMap.length; w++) {
+      if (todayDayIndex >= weekMap[w].startDayIndex && todayDayIndex <= weekMap[w].endDayIndex) {
+        currentWeekIndex = w;
+        break;
+      }
+    }
   }
 
   document.getElementById('headerName').textContent = name;
   document.getElementById('headerProgram').textContent = userInfo.program + (isViewOnly ? ' (View Only)' : '');
 
-  // Show/hide view-only banner
   const banner = document.getElementById('viewOnlyBanner');
-  if (isViewOnly) {
-    banner.classList.remove('hidden');
-  } else {
-    banner.classList.add('hidden');
-  }
+  if (isViewOnly) banner.classList.remove('hidden');
+  else banner.classList.add('hidden');
 
+  viewMode = 'week';
   showWorkout();
 }
 
-// ==================== WORKOUT ====================
+// ==================== WORKOUT SCREEN ====================
 function showWorkout() {
   document.getElementById('setupScreen').classList.add('hidden');
   document.getElementById('workoutScreen').classList.remove('hidden');
   document.getElementById('historyScreen').classList.add('hidden');
+
+  if (viewMode === 'week') {
+    document.getElementById('weekOverview').classList.remove('hidden');
+    document.getElementById('dayDetail').classList.add('hidden');
+    renderWeekOverview();
+  } else {
+    document.getElementById('weekOverview').classList.add('hidden');
+    document.getElementById('dayDetail').classList.remove('hidden');
+    renderDay();
+  }
+}
+
+// ==================== WEEK OVERVIEW ====================
+function changeWeek(delta) {
+  const newIdx = currentWeekIndex + delta;
+  if (newIdx >= 0 && newIdx < weekMap.length) {
+    currentWeekIndex = newIdx;
+    renderWeekOverview();
+  }
+}
+
+function renderWeekOverview() {
+  const wk = weekMap[currentWeekIndex];
+  const userInfo = programData.users[currentUser];
+  const startDate = userInfo.startDate ? new Date(userInfo.startDate + 'T00:00:00') : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Week label
+  document.getElementById('weekLabel').textContent = `Week ${wk.weekNum}`;
+
+  // Week date range
+  if (startDate) {
+    const weekStart = new Date(startDate);
+    weekStart.setDate(weekStart.getDate() + wk.startDayIndex);
+    const weekEnd = new Date(startDate);
+    weekEnd.setDate(weekEnd.getDate() + wk.endDayIndex);
+    const opts = { month: 'short', day: 'numeric' };
+    document.getElementById('weekDates').textContent =
+      weekStart.toLocaleDateString('en-US', opts) + ' – ' + weekEnd.toLocaleDateString('en-US', opts);
+  } else {
+    document.getElementById('weekDates').textContent = '';
+  }
+
+  document.getElementById('prevWeek').disabled = currentWeekIndex === 0;
+  document.getElementById('nextWeek').disabled = currentWeekIndex === weekMap.length - 1;
+
+  // Calculate week-level stats
+  let weekTotalSets = 0, weekDoneSets = 0, weekTonnage = 0;
+
+  const cardsHtml = [];
+  for (let i = wk.startDayIndex; i <= wk.endDayIndex; i++) {
+    const day = allDays[i];
+    const dayDateObj = startDate ? new Date(startDate.getTime() + i * 86400000) : null;
+    const isToday = dayDateObj && dayDateObj.getTime() === today.getTime();
+    const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const weekdayName = dayDateObj
+      ? dayDateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+      : DAY_NAMES[(day.day - 1) % 7] || `Day ${day.day}`;
+
+    if (day.isRest) {
+      cardsHtml.push(`
+        <div class="day-card rest-card ${isToday ? 'today-card' : ''}">
+          <div class="day-card-header">
+            <div>
+              <div class="day-card-title">Day ${day.day} · Rest</div>
+              <div class="day-card-weekday">${weekdayName}</div>
+            </div>
+          </div>
+          <div class="day-card-exercises">&#x1f9d8; ${day.restNote || 'Recovery day'}</div>
+        </div>`);
+      continue;
+    }
+
+    // Get exercise names and stats
+    const savedData = loadDayData(i);
+    let exerciseNames = [];
+    let totalSets = 0, doneSets = 0, tonnage = 0;
+
+    for (const group of day.exerciseGroups) {
+      for (const ex of group.exercises) {
+        exerciseNames.push(ex.name);
+        const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
+        const exData = savedData[exKey] || {};
+        for (let s = 1; s <= ex.sets; s++) {
+          totalSets++;
+          const sd = exData['set' + s] || {};
+          if (sd.done) {
+            doneSets++;
+            const w = parseFloat(sd.weight) || 0;
+            const r = parseInt(sd.reps) || 0;
+            tonnage += w * r;
+          }
+        }
+      }
+    }
+
+    weekTotalSets += totalSets;
+    weekDoneSets += doneSets;
+    weekTonnage += tonnage;
+
+    const pct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
+    const circumference = 100.5; // 2*PI*16
+    const offset = circumference * (1 - pct / 100);
+    const ringColor = pct === 100 ? 'complete' : '';
+
+    const summaryText = exerciseNames.length > 4
+      ? exerciseNames.slice(0, 4).join(', ') + ` +${exerciseNames.length - 4} more`
+      : exerciseNames.join(', ');
+
+    cardsHtml.push(`
+      <div class="day-card ${isToday ? 'today-card' : ''}" onclick="openDay(${i})">
+        <div class="day-card-header">
+          <div>
+            <div class="day-card-title">Day ${day.day}${isToday ? ' · Today' : ''}</div>
+            <div class="day-card-weekday">${weekdayName}</div>
+          </div>
+          <div class="day-card-ring">
+            <svg width="40" height="40" viewBox="0 0 40 40">
+              <circle class="ring-bg" cx="20" cy="20" r="16" fill="none" stroke-width="4" stroke="var(--card-border)"/>
+              <circle class="ring-fg ${ringColor}" cx="20" cy="20" r="16" fill="none" stroke-width="4"
+                stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"
+                style="transform:rotate(-90deg);transform-origin:center;"/>
+            </svg>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:${pct === 100 ? 'var(--green)' : 'var(--text-dim)'};">${pct}%</div>
+          </div>
+        </div>
+        <div class="day-card-exercises">${summaryText}</div>
+        <div class="day-card-stats">
+          <div class="day-stat ${pct === 100 ? 'complete' : ''}">
+            <span class="stat-value">${doneSets}/${totalSets}</span>
+            <span class="stat-label">sets</span>
+          </div>
+          ${tonnage > 0 ? `<div class="day-stat"><span class="stat-value">${formatTonnage(tonnage)}</span><span class="stat-label">tonnage</span></div>` : ''}
+        </div>
+      </div>`);
+  }
+
+  document.getElementById('weekCards').innerHTML = cardsHtml.join('');
+
+  // Week summary bar
+  const weekPct = weekTotalSets > 0 ? Math.round((weekDoneSets / weekTotalSets) * 100) : 0;
+  document.getElementById('weekSummary').innerHTML = `
+    <div class="week-summary-item">
+      <div class="ws-value" style="color:${weekPct === 100 ? 'var(--green)' : 'var(--text)'}">${weekPct}%</div>
+      <div class="ws-label">Complete</div>
+    </div>
+    <div class="week-summary-item">
+      <div class="ws-value">${weekDoneSets}/${weekTotalSets}</div>
+      <div class="ws-label">Sets</div>
+    </div>
+    <div class="week-summary-item">
+      <div class="ws-value">${formatTonnage(weekTonnage)}</div>
+      <div class="ws-label">Tonnage</div>
+    </div>`;
+}
+
+function formatTonnage(kg) {
+  if (kg >= 1000) return (kg / 1000).toFixed(1) + 't';
+  return kg.toFixed(0) + 'kg';
+}
+
+// ==================== OPEN DAY DETAIL ====================
+function openDay(globalDayIndex) {
+  if (!isViewOnly) saveCurrentDay();
+  currentDayIndex = globalDayIndex;
+  viewMode = 'day';
+  document.getElementById('weekOverview').classList.add('hidden');
+  document.getElementById('dayDetail').classList.remove('hidden');
   renderDay();
 }
 
+function backToWeek() {
+  if (!isViewOnly) saveCurrentDay();
+  viewMode = 'week';
+  document.getElementById('dayDetail').classList.add('hidden');
+  document.getElementById('weekOverview').classList.remove('hidden');
+  renderWeekOverview();
+}
+
 function changeDay(delta) {
+  // Navigate within current week only
+  const wk = weekMap[currentWeekIndex];
   const newIndex = currentDayIndex + delta;
-  if (newIndex >= 0 && newIndex < allDays.length) {
+  if (newIndex >= wk.startDayIndex && newIndex <= wk.endDayIndex) {
     if (!isViewOnly) saveCurrentDay();
     currentDayIndex = newIndex;
     renderDay();
@@ -782,23 +1130,27 @@ function changeDay(delta) {
 function renderDay() {
   const day = allDays[currentDayIndex];
   const userInfo = programData.users[currentUser];
-  const startDate = new Date(userInfo.startDate + 'T00:00:00');
-  const dayDate = new Date(startDate);
-  dayDate.setDate(dayDate.getDate() + currentDayIndex);
+  const startDate = userInfo.startDate ? new Date(userInfo.startDate + 'T00:00:00') : null;
+  const dayDate = startDate ? new Date(startDate.getTime() + currentDayIndex * 86400000) : null;
+  const wk = weekMap[currentWeekIndex];
 
   document.getElementById('dayLabel').textContent = `Week ${day.week} · Day ${day.day}`;
-  document.getElementById('dayDate').textContent = dayDate.toLocaleDateString('en-US', {
-    weekday: 'long', month: 'short', day: 'numeric'
-  });
-  document.getElementById('prevDay').disabled = currentDayIndex === 0;
-  document.getElementById('nextDay').disabled = currentDayIndex === allDays.length - 1;
+  document.getElementById('dayDate').textContent = dayDate
+    ? dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+    : `Day ${day.day}`;
+  document.getElementById('prevDay').disabled = currentDayIndex <= wk.startDayIndex;
+  document.getElementById('nextDay').disabled = currentDayIndex >= wk.endDayIndex;
 
-  const progress = ((currentDayIndex + 1) / allDays.length) * 100;
+  // Progress within current week
+  const daysInWeek = wk.endDayIndex - wk.startDayIndex + 1;
+  const dayInWeek = currentDayIndex - wk.startDayIndex + 1;
+  const progress = (dayInWeek / daysInWeek) * 100;
   document.getElementById('progressFill').style.width = progress + '%';
 
   const content = document.getElementById('workoutContent');
 
   if (day.isRest) {
+    document.getElementById('dayDetailStats').innerHTML = '';
     content.innerHTML = `
       <div class="rest-day">
         <div class="rest-icon">&#x1f9d8;</div>
@@ -808,7 +1160,41 @@ function renderDay() {
     return;
   }
 
+  // Calculate day stats
   const savedData = loadDayData(currentDayIndex);
+  let totalSets = 0, doneSets = 0, tonnage = 0;
+  for (const group of day.exerciseGroups) {
+    for (const ex of group.exercises) {
+      const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
+      const exData = savedData[exKey] || {};
+      for (let s = 1; s <= ex.sets; s++) {
+        totalSets++;
+        const sd = exData['set' + s] || {};
+        if (sd.done) {
+          doneSets++;
+          const w = parseFloat(sd.weight) || 0;
+          const r = parseInt(sd.reps) || 0;
+          tonnage += w * r;
+        }
+      }
+    }
+  }
+  const pct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
+
+  document.getElementById('dayDetailStats').innerHTML = `
+    <div class="day-detail-stat">
+      <div class="dds-value" style="color:${pct === 100 ? 'var(--green)' : 'var(--text)'}">${pct}%</div>
+      <div class="dds-label">Complete</div>
+    </div>
+    <div class="day-detail-stat">
+      <div class="dds-value">${doneSets}/${totalSets}</div>
+      <div class="dds-label">Sets</div>
+    </div>
+    <div class="day-detail-stat">
+      <div class="dds-value">${formatTonnage(tonnage)}</div>
+      <div class="dds-label">Tonnage</div>
+    </div>`;
+
   const disabled = isViewOnly ? 'disabled' : '';
   let html = '';
 
@@ -890,7 +1276,7 @@ function saveDayData(dayIndex, data) {
 }
 
 function saveCurrentDay() {
-  if (isViewOnly) return;
+  if (isViewOnly || viewMode !== 'day') return;
   const data = collectCurrentData();
   if (Object.keys(data).length > 0) {
     saveDayData(currentDayIndex, data);
@@ -924,12 +1310,57 @@ function collectCurrentData() {
   return data;
 }
 
-function onSetChange(input) { saveCurrentDay(); }
+function onSetChange(input) {
+  saveCurrentDay();
+  updateDayDetailStats();
+}
 function onNotesChange(ta) { saveCurrentDay(); }
 function toggleSet(btn) {
   if (isViewOnly) return;
   btn.classList.toggle('done');
   saveCurrentDay();
+  updateDayDetailStats();
+}
+
+function updateDayDetailStats() {
+  // Recalculate stats after set change without full re-render
+  const day = allDays[currentDayIndex];
+  if (!day || day.isRest) return;
+  const data = collectCurrentData();
+  let totalSets = 0, doneSets = 0, tonnage = 0;
+  for (const group of day.exerciseGroups) {
+    for (const ex of group.exercises) {
+      const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
+      const exData = data[exKey] || {};
+      for (let s = 1; s <= ex.sets; s++) {
+        totalSets++;
+        const sd = exData['set' + s] || {};
+        if (sd.done) {
+          doneSets++;
+          const w = parseFloat(sd.weight) || 0;
+          const r = parseInt(sd.reps) || 0;
+          tonnage += w * r;
+        }
+      }
+    }
+  }
+  const pct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
+  const statsEl = document.getElementById('dayDetailStats');
+  if (statsEl) {
+    statsEl.innerHTML = `
+      <div class="day-detail-stat">
+        <div class="dds-value" style="color:${pct === 100 ? 'var(--green)' : 'var(--text)'}">${pct}%</div>
+        <div class="dds-label">Complete</div>
+      </div>
+      <div class="day-detail-stat">
+        <div class="dds-value">${doneSets}/${totalSets}</div>
+        <div class="dds-label">Sets</div>
+      </div>
+      <div class="day-detail-stat">
+        <div class="dds-value">${formatTonnage(tonnage)}</div>
+        <div class="dds-label">Tonnage</div>
+      </div>`;
+  }
 }
 
 // ==================== HISTORY ====================
@@ -942,6 +1373,9 @@ function showHistory() {
   let html = '<h2>Workout History</h2>';
 
   let found = false;
+  const userInfo = programData.users[currentUser];
+  const startDate = userInfo.startDate ? new Date(userInfo.startDate + 'T00:00:00') : null;
+
   for (let i = allDays.length - 1; i >= 0; i--) {
     const day = allDays[i];
     if (day.isRest) continue;
@@ -950,10 +1384,7 @@ function showHistory() {
     if (Object.keys(data).length === 0) continue;
 
     found = true;
-    const userInfo = programData.users[currentUser];
-    const startDate = new Date(userInfo.startDate + 'T00:00:00');
-    const dayDate = new Date(startDate);
-    dayDate.setDate(dayDate.getDate() + i);
+    const dayDate = startDate ? new Date(startDate.getTime() + i * 86400000) : null;
 
     for (const group of day.exerciseGroups) {
       for (const ex of group.exercises) {
@@ -971,7 +1402,7 @@ function showHistory() {
         if (setsStr.length === 0) continue;
 
         html += `<div class="history-item">
-          <div class="hi-date">W${day.week}D${day.day} · ${dayDate.toLocaleDateString('en-US', {month:'short', day:'numeric'})}</div>
+          <div class="hi-date">W${day.week}D${day.day}${dayDate ? ' · ' + dayDate.toLocaleDateString('en-US', {month:'short', day:'numeric'}) : ''}</div>
           <div class="hi-exercise">${ex.name}</div>
           <div class="hi-sets">${setsStr.join(' / ')}</div>
           ${exData.notes ? `<div class="hi-sets" style="margin-top:4px;font-style:italic;">${exData.notes}</div>` : ''}
@@ -989,6 +1420,7 @@ function logout() {
   localStorage.removeItem('workout_current_user');
   localStorage.removeItem('workout_auth_token');
   isViewOnly = false;
+  viewMode = 'week';
   showSetup();
 }
 
@@ -1005,7 +1437,6 @@ let timerInterval = null;
 let timerRunning = false;
 
 function parseRestTime(restStr) {
-  // Parse rest strings like "90s", "75sec", "2min", "1:30", "120"
   const s = restStr.toLowerCase().trim();
   const minMatch = s.match(/^(\d+)\s*min/);
   if (minMatch) return parseInt(minMatch[1]) * 60;
@@ -1013,7 +1444,7 @@ function parseRestTime(restStr) {
   if (colonMatch) return parseInt(colonMatch[1]) * 60 + parseInt(colonMatch[2]);
   const secMatch = s.match(/^(\d+)/);
   if (secMatch) return parseInt(secMatch[1]) > 300 ? 120 : parseInt(secMatch[1]);
-  return 60; // default
+  return 60;
 }
 
 function formatTime(secs) {
@@ -1025,11 +1456,9 @@ function formatTime(secs) {
 function updateTimerDisplay() {
   document.getElementById('timerDisplay').textContent = formatTime(timerSeconds);
   const ring = document.getElementById('timerRing');
-  const circumference = 754; // 2 * PI * 120
+  const circumference = 754;
   const progress = timerTotal > 0 ? (timerSeconds / timerTotal) : 0;
   ring.style.strokeDashoffset = circumference * (1 - progress);
-
-  // Change color when time is up
   if (timerSeconds <= 0 && timerTotal > 0) {
     ring.style.stroke = '#4ade80';
   } else {
@@ -1059,15 +1488,11 @@ function setTimerPreset(seconds) {
 
 function toggleTimer() {
   if (timerRunning) {
-    // Pause
     clearInterval(timerInterval);
     timerRunning = false;
     document.getElementById('timerStartBtn').textContent = 'Resume';
   } else {
-    // Start / Resume
-    if (timerSeconds <= 0) {
-      timerSeconds = timerTotal;
-    }
+    if (timerSeconds <= 0) timerSeconds = timerTotal;
     timerRunning = true;
     document.getElementById('timerStartBtn').textContent = 'Pause';
     timerInterval = setInterval(() => {
@@ -1077,9 +1502,7 @@ function toggleTimer() {
         clearInterval(timerInterval);
         timerRunning = false;
         document.getElementById('timerStartBtn').textContent = 'Restart';
-        // Vibrate on mobile if supported
         if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
-        // Audio beep
         try {
           const ctx = new (window.AudioContext || window.webkitAudioContext)();
           for (let i = 0; i < 3; i++) {
