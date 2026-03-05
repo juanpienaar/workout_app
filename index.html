@@ -39,96 +39,106 @@ body {
   overflow-x: hidden;
 }
 
-/* --- Setup Screen --- */
-.setup-screen {
-  padding: 40px 20px;
-  max-width: 400px;
-  margin: 0 auto;
+/* --- Login Screen --- */
+.login-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 24px;
 }
-.setup-screen h1 { font-size: 28px; margin-bottom: 8px; }
-.setup-screen p { color: var(--text-dim); margin-bottom: 30px; }
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+.login-logo { margin-bottom: 24px; }
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #E8475F;
+  margin-bottom: 4px;
+}
+.login-subtitle {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 36px;
+}
+.login-form {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-align: left;
+}
+.login-field { margin-bottom: 16px; }
+.login-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.login-field input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.login-field input:focus { border-color: var(--accent); }
+.login-field input::placeholder { color: var(--text-muted); }
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.login-remember input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.login-remember span {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.login-error {
+  color: var(--accent);
+  font-size: 13px;
+  margin-bottom: 12px;
+  min-height: 18px;
+}
 
 .btn {
   width: 100%;
   padding: 16px;
   border-radius: 12px;
   border: none;
-  background: var(--accent);
+  background: linear-gradient(135deg, #FF7043, #E8475F, #AD1457);
   color: white;
   font-size: 17px;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 10px;
-  transition: background 0.2s;
+  transition: opacity 0.2s, transform 0.1s;
 }
-.btn:active { background: var(--accent-dim); }
+.btn:active { transform: scale(0.98); opacity: 0.9; }
 .btn-secondary {
   background: var(--card);
   border: 1px solid var(--card-border);
 }
-.btn-view {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  font-size: 14px;
-  padding: 12px;
-}
 
-/* --- Password Modal --- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-.modal {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: 16px;
-  padding: 30px 24px;
-  width: 100%;
-  max-width: 340px;
-}
-.modal h3 { font-size: 20px; margin-bottom: 6px; }
-.modal .modal-sub { color: var(--text-dim); font-size: 14px; margin-bottom: 20px; }
-.modal input {
-  width: 100%;
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid var(--card-border);
-  background: var(--input-bg);
-  color: var(--text);
-  font-size: 16px;
-  margin-bottom: 12px;
-}
-.modal .error-msg {
-  color: var(--accent);
-  font-size: 13px;
-  margin-bottom: 10px;
-  display: none;
-}
-.modal-buttons {
-  display: flex;
-  gap: 8px;
-}
-.modal-buttons .btn {
-  flex: 1;
-  padding: 14px;
-  font-size: 15px;
-}
-
-/* --- View-only Banner --- */
-.view-only-banner {
-  background: #2a1a00;
-  border-bottom: 1px solid #4a3000;
-  padding: 8px 16px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--yellow);
-}
 
 /* --- Header --- */
 .header {
@@ -617,52 +627,46 @@ body {
 </head>
 <body>
 
-<!-- ======== SETUP SCREEN ======== -->
-<div id="setupScreen" class="setup-screen">
-  <div style="text-align:center;margin-bottom:10px;">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480" width="80" height="96" style="opacity:0.9;">
-      <defs>
-        <linearGradient id="sg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FF7043"/><stop offset="50%" style="stop-color:#E8475F"/><stop offset="100%" style="stop-color:#AD1457"/></linearGradient>
-        <linearGradient id="sg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FFC107"/><stop offset="100%" style="stop-color:#FF8F00"/></linearGradient>
-        <linearGradient id="sg3" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#E8475F"/><stop offset="100%" style="stop-color:#AD1457"/></linearGradient>
-      </defs>
-      <rect x="95" y="42" width="210" height="10" rx="5" fill="url(#sg3)"/>
-      <path d="M200 205 C155 172,105 155,105 108 C105 78,125 52,152 52 C174 52,190 67,200 84 C210 67,226 52,248 52 C275 52,295 78,295 108 C295 155,245 172,200 205Z" fill="url(#sg1)"/>
-      <path d="M191 205 L209 205 L213 225 L187 225Z" fill="url(#sg1)"/>
-      <rect x="198" y="200" width="4" height="30" rx="2" fill="#FFC107" opacity="0.7"/>
-      <path d="M200 225 C155 258,105 275,105 322 C105 352,125 378,152 378 C174 378,190 363,200 346 C210 363,226 378,248 378 C275 378,295 352,295 322 C295 275,245 258,200 225Z" fill="url(#sg1)"/>
-      <rect x="95" y="378" width="210" height="10" rx="5" fill="url(#sg3)"/>
-      <text x="200" y="440" text-anchor="middle" font-family="'Helvetica Neue',Arial,sans-serif" font-size="48" font-weight="300" fill="#eee" letter-spacing="12">NUMNUM</text>
-    </svg>
-  </div>
-  <h1 style="color:#E8475F;">NumNum Workout</h1>
-  <p>Select your profile to get started.</p>
-  <div id="userList"></div>
-  <div id="noUsers" class="hidden" style="color:var(--text-dim); text-align:center; padding:40px 0;">
-    No users configured yet.
-  </div>
-</div>
-
-<!-- ======== PASSWORD MODAL ======== -->
-<div id="passwordModal" class="modal-overlay hidden">
-  <div class="modal">
-    <h3 id="modalUserName"></h3>
-    <div class="modal-sub">Enter your password to edit, or view as read-only.</div>
-    <input type="password" id="passwordInput" placeholder="Password" autocomplete="off">
-    <div class="error-msg" id="passwordError">Incorrect password. Try again.</div>
-    <div class="modal-buttons">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn" onclick="submitPassword()">Login</button>
+<!-- ======== LOGIN SCREEN ======== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480" width="80" height="96" style="opacity:0.9;">
+        <defs>
+          <linearGradient id="sg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FF7043"/><stop offset="50%" style="stop-color:#E8475F"/><stop offset="100%" style="stop-color:#AD1457"/></linearGradient>
+          <linearGradient id="sg3" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#E8475F"/><stop offset="100%" style="stop-color:#AD1457"/></linearGradient>
+        </defs>
+        <rect x="95" y="42" width="210" height="10" rx="5" fill="url(#sg3)"/>
+        <path d="M200 205 C155 172,105 155,105 108 C105 78,125 52,152 52 C174 52,190 67,200 84 C210 67,226 52,248 52 C275 52,295 78,295 108 C295 155,245 172,200 205Z" fill="url(#sg1)"/>
+        <path d="M191 205 L209 205 L213 225 L187 225Z" fill="url(#sg1)"/>
+        <rect x="198" y="200" width="4" height="30" rx="2" fill="#FFC107" opacity="0.7"/>
+        <path d="M200 225 C155 258,105 275,105 322 C105 352,125 378,152 378 C174 378,190 363,200 346 C210 363,226 378,248 378 C275 378,295 352,295 322 C295 275,245 258,200 225Z" fill="url(#sg1)"/>
+        <rect x="95" y="378" width="210" height="10" rx="5" fill="url(#sg3)"/>
+      </svg>
     </div>
-    <button class="btn btn-view" onclick="viewOnly()" style="margin-top:8px;">View Only (no editing)</button>
+    <div class="login-title">NumNum Workout</div>
+    <div class="login-subtitle">Sign in to access your program</div>
+    <div class="login-form">
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+      <label class="login-remember">
+        <input type="checkbox" id="loginRemember" checked>
+        <span>Stay logged in</span>
+      </label>
+      <div class="login-error" id="loginError"></div>
+      <button class="btn" onclick="doLogin()">Sign In</button>
+    </div>
   </div>
 </div>
 
 <!-- ======== WORKOUT SCREEN ======== -->
 <div id="workoutScreen" class="hidden">
-  <div id="viewOnlyBanner" class="view-only-banner hidden">
-    Viewing as read-only. <a href="#" onclick="logout(); return false;" style="color:var(--yellow); text-decoration:underline;">Switch user</a>
-  </div>
   <div class="header">
     <div class="header-left">
       <svg class="header-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 430" width="28" height="34">
@@ -684,7 +688,7 @@ body {
     </div>
     <div class="header-right">
       <button class="header-btn" onclick="showHistory()" title="History">&#x1f4ca;</button>
-      <button class="header-btn" onclick="logout()" title="Switch User">&#x2630;</button>
+      <button class="header-btn" onclick="logout()" title="Log Out" style="font-size:14px;">&#x23FB;</button>
     </div>
   </div>
 
@@ -763,13 +767,12 @@ body {
 // ==================== DATA ====================
 let programData = null;
 let currentUser = null;
-let currentWeekIndex = 0;  // which program week we're viewing (0-based)
-let currentDayIndex = 0;   // global day index across all weeks
+let currentWeekIndex = 0;
+let currentDayIndex = 0;
 let allDays = [];
-let weekMap = [];           // array of { weekNum, startDayIndex, endDayIndex }
+let weekMap = [];
 let isViewOnly = false;
-let pendingUser = null;
-let viewMode = 'week'; // 'week' or 'day'
+let viewMode = 'week';
 
 // ==================== HASHING ====================
 async function sha256(message) {
@@ -785,10 +788,11 @@ async function init() {
     const resp = await fetch('program.json?v=' + Date.now());
     programData = await resp.json();
   } catch (e) {
-    document.getElementById('noUsers').classList.remove('hidden');
+    showLogin('Unable to load program data.');
     return;
   }
 
+  // Check localStorage (stay logged in)
   const savedUser = localStorage.getItem('workout_current_user');
   const savedAuth = localStorage.getItem('workout_auth_token');
   if (savedUser && programData.users[savedUser]) {
@@ -799,97 +803,96 @@ async function init() {
       return;
     }
   }
-  showSetup();
+  // Check sessionStorage (session-only login)
+  const sessionUser = sessionStorage.getItem('workout_current_user');
+  const sessionAuth = sessionStorage.getItem('workout_auth_token');
+  if (sessionUser && programData.users[sessionUser]) {
+    const userInfo = programData.users[sessionUser];
+    if (sessionAuth === userInfo.passwordHash) {
+      isViewOnly = false;
+      selectUser(sessionUser);
+      return;
+    }
+  }
+  showLogin();
 }
 
-// ==================== SETUP ====================
-function showSetup() {
-  document.getElementById('setupScreen').classList.remove('hidden');
+// ==================== LOGIN ====================
+function showLogin(errorMsg) {
+  document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('workoutScreen').classList.add('hidden');
   document.getElementById('historyScreen').classList.add('hidden');
-  document.getElementById('passwordModal').classList.add('hidden');
+  document.getElementById('loginError').textContent = errorMsg || '';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+  setTimeout(() => document.getElementById('loginEmail').focus(), 100);
+}
 
-  const userList = document.getElementById('userList');
-  userList.innerHTML = '';
-
-  if (!programData || !programData.users || Object.keys(programData.users).length === 0) {
-    document.getElementById('noUsers').classList.remove('hidden');
-    return;
-  }
-
-  document.getElementById('noUsers').classList.add('hidden');
-
+function findUserByEmail(email) {
+  if (!programData || !programData.users) return null;
+  const lower = email.toLowerCase().trim();
   for (const [name, info] of Object.entries(programData.users)) {
-    if (!info.program || !programData.programs[info.program]) continue;
-
-    const btn = document.createElement('button');
-    btn.className = 'btn';
-    btn.textContent = name;
-    btn.style.marginBottom = '10px';
-    btn.onclick = () => promptPassword(name);
-
-    const sub = document.createElement('div');
-    sub.style.cssText = 'font-size:13px;color:var(--text-dim);margin-bottom:16px;text-align:center;';
-    sub.textContent = `${info.program}${info.startDate ? ' · Started ' + info.startDate : ''}`;
-
-    userList.appendChild(btn);
-    userList.appendChild(sub);
+    if (info.email && info.email.toLowerCase() === lower) return name;
   }
+  return null;
 }
 
-// ==================== PASSWORD MODAL ====================
-function promptPassword(name) {
-  const userInfo = programData.users[name];
-  if (!userInfo.passwordHash) {
-    isViewOnly = false;
-    selectUser(name);
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const remember = document.getElementById('loginRemember').checked;
+  const errorEl = document.getElementById('loginError');
+
+  if (!email) { errorEl.textContent = 'Please enter your email.'; return; }
+  if (!password) { errorEl.textContent = 'Please enter your password.'; return; }
+
+  const userName = findUserByEmail(email);
+  if (!userName) {
+    errorEl.textContent = 'No account found with that email.';
     return;
   }
-  pendingUser = name;
-  document.getElementById('modalUserName').textContent = name;
-  document.getElementById('passwordInput').value = '';
-  document.getElementById('passwordError').style.display = 'none';
-  document.getElementById('passwordModal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('passwordInput').focus(), 100);
-}
 
-function closeModal() {
-  document.getElementById('passwordModal').classList.add('hidden');
-  pendingUser = null;
-}
-
-async function submitPassword() {
-  const password = document.getElementById('passwordInput').value;
-  if (!password) return;
+  const userInfo = programData.users[userName];
   const hash = await sha256(password);
-  const userInfo = programData.users[pendingUser];
-  if (hash === userInfo.passwordHash) {
-    isViewOnly = false;
-    localStorage.setItem('workout_auth_token', hash);
-    document.getElementById('passwordModal').classList.add('hidden');
-    selectUser(pendingUser);
-  } else {
-    document.getElementById('passwordError').style.display = 'block';
-    document.getElementById('passwordInput').value = '';
-    document.getElementById('passwordInput').focus();
+
+  if (hash !== userInfo.passwordHash) {
+    errorEl.textContent = 'Incorrect password. Try again.';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginPassword').focus();
+    return;
   }
+
+  if (!userInfo.program || !programData.programs[userInfo.program]) {
+    errorEl.textContent = 'No program assigned to your account yet.';
+    return;
+  }
+
+  // Save session
+  if (remember) {
+    localStorage.setItem('workout_current_user', userName);
+    localStorage.setItem('workout_auth_token', hash);
+  } else {
+    sessionStorage.setItem('workout_current_user', userName);
+    sessionStorage.setItem('workout_auth_token', hash);
+    localStorage.removeItem('workout_current_user');
+    localStorage.removeItem('workout_auth_token');
+  }
+
+  isViewOnly = false;
+  selectUser(userName);
 }
 
-function viewOnly() {
-  isViewOnly = true;
-  localStorage.removeItem('workout_auth_token');
-  document.getElementById('passwordModal').classList.add('hidden');
-  selectUser(pendingUser);
-}
-
-document.getElementById('passwordInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') submitPassword();
+// Enter key support on login fields
+document.getElementById('loginEmail').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+});
+document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doLogin();
 });
 
 // ==================== USER SELECTION ====================
 function selectUser(name) {
   currentUser = name;
-  localStorage.setItem('workout_current_user', name);
 
   const userInfo = programData.users[name];
   const program = programData.programs[userInfo.program];
@@ -925,11 +928,7 @@ function selectUser(name) {
   }
 
   document.getElementById('headerName').textContent = name;
-  document.getElementById('headerProgram').textContent = userInfo.program + (isViewOnly ? ' (View Only)' : '');
-
-  const banner = document.getElementById('viewOnlyBanner');
-  if (isViewOnly) banner.classList.remove('hidden');
-  else banner.classList.add('hidden');
+  document.getElementById('headerProgram').textContent = userInfo.program;
 
   viewMode = 'week';
   showWorkout();
@@ -937,7 +936,7 @@ function selectUser(name) {
 
 // ==================== WORKOUT SCREEN ====================
 function showWorkout() {
-  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('workoutScreen').classList.remove('hidden');
   document.getElementById('historyScreen').classList.add('hidden');
 
@@ -1422,9 +1421,11 @@ function logout() {
   if (!isViewOnly) saveCurrentDay();
   localStorage.removeItem('workout_current_user');
   localStorage.removeItem('workout_auth_token');
+  sessionStorage.removeItem('workout_current_user');
+  sessionStorage.removeItem('workout_auth_token');
   isViewOnly = false;
   viewMode = 'week';
-  showSetup();
+  showLogin();
 }
 
 // ==================== SAVE ON EXIT ====================
