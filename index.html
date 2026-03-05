@@ -490,6 +490,9 @@ function showSetup() {
   document.getElementById('noUsers').classList.add('hidden');
 
   for (const [name, info] of Object.entries(programData.users)) {
+    // Skip users without a program or whose program doesn't exist
+    if (!info.program || !programData.programs[info.program]) continue;
+
     const btn = document.createElement('button');
     btn.className = 'btn';
     btn.textContent = name;
@@ -498,7 +501,7 @@ function showSetup() {
 
     const sub = document.createElement('div');
     sub.style.cssText = 'font-size:13px;color:var(--text-dim);margin-bottom:16px;text-align:center;';
-    sub.textContent = `${info.program} · Started ${info.startDate}`;
+    sub.textContent = `${info.program}${info.startDate ? ' · Started ' + info.startDate : ''}`;
 
     userList.appendChild(btn);
     userList.appendChild(sub);
@@ -575,11 +578,15 @@ function selectUser(name) {
     }
   }
 
-  const start = new Date(userInfo.startDate + 'T00:00:00');
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-  currentDayIndex = Math.max(0, Math.min(diffDays, allDays.length - 1));
+  if (userInfo.startDate) {
+    const start = new Date(userInfo.startDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+    currentDayIndex = Math.max(0, Math.min(diffDays, allDays.length - 1));
+  } else {
+    currentDayIndex = 0;
+  }
 
   document.getElementById('headerName').textContent = name;
   document.getElementById('headerProgram').textContent = userInfo.program + (isViewOnly ? ' (View Only)' : '');
