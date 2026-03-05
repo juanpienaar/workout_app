@@ -4,9 +4,10 @@
     "startDate": "2026-02-23"
   },
   "Jack Collet": {
-    "program": "Functional Body Composition",
-    "startDate": "2026-03-05",
-    "passwordHash": "6ca2bf5027a70d4c1ce7b7676ecc4547ba84c72707e128e417b2e7dba7a5a001"
+    "program": "JackProgram",
+    "startDate": "2026-02-23",
+    "passwordHash": "921944021f6f2f69b1d487228b95c0191854a5e6bc1311318bee865dd8f5c7a7",
+    "email": "jack.collett@numnum.com"
   },
   "Caroline Pienaar": {
     "passwordHash": "fcc4287a65d320cd614acd3ec1d85ed759cfbcd356ef7745fe725daf55375fc9",
