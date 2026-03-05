@@ -14,7 +14,8 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-:root {
+/* Dark theme (default) */
+:root, [data-theme="dark"] {
   --bg: #0f0f1a;
   --card: #1a1a2e;
   --card-border: #2a2a4a;
@@ -28,6 +29,23 @@
   --green: #4ade80;
   --yellow: #fbbf24;
   --input-bg: #0d0d1a;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg: #f5f5f7;
+  --card: #ffffff;
+  --card-border: #e0e0e6;
+  --accent: #E8475F;
+  --accent-dim: #AD1457;
+  --nn-warm: #FF7043;
+  --nn-gold: #FF8F00;
+  --text: #1a1a2e;
+  --text-dim: #666;
+  --text-muted: #999;
+  --green: #22c55e;
+  --yellow: #d97706;
+  --input-bg: #f0f0f5;
 }
 
 body {
@@ -622,6 +640,83 @@ body {
 .header-left { display: flex; align-items: center; }
 .header-left-text { display: flex; flex-direction: column; }
 
+/* --- Theme Toggle --- */
+.theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text-dim);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+.theme-toggle:active { transform: scale(0.9); }
+
+/* --- Logout Confirm Modal --- */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.confirm-box {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+.confirm-box h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+.confirm-box p {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+}
+.confirm-buttons {
+  display: flex;
+  gap: 10px;
+}
+.confirm-buttons button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.confirm-buttons button:active { transform: scale(0.97); }
+.confirm-cancel {
+  background: var(--card);
+  border: 1px solid var(--card-border) !important;
+  color: var(--text);
+}
+.confirm-logout {
+  background: var(--accent);
+  color: white;
+}
+
 .hidden { display: none !important; }
 </style>
 </head>
@@ -629,6 +724,7 @@ body {
 
 <!-- ======== LOGIN SCREEN ======== -->
 <div id="loginScreen" class="login-screen">
+  <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleLogin" title="Toggle light/dark mode">&#x1f319;</button>
   <div class="login-card">
     <div class="login-logo">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480" width="80" height="96" style="opacity:0.9;">
@@ -687,8 +783,9 @@ body {
       </div>
     </div>
     <div class="header-right">
+      <button class="header-btn" onclick="toggleTheme()" id="themeToggleHeader" title="Toggle light/dark mode" style="font-size:16px;">&#x1f319;</button>
       <button class="header-btn" onclick="showHistory()" title="History">&#x1f4ca;</button>
-      <button class="header-btn" onclick="logout()" title="Log Out" style="font-size:14px;">&#x23FB;</button>
+      <button class="header-btn" onclick="confirmLogout()" title="Log Out" style="font-size:14px;">&#x23FB;</button>
     </div>
   </div>
 
@@ -761,6 +858,18 @@ body {
     </div>
   </div>
   <div id="historyContent" class="history-screen"></div>
+</div>
+
+<!-- ======== LOGOUT CONFIRM MODAL ======== -->
+<div id="logoutModal" class="confirm-overlay hidden">
+  <div class="confirm-box">
+    <h3>Log Out?</h3>
+    <p>Are you sure you want to log out?</p>
+    <div class="confirm-buttons">
+      <button class="confirm-cancel" onclick="closeLogoutModal()">Cancel</button>
+      <button class="confirm-logout" onclick="logout()">Log Out</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1530,6 +1639,41 @@ function stopTimer() {
   timerRunning = false;
   timerSeconds = 0;
   document.getElementById('restTimerOverlay').classList.add('hidden');
+}
+
+// ==================== THEME ====================
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = theme === 'light' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+  const loginBtn = document.getElementById('themeToggleLogin');
+  const headerBtn = document.getElementById('themeToggleHeader');
+  if (loginBtn) loginBtn.textContent = icon;
+  if (headerBtn) headerBtn.textContent = icon;
+  // Update meta theme-color for mobile browser chrome
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'light' ? '#f5f5f7' : '#1a1a2e');
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('workout_theme', next);
+  applyTheme(next);
+}
+
+// Load saved theme on startup
+(function() {
+  const saved = localStorage.getItem('workout_theme') || 'dark';
+  applyTheme(saved);
+})();
+
+// ==================== LOGOUT CONFIRM ====================
+function confirmLogout() {
+  document.getElementById('logoutModal').classList.remove('hidden');
+}
+
+function closeLogoutModal() {
+  document.getElementById('logoutModal').classList.add('hidden');
 }
 
 // ==================== START ====================
