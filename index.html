@@ -6,7 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a1a2e">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>NumNum Workout</title>
+<!-- v2.0 - Weekly Overview + Completion Tracking -->
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -778,7 +782,7 @@ async function sha256(message) {
 // ==================== INIT ====================
 async function init() {
   try {
-    const resp = await fetch('program.json');
+    const resp = await fetch('program.json?v=' + Date.now());
     programData = await resp.json();
   } catch (e) {
     document.getElementById('noUsers').classList.remove('hidden');
@@ -1060,7 +1064,6 @@ function renderWeekOverview() {
                 stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"
                 style="transform:rotate(-90deg);transform-origin:center;"/>
             </svg>
-            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:${pct === 100 ? 'var(--green)' : 'var(--text-dim)'};">${pct}%</div>
           </div>
         </div>
         <div class="day-card-exercises">${summaryText}</div>
