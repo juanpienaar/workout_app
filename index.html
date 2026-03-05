@@ -250,11 +250,13 @@ body {
 }
 .day-card-stats {
   display: flex;
+  align-items: center;
   gap: 12px;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--card-border);
 }
+.day-card-stats .archive-day-btn { margin-left: auto; }
 .day-stat {
   font-size: 12px;
   display: flex;
@@ -727,27 +729,19 @@ body {
   color: white;
 }
 
-/* --- Archive Button --- */
-.archive-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+/* --- Archive --- */
+.archive-day-btn {
+  background: none;
   border: none;
-  background: linear-gradient(135deg, #FF7043, #E8475F);
-  color: white;
-  font-size: 24px;
+  color: var(--text-muted);
+  font-size: 16px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(232,71,95,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  transition: all 0.2s;
+  padding: 2px 4px;
+  transition: color 0.2s;
+  line-height: 1;
 }
-.archive-btn:active { transform: scale(0.9); }
+.archive-day-btn:active { color: var(--accent); }
+.archive-day-btn.archived { color: var(--nn-warm); }
 
 .archive-toggle {
   display: flex;
@@ -887,7 +881,6 @@ body {
     </div>
     <div class="week-summary" id="weekSummary"></div>
     <div id="weekCards" class="week-overview"></div>
-    <button class="archive-btn" id="archiveBtn" onclick="archiveCurrentWeek()" title="Archive this week">&#x1f4e6;</button>
   </div>
 
   <!-- DAY DETAIL (when you tap into a day) -->
@@ -1177,9 +1170,20 @@ function renderWeekOverview() {
   // Calculate week-level stats
   let weekTotalSets = 0, weekDoneSets = 0, weekTonnage = 0;
 
+  const archivedDays = getArchivedDays();
   const cardsHtml = [];
   for (let i = wk.startDayIndex; i <= wk.endDayIndex; i++) {
     const day = allDays[i];
+    const dayIsArchived = archivedDays.includes(i);
+
+    // Filter non-rest days based on archive view
+    if (!day.isRest) {
+      if (archiveView === 'current' && dayIsArchived) continue;
+      if (archiveView === 'archived' && !dayIsArchived) continue;
+    } else if (archiveView === 'archived') {
+      continue; // Don't show rest days in archived view
+    }
+
     const dayDateObj = startDate ? new Date(startDate.getTime() + i * 86400000) : null;
     const isToday = dayDateObj && dayDateObj.getTime() === today.getTime();
     const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -1260,6 +1264,7 @@ function renderWeekOverview() {
             <span class="stat-label">sets</span>
           </div>
           ${tonnage > 0 ? `<div class="day-stat"><span class="stat-value">${formatTonnage(tonnage)}</span><span class="stat-label">tonnage</span></div>` : ''}
+          <button class="archive-day-btn ${isDayArchived(i) ? 'archived' : ''}" onclick="event.stopPropagation();toggleDayArchive(${i})" title="${isDayArchived(i) ? 'Unarchive day' : 'Archive day'}">&#x1f4e5;</button>
         </div>
       </div>`);
   }
@@ -1301,8 +1306,8 @@ function openDay(globalDayIndex) {
 function backToWeek() {
   if (!isViewOnly) saveCurrentDay();
   viewMode = 'week';
-  // Set archive view based on whether current week is archived
-  archiveView = isWeekArchived(currentWeekIndex) ? 'archived' : 'current';
+  // Set archive view based on whether current day is archived
+  archiveView = isDayArchived(currentDayIndex) ? 'archived' : 'current';
   document.getElementById('dayDetail').classList.add('hidden');
   document.getElementById('weekOverview').classList.remove('hidden');
   renderWeekOverview();
@@ -1755,65 +1760,53 @@ function toggleTheme() {
   applyTheme(saved);
 })();
 
-// ==================== ARCHIVE ====================
+// ==================== ARCHIVE (day-level) ====================
 let archiveView = 'current'; // 'current' or 'archived'
 
-function getArchivedWeeks() {
+function getArchivedDays() {
   try {
-    const raw = localStorage.getItem(`workout_${currentUser}_archived_weeks`);
+    const raw = localStorage.getItem(`workout_${currentUser}_archived_days`);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
-function saveArchivedWeeks(weeks) {
-  localStorage.setItem(`workout_${currentUser}_archived_weeks`, JSON.stringify(weeks));
+function saveArchivedDays(days) {
+  localStorage.setItem(`workout_${currentUser}_archived_days`, JSON.stringify(days));
 }
 
-function isWeekArchived(weekIndex) {
-  return getArchivedWeeks().includes(weekIndex);
+function isDayArchived(dayIndex) {
+  return getArchivedDays().includes(dayIndex);
 }
 
-function archiveCurrentWeek() {
-  const archived = getArchivedWeeks();
-  if (!archived.includes(currentWeekIndex)) {
-    archived.push(currentWeekIndex);
-    saveArchivedWeeks(archived);
-  }
-  // Move to next non-archived week or stay in current view
-  const nextWeek = findNextVisibleWeek(currentWeekIndex, 1);
-  if (nextWeek !== null) {
-    currentWeekIndex = nextWeek;
+function toggleDayArchive(dayIndex) {
+  const archived = getArchivedDays();
+  const idx = archived.indexOf(dayIndex);
+  if (idx === -1) {
+    archived.push(dayIndex);
   } else {
-    const prevWeek = findNextVisibleWeek(currentWeekIndex, -1);
-    if (prevWeek !== null) {
-      currentWeekIndex = prevWeek;
-    } else {
-      // All weeks archived, switch to archived view
-      archiveView = 'archived';
-    }
+    archived.splice(idx, 1);
   }
+  saveArchivedDays(archived);
   renderWeekOverview();
-  updateArchiveUI();
 }
 
-function unarchiveCurrentWeek() {
-  const archived = getArchivedWeeks();
-  const idx = archived.indexOf(currentWeekIndex);
-  if (idx !== -1) {
-    archived.splice(idx, 1);
-    saveArchivedWeeks(archived);
+// Check if a week has any visible (non-archived) non-rest days
+function weekHasVisibleDays(weekIndex) {
+  const wk = weekMap[weekIndex];
+  const archived = getArchivedDays();
+  for (let i = wk.startDayIndex; i <= wk.endDayIndex; i++) {
+    const day = allDays[i];
+    if (day.isRest) continue;
+    if (archiveView === 'current' && !archived.includes(i)) return true;
+    if (archiveView === 'archived' && archived.includes(i)) return true;
   }
-  renderWeekOverview();
-  updateArchiveUI();
+  return false;
 }
 
 function findNextVisibleWeek(fromIndex, direction) {
-  const archived = getArchivedWeeks();
   let i = fromIndex + direction;
   while (i >= 0 && i < weekMap.length) {
-    const isArch = archived.includes(i);
-    if (archiveView === 'current' && !isArch) return i;
-    if (archiveView === 'archived' && isArch) return i;
+    if (weekHasVisibleDays(i)) return i;
     i += direction;
   }
   return null;
@@ -1821,21 +1814,16 @@ function findNextVisibleWeek(fromIndex, direction) {
 
 function setArchiveView(view) {
   archiveView = view;
-  // Find first visible week for this view
-  const archived = getArchivedWeeks();
+  // Find first week with visible days
   let found = false;
   for (let i = 0; i < weekMap.length; i++) {
-    const isArch = archived.includes(i);
-    if ((view === 'current' && !isArch) || (view === 'archived' && isArch)) {
+    if (weekHasVisibleDays(i)) {
       currentWeekIndex = i;
       found = true;
       break;
     }
   }
-  if (!found) {
-    // No weeks in this view, just show first week
-    currentWeekIndex = 0;
-  }
+  if (!found) currentWeekIndex = 0;
   renderWeekOverview();
   updateArchiveUI();
 }
@@ -1843,16 +1831,6 @@ function setArchiveView(view) {
 function updateArchiveUI() {
   document.getElementById('btnCurrent').classList.toggle('active', archiveView === 'current');
   document.getElementById('btnArchived').classList.toggle('active', archiveView === 'archived');
-  const archBtn = document.getElementById('archiveBtn');
-  if (archiveView === 'archived') {
-    archBtn.innerHTML = '&#x1f4e4;'; // unarchive icon
-    archBtn.title = 'Unarchive this week';
-    archBtn.onclick = unarchiveCurrentWeek;
-  } else {
-    archBtn.innerHTML = '&#x1f4e6;'; // archive icon
-    archBtn.title = 'Archive this week';
-    archBtn.onclick = archiveCurrentWeek;
-  }
 }
 
 // ==================== LOGOUT CONFIRM ====================
