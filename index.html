@@ -340,6 +340,127 @@ body {
 .history-item .hi-exercise { font-weight: 600; margin-top: 2px; }
 .history-item .hi-sets { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 
+/* --- Rest Timer --- */
+.rest-timer-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.rest-timer-display {
+  font-size: 96px;
+  font-weight: 200;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  margin-bottom: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, monospace;
+}
+.rest-timer-label {
+  font-size: 16px;
+  color: var(--text-dim);
+  margin-bottom: 32px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+.rest-timer-ring {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin-bottom: 24px;
+}
+.rest-timer-ring svg { transform: rotate(-90deg); }
+.rest-timer-ring circle {
+  fill: none;
+  stroke-width: 6;
+}
+.rest-timer-ring .ring-bg { stroke: var(--card-border); }
+.rest-timer-ring .ring-fg {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+.rest-timer-time {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 72px;
+  font-weight: 200;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.rest-timer-controls {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+.rest-timer-btn {
+  padding: 14px 32px;
+  border-radius: 12px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.rest-timer-btn.primary {
+  background: linear-gradient(135deg, #FF7043, #E8475F);
+  color: white;
+}
+.rest-timer-btn.secondary {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--card-border);
+}
+.rest-timer-btn:active { transform: scale(0.95); }
+.rest-timer-presets {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+.rest-timer-presets button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+}
+.rest-timer-presets button:active { background: var(--accent); color: white; }
+
+/* Timer button in exercise card */
+.timer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--accent);
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.2s;
+}
+.timer-btn:active { background: var(--accent); color: white; }
+
+/* NumNum header logo */
+.header-logo {
+  width: 28px;
+  height: 34px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.header-left { display: flex; align-items: center; }
+.header-left-text { display: flex; flex-direction: column; }
+
 .hidden { display: none !important; }
 </style>
 </head>
@@ -393,12 +514,51 @@ body {
   </div>
   <div class="header">
     <div class="header-left">
-      <h2 id="headerName"></h2>
-      <span id="headerProgram"></span>
+      <svg class="header-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 430" width="28" height="34">
+        <defs>
+          <linearGradient id="hg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FF7043"/><stop offset="50%" stop-color="#E8475F"/><stop offset="100%" stop-color="#AD1457"/></linearGradient>
+          <linearGradient id="hg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#E8475F"/><stop offset="100%" stop-color="#AD1457"/></linearGradient>
+        </defs>
+        <rect x="95" y="42" width="210" height="10" rx="5" fill="url(#hg2)"/>
+        <path d="M200 205 C155 172,105 155,105 108 C105 78,125 52,152 52 C174 52,190 67,200 84 C210 67,226 52,248 52 C275 52,295 78,295 108 C295 155,245 172,200 205Z" fill="url(#hg1)"/>
+        <path d="M191 205 L209 205 L213 225 L187 225Z" fill="url(#hg1)"/>
+        <rect x="198" y="200" width="4" height="30" rx="2" fill="#FFC107" opacity="0.7"/>
+        <path d="M200 225 C155 258,105 275,105 322 C105 352,125 378,152 378 C174 378,190 363,200 346 C210 363,226 378,248 378 C275 378,295 352,295 322 C295 275,245 258,200 225Z" fill="url(#hg1)"/>
+        <rect x="95" y="378" width="210" height="10" rx="5" fill="url(#hg2)"/>
+      </svg>
+      <div class="header-left-text">
+        <h2 id="headerName"></h2>
+        <span id="headerProgram"></span>
+      </div>
     </div>
     <div class="header-right">
       <button class="header-btn" onclick="showHistory()" title="History">&#x1f4ca;</button>
       <button class="header-btn" onclick="logout()" title="Switch User">&#x2630;</button>
+    </div>
+  </div>
+
+  <!-- Rest Timer Overlay -->
+  <div id="restTimerOverlay" class="rest-timer-overlay hidden">
+    <div class="rest-timer-label">Rest Timer</div>
+    <div class="rest-timer-ring">
+      <svg width="260" height="260">
+        <circle class="ring-bg" cx="130" cy="130" r="120"/>
+        <circle class="ring-fg" id="timerRing" cx="130" cy="130" r="120"
+          stroke-dasharray="754" stroke-dashoffset="0"/>
+      </svg>
+      <div class="rest-timer-time" id="timerDisplay">0:00</div>
+    </div>
+    <div class="rest-timer-controls">
+      <button class="rest-timer-btn secondary" onclick="stopTimer()">Dismiss</button>
+      <button class="rest-timer-btn primary" id="timerStartBtn" onclick="toggleTimer()">Start</button>
+    </div>
+    <div class="rest-timer-presets">
+      <button onclick="setTimerPreset(30)">0:30</button>
+      <button onclick="setTimerPreset(60)">1:00</button>
+      <button onclick="setTimerPreset(75)">1:15</button>
+      <button onclick="setTimerPreset(90)">1:30</button>
+      <button onclick="setTimerPreset(120)">2:00</button>
+      <button onclick="setTimerPreset(180)">3:00</button>
     </div>
   </div>
 
@@ -697,10 +857,13 @@ function renderDay() {
       }
 
       html += `</div>
-        <div class="exercise-notes">
-          <textarea class="notes-input" placeholder="${isViewOnly ? 'No notes' : 'Notes...'}"
-            data-key="${exKey}" data-field="notes"
-            onchange="onNotesChange(this)" ${disabled}>${exData.notes || ''}</textarea>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="exercise-notes" style="flex:1;min-width:150px;">
+            <textarea class="notes-input" placeholder="${isViewOnly ? 'No notes' : 'Notes...'}"
+              data-key="${exKey}" data-field="notes"
+              onchange="onNotesChange(this)" ${disabled}>${exData.notes || ''}</textarea>
+          </div>
+          ${ex.rest ? `<button class="timer-btn" onclick="openTimer('${ex.rest.replace(/'/g, "\\'")}')">⏱ Rest ${ex.rest}</button>` : ''}
         </div>
       </div>`;
     }
@@ -834,6 +997,113 @@ window.addEventListener('beforeunload', () => { if (!isViewOnly) saveCurrentDay(
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && !isViewOnly) saveCurrentDay();
 });
+
+// ==================== REST TIMER ====================
+let timerSeconds = 0;
+let timerTotal = 0;
+let timerInterval = null;
+let timerRunning = false;
+
+function parseRestTime(restStr) {
+  // Parse rest strings like "90s", "75sec", "2min", "1:30", "120"
+  const s = restStr.toLowerCase().trim();
+  const minMatch = s.match(/^(\d+)\s*min/);
+  if (minMatch) return parseInt(minMatch[1]) * 60;
+  const colonMatch = s.match(/^(\d+):(\d+)/);
+  if (colonMatch) return parseInt(colonMatch[1]) * 60 + parseInt(colonMatch[2]);
+  const secMatch = s.match(/^(\d+)/);
+  if (secMatch) return parseInt(secMatch[1]) > 300 ? 120 : parseInt(secMatch[1]);
+  return 60; // default
+}
+
+function formatTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function updateTimerDisplay() {
+  document.getElementById('timerDisplay').textContent = formatTime(timerSeconds);
+  const ring = document.getElementById('timerRing');
+  const circumference = 754; // 2 * PI * 120
+  const progress = timerTotal > 0 ? (timerSeconds / timerTotal) : 0;
+  ring.style.strokeDashoffset = circumference * (1 - progress);
+
+  // Change color when time is up
+  if (timerSeconds <= 0 && timerTotal > 0) {
+    ring.style.stroke = '#4ade80';
+  } else {
+    ring.style.stroke = '';
+  }
+}
+
+function openTimer(restStr) {
+  const seconds = parseRestTime(restStr);
+  timerSeconds = seconds;
+  timerTotal = seconds;
+  timerRunning = false;
+  clearInterval(timerInterval);
+  document.getElementById('timerStartBtn').textContent = 'Start';
+  updateTimerDisplay();
+  document.getElementById('restTimerOverlay').classList.remove('hidden');
+}
+
+function setTimerPreset(seconds) {
+  timerSeconds = seconds;
+  timerTotal = seconds;
+  timerRunning = false;
+  clearInterval(timerInterval);
+  document.getElementById('timerStartBtn').textContent = 'Start';
+  updateTimerDisplay();
+}
+
+function toggleTimer() {
+  if (timerRunning) {
+    // Pause
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('timerStartBtn').textContent = 'Resume';
+  } else {
+    // Start / Resume
+    if (timerSeconds <= 0) {
+      timerSeconds = timerTotal;
+    }
+    timerRunning = true;
+    document.getElementById('timerStartBtn').textContent = 'Pause';
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      updateTimerDisplay();
+      if (timerSeconds <= 0) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        document.getElementById('timerStartBtn').textContent = 'Restart';
+        // Vibrate on mobile if supported
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+        // Audio beep
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          for (let i = 0; i < 3; i++) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            gain.gain.value = 0.3;
+            osc.start(ctx.currentTime + i * 0.25);
+            osc.stop(ctx.currentTime + i * 0.25 + 0.15);
+          }
+        } catch(e) {}
+      }
+    }, 1000);
+  }
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerSeconds = 0;
+  document.getElementById('restTimerOverlay').classList.add('hidden');
+}
 
 // ==================== START ====================
 init();
