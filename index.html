@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a1a2e">
-<title>Workout</title>
+<title>NumNum Workout</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -14,8 +14,10 @@
   --bg: #0f0f1a;
   --card: #1a1a2e;
   --card-border: #2a2a4a;
-  --accent: #e94560;
-  --accent-dim: #c73a52;
+  --accent: #E8475F;
+  --accent-dim: #AD1457;
+  --nn-warm: #FF7043;
+  --nn-gold: #FFC107;
   --text: #eee;
   --text-dim: #888;
   --text-muted: #555;
@@ -345,7 +347,23 @@ body {
 
 <!-- ======== SETUP SCREEN ======== -->
 <div id="setupScreen" class="setup-screen">
-  <h1>Workout</h1>
+  <div style="text-align:center;margin-bottom:10px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480" width="80" height="96" style="opacity:0.9;">
+      <defs>
+        <linearGradient id="sg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FF7043"/><stop offset="50%" style="stop-color:#E8475F"/><stop offset="100%" style="stop-color:#AD1457"/></linearGradient>
+        <linearGradient id="sg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FFC107"/><stop offset="100%" style="stop-color:#FF8F00"/></linearGradient>
+        <linearGradient id="sg3" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#E8475F"/><stop offset="100%" style="stop-color:#AD1457"/></linearGradient>
+      </defs>
+      <rect x="95" y="42" width="210" height="10" rx="5" fill="url(#sg3)"/>
+      <path d="M200 205 C155 172,105 155,105 108 C105 78,125 52,152 52 C174 52,190 67,200 84 C210 67,226 52,248 52 C275 52,295 78,295 108 C295 155,245 172,200 205Z" fill="url(#sg1)"/>
+      <path d="M191 205 L209 205 L213 225 L187 225Z" fill="url(#sg1)"/>
+      <rect x="198" y="200" width="4" height="30" rx="2" fill="#FFC107" opacity="0.7"/>
+      <path d="M200 225 C155 258,105 275,105 322 C105 352,125 378,152 378 C174 378,190 363,200 346 C210 363,226 378,248 378 C275 378,295 352,295 322 C295 275,245 258,200 225Z" fill="url(#sg1)"/>
+      <rect x="95" y="378" width="210" height="10" rx="5" fill="url(#sg3)"/>
+      <text x="200" y="440" text-anchor="middle" font-family="'Helvetica Neue',Arial,sans-serif" font-size="48" font-weight="300" fill="#eee" letter-spacing="12">NUMNUM</text>
+    </svg>
+  </div>
+  <h1 style="color:#E8475F;">NumNum Workout</h1>
   <p>Select your profile to get started.</p>
   <div id="userList"></div>
   <div id="noUsers" class="hidden" style="color:var(--text-dim); text-align:center; padding:40px 0;">
