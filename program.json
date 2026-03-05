@@ -2539,12 +2539,2596 @@
           ]
         }
       ]
+    },
+    "Functional Body Composition": {
+      "name": "Functional Body Composition",
+      "weeks": [
+        {
+          "week": 1,
+          "days": [
+            {
+              "day": 1,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Bent Over Band Pull Aparts",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "pause 1sec with hands wide on each rep"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Drop Lunge to Knee Lift",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "1-3\"",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per leg"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Quadruped Shoulder Taps",
+                      "sets": 3,
+                      "reps": "30s",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Back Rack Split Squat",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per leg; rear foot on 4-6\" plates"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Pronated Strict Pull Up",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-1-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Cyclist Front Squat",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-1-X-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Chainsaw Row",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-X-2",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "5min AMRAP - Renegade Rows",
+                      "sets": 1,
+                      "reps": "2-4-6-8-10-12",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "keep adding 2 reps per round; 5 Cal Row between each set"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "5min AMRAP - Strict Knees to Elbows",
+                      "sets": 1,
+                      "reps": "2-4-6-8-10-12",
+                      "tempo": "controlled",
+                      "rest": "2min",
+                      "rpe": "8.0",
+                      "instruction": "keep adding 2 reps per round; 5 Cal Bike between each set"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "5",
+                      "name": "5min AMRAP - Alternating DB Thrusters",
+                      "sets": 1,
+                      "reps": "2-4-6-8-10-12",
+                      "tempo": "controlled",
+                      "rest": "2min",
+                      "rpe": "8.0",
+                      "instruction": "50/35lbs; keep adding 2 reps per round; 30 Double Unders between each set"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 2,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Dumbbell Deadlifts",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Dumbbell Hang Power Clean",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Dumbbell Strict Press",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W4",
+                      "name": "Yoga Push Ups",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W5",
+                      "name": "Jump Rope Single Unders",
+                      "sets": 3,
+                      "reps": "50",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "rest as needed between sets"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Segmented Clean Deadlift",
+                      "sets": 3,
+                      "reps": "6-8",
+                      "tempo": "3-1-3-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "with straps"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Half Kneeling Barbell Press",
+                      "sets": 3,
+                      "reps": "4-5",
+                      "tempo": "2-0-X-2",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per knee; total 8-10 reps per set"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Deficit Landmine Single Leg RDL",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-1-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per leg"
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Single Arm Dumbbell Push Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-X-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per arm; explosive tempo on the way UP - slow controlled lowering to shoulder in 3sec"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "For Time @ 85% Effort - Row Cals",
+                      "sets": 1,
+                      "reps": "27-21-15",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "For Time @ 85% Effort - Strict Handstand Push Up",
+                      "sets": 1,
+                      "reps": "21-15-9",
+                      "tempo": "controlled",
+                      "rest": "3min",
+                      "rpe": "8.0",
+                      "instruction": "Scale to Pike Strict HSPU"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "5",
+                      "name": "For Time @ 85% Effort - Bike Cals",
+                      "sets": 1,
+                      "reps": "21-15-9",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "For Time @ 85% Effort - GHD Sit Ups",
+                      "sets": 1,
+                      "reps": "27-21-15",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 3,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Single Arm Bottoms Up KB Carry",
+                      "sets": 3,
+                      "reps": "10m",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Scapular Push Ups",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Passive Ring Hang",
+                      "sets": 3,
+                      "reps": "30s",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W4",
+                      "name": "Band Pull Aparts",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Wide Grip Bench Press",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "3-1-X-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Pendlay Row",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "3-0-X-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Strict Bar Dips",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "2-0-2-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Supinated Grip Body Row",
+                      "sets": 3,
+                      "reps": "12-14",
+                      "tempo": "3-0-X-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "15min Consistent Effort",
+                      "sets": 1,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "7.0",
+                      "instruction": "20sec L Sit on Rings; 15m Quadruped Crawl Forwards; 15m Quadruped Crawl Backwards; 10 Dual KB Clean and Push Press 44/26lbs; 5 Strict Chest to Bar Pull Ups"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 4,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Banded Hip Thrust",
+                      "sets": 3,
+                      "reps": "15",
+                      "tempo": "controlled",
+                      "rest": "30s",
+                      "rpe": "5.0",
+                      "instruction": "20sec Isometric Hold at Top"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "KB Loaded Jefferson Curl Light",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "controlled",
+                      "rest": "30s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "High Knees Jump Rope",
+                      "sets": 3,
+                      "reps": "30s",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "rest as needed between sets"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Snatch Grip Romanian Deadlift",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-1-1-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Suitcase Long Step Walking Lunge",
+                      "sets": 3,
+                      "reps": "14-16",
+                      "tempo": "3-0-X-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "steps"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Barbell Hip Thrust",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-X-2",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Goblet 1-1/4 Squat",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "2sec lowering; 1sec pause at bottom; perform 1/4 squat and back down; immediately rebound up; 1sec pause at top"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Every 5mins x 4 sets",
+                      "sets": 4,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "45sec Continuous DB Farmers Carry TOUGH Weight; 15/12 Cal Assault Bike; 12 Supine Toes to Bar 3sec lowering; 9 Box Jump Step Down 30/24\"; Same Pace Every Set"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 5,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Yoga Push Up",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Prone Snow Angels",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Scapular Pull Ups",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W4",
+                      "name": "Side Plank Rotations",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per side; move slow and deliberately"
+                    }
+                  ]
+                },
+                {
+                  "type": "circuit",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Tall Kneeling Filly Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Close Grip Parallette Tricep Push Up",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-1-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1c",
+                      "name": "Incline Bench Dumbbell Bicep Curl",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "4-0-X-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Gymnastics Intervals",
+                      "sets": 3,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "2-3min",
+                      "rpe": "8.0",
+                      "instruction": "10 Kipping Toes to Bar; 20 Anchored Feet Sit Ups; Assault Bike 750/650m @ 90% effort; rest walk 2-3mins between sets"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Not For Time",
+                      "sets": 3,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "7.0",
+                      "instruction": "20 Banded Tricep Push Downs; 20 Banded Bicep Curls; 20 Banded Face Pulls; rest as needed between movements"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 6,
+              "isRest": true,
+              "exercises": [],
+              "restNote": ""
+            },
+            {
+              "day": 7,
+              "isRest": true,
+              "exercises": [],
+              "restNote": ""
+            }
+          ]
+        },
+        {
+          "week": 2,
+          "days": [
+            {
+              "day": 1,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Skater Band Walk",
+                      "sets": 3,
+                      "reps": "10m",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Theraband Goblet Squats",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Scap Pull Up",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Front Rack Drop Lunge",
+                      "sets": 3,
+                      "reps": "16-20",
+                      "tempo": "3-0-X-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "alternating legs"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Supinated Strict Pull Up",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-1-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Dual KB Rack Squat",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Incline Bench DB Prone Row",
+                      "sets": 3,
+                      "reps": "8-12",
+                      "tempo": "3-0-X-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "7min AMRAP",
+                      "sets": 1,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "3min",
+                      "rpe": "8.0",
+                      "instruction": "5 Lunges/leg; 7 Box Jump Step Down; 9 Ring Rows"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "7min AMRAP",
+                      "sets": 1,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "5 Burpees; 7 Toes to Rings; 9 Air Squats"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 2,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Dumbbell RDL",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "3-0-3-0",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Single Arm Cuban Press",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "slow",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Burpee High Jump",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W4",
+                      "name": "Row Acceleration",
+                      "sets": 3,
+                      "reps": "15s",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "increase pace every 5sec; rest as needed"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Segmented Snatch Grip Deadlift - 3 Pauses",
+                      "sets": 3,
+                      "reps": "6-8",
+                      "tempo": "3-1-3-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "use lifting straps"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Barbell Z Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-2-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Split Stance Dumbbell Romanian Deadlift",
+                      "sets": 3,
+                      "reps": "6-8",
+                      "tempo": "3-1-1-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per leg"
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Seated Alternating Dumbbell Arnold Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "5min AMRAP - DB Bench Press",
+                      "sets": 1,
+                      "reps": "1-2-3-4-5-6",
+                      "tempo": "controlled",
+                      "rest": "2min",
+                      "rpe": "8.0",
+                      "instruction": "65/45lbs; 5 Cal Row between each set"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "5min AMRAP - Wall Walks",
+                      "sets": 1,
+                      "reps": "1-2-3-4-5-6",
+                      "tempo": "controlled",
+                      "rest": "2min",
+                      "rpe": "8.0",
+                      "instruction": "20 Double Unders between each set"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "5",
+                      "name": "5min AMRAP - Strict Toes to Bar",
+                      "sets": 1,
+                      "reps": "1-2-3-4-5-6",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "5 Cal Assault Bike between each set"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 3,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Single Arm Turkish Sit Ups R",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Turkish Get Up R",
+                      "sets": 3,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Single Arm KB Overhead Carry R",
+                      "sets": 3,
+                      "reps": "50'",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W4",
+                      "name": "Single Arm Turkish Sit Ups L",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W5",
+                      "name": "Turkish Get Up L",
+                      "sets": 3,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W6",
+                      "name": "Single Arm KB Overhead Carry L",
+                      "sets": 3,
+                      "reps": "50'",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W7",
+                      "name": "Strict Pull ups",
+                      "sets": 3,
+                      "reps": "3-5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "rest as needed between sets"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Incline Close Grip Bench Press",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "3-1-X-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Single Arm DB Tripod Row",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-X-2",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Single Arm Dumbbell Bench Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-1-X-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Lean Away Strict Ring Pull Up",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "4-0-X-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Not For Time - 4 Rounds",
+                      "sets": 4,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "7.0",
+                      "instruction": "20 Elbow to Tall Plank; 30sec KB Farmers Walk 70/53; 10 Alternating KB Gorilla Rows 70/53; 10 Hand Release Push Ups"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 4,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Frog Pump",
+                      "sets": 3,
+                      "reps": "20",
+                      "tempo": "controlled",
+                      "rest": "30s",
+                      "rpe": "5.0",
+                      "instruction": "20sec Isometric Contraction at top of last rep"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Goblet Curtsy Step Down",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per leg; box height below knee; rest as needed"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Frog Stance Deadlift",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "3-1-X-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1b",
+                      "name": "KB Rack Deficit Split Squat",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per leg"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "GHD Hip Extension",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-2-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Goblet Cossack Squat",
+                      "sets": 3,
+                      "reps": "16-20",
+                      "tempo": "3-0-X-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "alternating legs"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Every 10mins x 2 sets",
+                      "sets": 2,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "50 Double Unders; 500m Assault Bike; 40 Air Squats; 20 Alt DB Power Snatch 50/35lbs; 10 Burpee Box Jump Over 24/20\"; Same Pace Every Set"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 5,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Tall Plank Theraband Lateral Walk",
+                      "sets": 3,
+                      "reps": "20'",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per side"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Single Arm Trap 3 Raise w/ DB Isometric",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "slow",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per arm; Light"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Scapular Ring Rows",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "pause 1sec at top"
+                    }
+                  ]
+                },
+                {
+                  "type": "circuit",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Farmers Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-X-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Decline Narrow Grip Bench Press",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "2-0-2-0",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1c",
+                      "name": "Alternating Dumbbell Curls",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-X-1",
+                      "rest": "75s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Interval Weight Training",
+                      "sets": 3,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "2-3min",
+                      "rpe": "8.0",
+                      "instruction": "10 Renegade Rows 50/35lbs; Row 300/275m @ 90% effort; rest walk 2-3mins between sets"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Not For Time",
+                      "sets": 3,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "7.0",
+                      "instruction": "10-12 DB Upright Row @ 2121; 10-12 Ring Body Saw @ 3010; 10-12 Lying DB Tricep Extensions @ 30X1; rest as needed between sets"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 6,
+              "isRest": true,
+              "exercises": [],
+              "restNote": ""
+            },
+            {
+              "day": 7,
+              "isRest": true,
+              "exercises": [],
+              "restNote": ""
+            }
+          ]
+        },
+        {
+          "week": 3,
+          "days": [
+            {
+              "day": 1,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Standing Band Pull Aparts",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "pause 1sec with hands wide on each rep"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Russian Step Up",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per leg"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Tall Plank Shoulder Taps",
+                      "sets": 3,
+                      "reps": "30s",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Back Rack Split Squat",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per leg; rear foot on 4-6\" plates"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Pronated Strict Pull Up",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Cyclist Front Squat",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-1-X-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Chainsaw Row",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-X-2",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "5min AMRAP - Alternating KB Gorilla Rows",
+                      "sets": 1,
+                      "reps": "2-4-6-8-10-12",
+                      "tempo": "controlled",
+                      "rest": "2min",
+                      "rpe": "8.0",
+                      "instruction": "70/53lbs; keep adding 2 reps per round; 5 Cal Bike between each round"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "5min AMRAP - Kipping Toes to Rings",
+                      "sets": 1,
+                      "reps": "2-4-6-8-10-12",
+                      "tempo": "controlled",
+                      "rest": "2min",
+                      "rpe": "8.0",
+                      "instruction": "keep adding 2 reps per round; 5 Burpees between each round"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "5",
+                      "name": "5min AMRAP - Dual KB Hang Squat Cleans",
+                      "sets": 1,
+                      "reps": "2-4-6-8-10-12",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "53/35; keep adding 2 reps per round; 5 Cal Row between each round"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 2,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Barbell Deadlifts",
+                      "sets": 3,
+                      "reps": "7",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "Load barbell very light; consider starting with empty bar"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Barbell Hang Power Clean",
+                      "sets": 3,
+                      "reps": "7",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Barbell Strict Press",
+                      "sets": 3,
+                      "reps": "7",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W4",
+                      "name": "Push Ups",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W5",
+                      "name": "Jump Jacks",
+                      "sets": 3,
+                      "reps": "20",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "rest as needed between sets"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Segmented Clean Deadlift",
+                      "sets": 3,
+                      "reps": "6-8",
+                      "tempo": "3-1-3-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "with straps"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Half Kneeling Barbell Press",
+                      "sets": 3,
+                      "reps": "4-5",
+                      "tempo": "2-0-X-2",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per knee; total 8-10 reps per set"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Deficit Landmine Single Leg RDL",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-1-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per leg"
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Single Arm Dumbbell Push Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-X-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per arm; explosive tempo on the way UP - slow controlled lowering to shoulder in 3sec"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "For Time @ 85% Effort - Bike Cals",
+                      "sets": 1,
+                      "reps": "15-21-27",
+                      "tempo": "controlled",
+                      "rest": "3min",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "For Time @ 85% Effort - Strict Bar Dips",
+                      "sets": 1,
+                      "reps": "27-21-15",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "Scale to Hand Release Push Ups"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "5",
+                      "name": "For Time @ 85% Effort - Row Cals",
+                      "sets": 1,
+                      "reps": "21-15-9",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "6",
+                      "name": "For Time @ 85% Effort - Anchored Feet Sit Ups",
+                      "sets": 1,
+                      "reps": "40-30-20",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 3,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Dual Bottoms Up KB Rack Carry",
+                      "sets": 3,
+                      "reps": "20m",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Scapular Push Ups on Elbows",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Active Bar Hang",
+                      "sets": 3,
+                      "reps": "30s",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W4",
+                      "name": "Banded Face Pull",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Wide Grip Bench Press",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "3-1-X-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Pendlay Row",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "3-0-X-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Strict Bar Dips",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "2-0-2-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Body Row",
+                      "sets": 3,
+                      "reps": "12-14",
+                      "tempo": "3-0-X-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "15min Consistent Effort",
+                      "sets": 1,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "7.0",
+                      "instruction": "30sec Bent Hollow Hold; 3 Wall Walks; 6 Strict Pull Ups; 9 Ring Push Ups; 30sec Dual KB Rack Carry"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 4,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Bodyweight Hip Thrust",
+                      "sets": 3,
+                      "reps": "20",
+                      "tempo": "controlled",
+                      "rest": "30s",
+                      "rpe": "5.0",
+                      "instruction": "10sec Single Leg Hip Thrust Isometric Hold at Top per leg"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "GHD Back Extensions",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "30s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Hollow Body Hold",
+                      "sets": 3,
+                      "reps": "30s",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "rest as needed before next set"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Snatch Grip Romanian Deadlift",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-1-1-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Suitcase Long Step Walking Lunge",
+                      "sets": 3,
+                      "reps": "14-16",
+                      "tempo": "3-0-X-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "steps"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Barbell Hip Thrust",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-X-2",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Goblet 1-1/4 Squat",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "2sec lowering; 1sec pause at bottom; perform 1/4 squat and back down; immediately rebound up; 1sec pause at top"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "Every 5mins x 4 sets",
+                      "sets": 4,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "30sec Side Plank; 18/15 Cal Row; 12 KBS 70/53lbs; 6 Burpee Box Jumps 24/20\"; 30sec Side Plank (opposite side); Switch sides that you begin with on side plank each round; Same Pace Every Set"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 5,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Yoga Push Up",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Scapular Ring Row",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Dumbbell Side Plank Rotations",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "slow",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per side; move slow and deliberately"
+                    }
+                  ]
+                },
+                {
+                  "type": "circuit",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Tall Kneeling Filly Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Close Grip Parallette Tricep Push Up",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-1-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1c",
+                      "name": "Incline Bench Dumbbell Bicep Curl",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "4-0-X-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "2",
+                      "name": "Gymnastics Intervals",
+                      "sets": 3,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "2-3min",
+                      "rpe": "8.0",
+                      "instruction": "Row 200/150m @ 85%; 12-15 Toes to Rings (unbroken reps); 15-18 Tuck Ups; Row 200/150m @ 95% (Faster on back end of set); rest walk 2-3mins between sets"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "For Quality",
+                      "sets": 3,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "7.0",
+                      "instruction": "20 Banded Push Ups; 10 Dumbbell Preacher Curl/arm; 20 Banded Upright Rows; rest as needed between movements and sets"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 6,
+              "isRest": true,
+              "exercises": [],
+              "restNote": ""
+            },
+            {
+              "day": 7,
+              "isRest": true,
+              "exercises": [],
+              "restNote": ""
+            }
+          ]
+        },
+        {
+          "week": 4,
+          "days": [
+            {
+              "day": 1,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Monster Band Walk",
+                      "sets": 3,
+                      "reps": "10m",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "forward and backwards"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Banded Goblet Squats",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Supine Band Lat Pull Over",
+                      "sets": 3,
+                      "reps": "12",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Front Rack Drop Lunge",
+                      "sets": 3,
+                      "reps": "16-20",
+                      "tempo": "3-0-X-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "alternating legs"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Supinated Strict Pull Up",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-1-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Dual KB Rack Squat",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Incline Bench Prone Row",
+                      "sets": 3,
+                      "reps": "8-12",
+                      "tempo": "3-0-X-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "7min AMRAP",
+                      "sets": 1,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "3min",
+                      "rpe": "8.0",
+                      "instruction": "15 Double Unders; 10 Walking Lunges; 5 Renegade Rows 50/35lbs"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "7min AMRAP",
+                      "sets": 1,
+                      "reps": "1",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "4 Burpee Pull Ups; 8 Wall balls; 12 Sit Ups"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 2,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Split Stance Dumbbell RDL",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Dual DB Bent Over Row to External Rotation",
+                      "sets": 3,
+                      "reps": "10",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Broad Jumps",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W4",
+                      "name": "Bike Acceleration",
+                      "sets": 3,
+                      "reps": "15s",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "increase pace every 5sec; rest as needed"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Segmented Snatch Grip Deadlift - 3 Pauses",
+                      "sets": 3,
+                      "reps": "6-8",
+                      "tempo": "3-1-3-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "use lifting straps"
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Barbell Z Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-0-2-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Split Stance Dumbbell Romanian Deadlift",
+                      "sets": 3,
+                      "reps": "6-8",
+                      "tempo": "3-1-1-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per leg"
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Seated Alternating Dumbbell Arnold Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-1-1-1",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "3",
+                      "name": "5min AMRAP - Single Arm Incline DB Bench Press",
+                      "sets": 1,
+                      "reps": "1-2-3-4-5-6",
+                      "tempo": "controlled",
+                      "rest": "2min",
+                      "rpe": "8.0",
+                      "instruction": "60/40lbs R and L; 1 Turkish Get Up/arm between each set 60/40lbs"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "4",
+                      "name": "5min AMRAP - Wtd Strict Bar Dips",
+                      "sets": 1,
+                      "reps": "1-2-3-4-5-6",
+                      "tempo": "controlled",
+                      "rest": "2min",
+                      "rpe": "8.0",
+                      "instruction": "25/10lb Dumbbell between legs; 5 Cal Row between each set"
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "5",
+                      "name": "5min AMRAP - L-Sit Lift Overs",
+                      "sets": 1,
+                      "reps": "1-2-3-4-5-6",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "8.0",
+                      "instruction": "tap feet on each side = 1 rep; 5 Cal Bike between each set"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "day": 3,
+              "isRest": false,
+              "exerciseGroups": [
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W1",
+                      "name": "Bottom Up Single Arm KB Press R",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W2",
+                      "name": "Bottom up KB OH Carry R",
+                      "sets": 3,
+                      "reps": "20m",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W3",
+                      "name": "Bottom Up Single Arm KB Press L",
+                      "sets": 3,
+                      "reps": "5",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W4",
+                      "name": "Bottom up KB OH Carry L",
+                      "sets": 3,
+                      "reps": "20m",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": ""
+                    }
+                  ]
+                },
+                {
+                  "type": "single",
+                  "exercises": [
+                    {
+                      "order": "W5",
+                      "name": "Single Arm Ring Row",
+                      "sets": 3,
+                      "reps": "8",
+                      "tempo": "controlled",
+                      "rest": "0s",
+                      "rpe": "5.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "1a",
+                      "name": "Incline Close Grip Bench Press",
+                      "sets": 3,
+                      "reps": "10-12",
+                      "tempo": "3-1-X-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": ""
+                    },
+                    {
+                      "order": "1b",
+                      "name": "Single Arm DB Tripod Row",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "2-0-X-2",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    }
+                  ]
+                },
+                {
+                  "type": "superset",
+                  "exercises": [
+                    {
+                      "order": "2a",
+                      "name": "Single Arm Dumbbell Bench Press",
+                      "sets": 3,
+                      "reps": "8-10",
+                      "tempo": "3-1-X-0",
+                      "rest": "60s",
+                      "rpe": "8.0",
+                      "instruction": "per arm"
+                    },
+                    {
+                      "order": "2b",
+                      "name": "Lean Away Strict Ring Pull",
+                      "sets": 0,
+                      "reps": "",
+                      "tempo": "",
+                      "rest": "",
+                      "rpe": "",
+                      "instruction": ""
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   },
   "users": {
     "Juan": {
-      "program": "Hypertrophy A",
-      "startDate": "2026-03-02",
+      "program": "Functional Body Composition ",
+      "startDate": "2026-03-05",
       "passwordHash": "6ca2bf5027a70d4c1ce7b7676ecc4547ba84c72707e128e417b2e7dba7a5a001"
     },
     "Jack Collet": {
