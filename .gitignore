@@ -1,0 +1,12 @@
+# Keep only what the app needs (index.html, program.json)
+# Everything else is build tooling
+.DS_Store
+__pycache__/
+*.pyc
+
+# Never push secrets or local admin data
+.env
+api_costs.json
+user_metrics.json
+whoop_config.json
+whoop_tokens.json
