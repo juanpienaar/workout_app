@@ -18,11 +18,20 @@ import urllib.error
 from pathlib import Path
 from datetime import datetime
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import random
+import hashlib
+
 APP_DIR = Path(__file__).parent
 CONFIG_FILE = APP_DIR / "whoop_config.json"
 TOKENS_FILE = APP_DIR / "whoop_tokens.json"
 DATA_DIR = APP_DIR / "user_data"
 DATA_DIR.mkdir(exist_ok=True)
+
+# In-memory verification code store: {email: {"code": "123456", "expires": timestamp, "user": "name"}}
+VERIFICATION_CODES = {}
 
 PORT = int(os.environ.get("PORT", os.environ.get("NUMNUM_PORT", 5050)))
 
@@ -406,6 +415,91 @@ class NumNumHandler(http.server.SimpleHTTPRequestHandler):
                     }
             save_user_data(user_key, user_data)
             return self._json_response({"ok": True, "synced": len(all_days)})
+
+        # --- Send email verification code ---
+        if path == "/api/send-verification":
+            email = body.get("email", "").strip().lower()
+            user_name = body.get("user", "")
+            if not email:
+                return self._json_response({"error": "Missing email"}, 400)
+
+            code = str(random.randint(100000, 999999))
+            VERIFICATION_CODES[email] = {
+                "code": code,
+                "expires": time.time() + 600,  # 10 minutes
+                "user": user_name,
+            }
+
+            # Send via SMTP
+            smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+            smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+            smtp_user = os.environ.get("SMTP_USER", "")
+            smtp_pass = os.environ.get("SMTP_PASS", "")
+
+            if not smtp_user or not smtp_pass:
+                # No SMTP configured — auto-verify for development
+                return self._json_response({"ok": True, "dev_code": code, "message": "SMTP not configured — code returned for dev"})
+
+            try:
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = "NumNum Workout — Verify Your Email"
+                msg["From"] = smtp_user
+                msg["To"] = email
+
+                html_body = f"""
+                <div style="font-family:system-ui;max-width:400px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#E8475F;">NumNum Workout</h2>
+                    <p>Hi {user_name},</p>
+                    <p>Your verification code is:</p>
+                    <div style="background:#f5f5f5;padding:20px;text-align:center;border-radius:8px;margin:16px 0;">
+                        <span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#E8475F;">{code}</span>
+                    </div>
+                    <p style="color:#666;font-size:13px;">This code expires in 10 minutes.</p>
+                </div>"""
+                msg.attach(MIMEText(html_body, "html"))
+
+                with smtplib.SMTP(smtp_host, smtp_port) as server:
+                    server.starttls()
+                    server.login(smtp_user, smtp_pass)
+                    server.send_message(msg)
+
+                return self._json_response({"ok": True, "message": "Verification email sent"})
+            except Exception as e:
+                return self._json_response({"error": f"Failed to send email: {str(e)}"}, 500)
+
+        # --- Verify email code ---
+        if path == "/api/verify-email":
+            email = body.get("email", "").strip().lower()
+            code = body.get("code", "").strip()
+            user_name = body.get("user", "")
+
+            if not email or not code:
+                return self._json_response({"error": "Missing email or code"}, 400)
+
+            stored = VERIFICATION_CODES.get(email)
+            if not stored:
+                return self._json_response({"error": "No verification code found. Request a new one."}, 400)
+
+            if time.time() > stored["expires"]:
+                del VERIFICATION_CODES[email]
+                return self._json_response({"error": "Code expired. Request a new one."}, 400)
+
+            if stored["code"] != code:
+                return self._json_response({"error": "Incorrect code."}, 400)
+
+            # Mark as verified in users.json
+            del VERIFICATION_CODES[email]
+            users_file = APP_DIR / "users.json"
+            if users_file.exists():
+                with open(users_file) as f:
+                    all_users = json.load(f)
+                for uname, uinfo in all_users.items():
+                    if uinfo.get("email", "").lower() == email:
+                        uinfo["email_verified"] = True
+                with open(users_file, "w") as f:
+                    json.dump(all_users, f, indent=2)
+
+            return self._json_response({"ok": True, "verified": True})
 
         return self._json_response({"error": "Not found"}, 404)
 

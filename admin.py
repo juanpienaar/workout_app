@@ -1989,148 +1989,186 @@ elif page == "👥 Users":
     programs = get_program_names()
     all_metrics = load_metrics()
 
-    if users:
-        st.subheader("Current Users")
-        for name, info in users.items():
-            prog_display = info.get("program") or "No program"
-            date_display = info.get("startDate") or "—"
-            with st.expander(f"**{name}** → {prog_display} (started {date_display})"):
+    # ---- Users overview table ----
+    active_users = {k: v for k, v in users.items() if not v.get("archived")}
+    archived_users = {k: v for k, v in users.items() if v.get("archived")}
 
-                # --- Program & Password ---
-                st.markdown("**Program & Account**")
-                col1, col2 = st.columns(2)
+    if active_users:
+        st.subheader("Active Users")
 
-                with col1:
-                    prog_options = ["— No program —"] + programs
-                    current_prog = info.get("program", "")
-                    prog_idx = prog_options.index(current_prog) if current_prog in prog_options else 0
-                    new_program = st.selectbox(
-                        "Program", prog_options,
-                        index=prog_idx,
-                        key=f"prog_{name}",
-                    )
-                    if new_program == "— No program —":
-                        new_program = ""
-                    new_date = st.text_input("Start Date (YYYY-MM-DD)", info.get("startDate", ""), key=f"date_{name}")
+        table_rows = []
+        for name, info in active_users.items():
+            table_rows.append({
+                "User": name,
+                "Email": info.get("email", ""),
+                "Program": info.get("program", "") or "—",
+                "Start Date": info.get("startDate", "") or "—",
+                "Password Set": "Yes" if "passwordHash" in info else "No",
+                "Email Verified": "Yes" if info.get("email_verified") else "No",
+            })
+        overview_df = pd.DataFrame(table_rows)
+        st.dataframe(overview_df, use_container_width=True, hide_index=True)
 
-                with col2:
-                    current_email = info.get("email", "")
-                    new_email = st.text_input("Email", value=current_email, key=f"email_{name}")
-                    new_pass = st.text_input("New Password (leave blank to keep)", type="password", key=f"pass_{name}")
-                    has_password = "passwordHash" in info
-                    st.caption(f"Password set: {'✅ Yes' if has_password else '❌ No'}")
+        # ---- Per-user editing via selection ----
+        selected_user = st.selectbox(
+            "Select user to manage",
+            ["— Select —"] + list(active_users.keys()),
+            key="manage_user_sel",
+        )
 
-                col_save, col_variant, col_del = st.columns(3)
-                with col_save:
-                    if st.button(f"Save {name}", key=f"save_{name}"):
-                        users[name]["program"] = new_program
-                        users[name]["startDate"] = new_date
-                        if new_email.strip():
-                            users[name]["email"] = new_email.strip().lower()
-                        if new_pass:
-                            users[name]["passwordHash"] = hash_password(new_pass)
+        if selected_user != "— Select —":
+            info = users[selected_user]
+            st.divider()
+
+            # Editable fields
+            st.markdown(f"### {selected_user}")
+            ecol1, ecol2 = st.columns(2)
+            with ecol1:
+                edit_email = st.text_input("Email", value=info.get("email", ""), key=f"ue_{selected_user}")
+                prog_options = ["— No program —"] + programs
+                current_prog = info.get("program", "")
+                prog_idx = prog_options.index(current_prog) if current_prog in prog_options else 0
+                edit_program = st.selectbox("Program", prog_options, index=prog_idx, key=f"up_{selected_user}")
+                if edit_program == "— No program —":
+                    edit_program = ""
+            with ecol2:
+                edit_date = st.text_input("Program Start Date", value=info.get("startDate", ""), key=f"ud_{selected_user}")
+                edit_pass = st.text_input("New Password (leave blank to keep)", type="password", key=f"upw_{selected_user}")
+                has_pw = "passwordHash" in info
+                verified = info.get("email_verified", False)
+                st.caption(f"Password: {'✅' if has_pw else '❌'} · Email verified: {'✅' if verified else '❌'}")
+
+            # Action buttons
+            btn_cols = st.columns(4)
+            with btn_cols[0]:
+                if st.button("💾 Save", key=f"usave_{selected_user}", type="primary"):
+                    users[selected_user]["program"] = edit_program
+                    users[selected_user]["startDate"] = edit_date
+                    if edit_email.strip():
+                        old_email = info.get("email", "")
+                        new_email_val = edit_email.strip().lower()
+                        users[selected_user]["email"] = new_email_val
+                        # Reset verification if email changed
+                        if new_email_val != old_email:
+                            users[selected_user]["email_verified"] = False
+                    if edit_pass:
+                        users[selected_user]["passwordHash"] = hash_password(edit_pass)
+                    save_users(users)
+                    st.success(f"Updated {selected_user}")
+                    st.rerun()
+            with btn_cols[1]:
+                if st.button("🤖 AI Variant", key=f"uvar_{selected_user}"):
+                    st.info("Switch to Program Builder → User Variant tab.")
+            with btn_cols[2]:
+                if st.button("📦 Archive", key=f"uarc_{selected_user}"):
+                    users[selected_user]["archived"] = True
+                    save_users(users)
+                    st.success(f"Archived {selected_user}")
+                    st.rerun()
+            with btn_cols[3]:
+                if st.button("🗑️ Remove", key=f"udel_{selected_user}", type="secondary"):
+                    if st.session_state.get(f"confirm_del_{selected_user}"):
+                        del users[selected_user]
                         save_users(users)
-                        st.success(f"Updated {name}")
+                        st.success(f"Removed {selected_user}")
+                        st.rerun()
+                    else:
+                        st.session_state[f"confirm_del_{selected_user}"] = True
+                        st.warning(f"Click Remove again to confirm deleting {selected_user}.")
                         st.rerun()
 
-                with col_variant:
-                    if st.button(f"🤖 Create AI Variant", key=f"variant_{name}"):
-                        st.info("Switch to Program Builder → User Variant tab.")
+            # ---- Body Metrics (collapsible) ----
+            with st.expander(f"📊 Body Metrics — {selected_user}", expanded=False):
+                user_entries = all_metrics.get(selected_user, {}).get("entries", [])
 
-                with col_del:
-                    if st.button(f"🗑️ Remove {name}", key=f"del_{name}", type="secondary"):
-                        del users[name]
-                        save_users(users)
-                        st.success(f"Removed {name}")
-                        st.rerun()
-
-                # --- Body Metrics ---
-                st.divider()
-                st.markdown("**📊 Body Metrics**")
-
-                user_entries = all_metrics.get(name, {}).get("entries", [])
-
-                # Log new entry
                 with st.expander("Log new measurement", expanded=False):
-                    m_date = st.date_input("Date", value=datetime.now(), key=f"mdate_{name}")
+                    m_date = st.date_input("Date", value=datetime.now(), key=f"mdate_{selected_user}")
                     mcols = st.columns(len(METRIC_FIELDS))
                     m_values = {}
                     for i, (field_key, field_label) in enumerate(METRIC_FIELDS):
                         with mcols[i]:
                             val = st.number_input(
                                 field_label, min_value=0.0, max_value=500.0, value=0.0,
-                                step=0.1, key=f"m_{field_key}_{name}",
+                                step=0.1, key=f"m_{field_key}_{selected_user}",
                             )
                             if val > 0:
                                 m_values[field_key] = val
 
-                    if st.button("📏 Save Measurement", key=f"msave_{name}"):
+                    if st.button("📏 Save Measurement", key=f"msave_{selected_user}"):
                         if m_values:
                             entry = {"date": m_date.strftime("%Y-%m-%d"), **m_values}
-                            if name not in all_metrics:
-                                all_metrics[name] = {"entries": []}
-                            all_metrics[name]["entries"].append(entry)
-                            # Sort by date
-                            all_metrics[name]["entries"].sort(key=lambda x: x["date"])
+                            if selected_user not in all_metrics:
+                                all_metrics[selected_user] = {"entries": []}
+                            all_metrics[selected_user]["entries"].append(entry)
+                            all_metrics[selected_user]["entries"].sort(key=lambda x: x["date"])
                             save_metrics(all_metrics)
                             st.success("Measurement saved!")
                             st.rerun()
                         else:
                             st.error("Enter at least one measurement.")
 
-                # Progress chart
                 if user_entries:
                     chart_df = pd.DataFrame(user_entries)
                     chart_df["date"] = pd.to_datetime(chart_df["date"])
-
-                    # Find which metrics have data
                     available_metrics = [
                         (k, label) for k, label in METRIC_FIELDS
                         if k in chart_df.columns and chart_df[k].notna().any()
                     ]
-
                     if available_metrics:
                         metric_labels = [label for _, label in available_metrics]
                         metric_keys = [k for k, _ in available_metrics]
                         selected_metrics = st.multiselect(
-                            "Show on chart",
-                            metric_labels,
-                            default=metric_labels[:2],
-                            key=f"mchart_{name}",
+                            "Show on chart", metric_labels,
+                            default=metric_labels[:2], key=f"mchart_{selected_user}",
                         )
-
                         if selected_metrics:
                             sel_keys = [metric_keys[metric_labels.index(l)] for l in selected_metrics]
                             chart_data = chart_df[["date"] + sel_keys].set_index("date")
                             chart_data.columns = [dict(METRIC_FIELDS)[k] for k in sel_keys]
                             st.line_chart(chart_data)
 
-                    # Show raw data
                     with st.expander("View all entries"):
                         display_df = chart_df.copy()
                         display_df["date"] = display_df["date"].dt.strftime("%Y-%m-%d")
                         st.dataframe(display_df, use_container_width=True)
-
-                        if st.button(f"🗑️ Clear all metrics for {name}", key=f"mclear_{name}"):
-                            all_metrics[name] = {"entries": []}
+                        if st.button(f"🗑️ Clear all metrics", key=f"mclear_{selected_user}"):
+                            all_metrics[selected_user] = {"entries": []}
                             save_metrics(all_metrics)
                             st.rerun()
                 else:
                     st.caption("No measurements logged yet.")
 
     else:
-        st.info("No users yet. Add one below.")
+        st.info("No active users. Add one below.")
 
-    st.divider()
+    # ---- Archived users ----
+    if archived_users:
+        st.divider()
+        with st.expander(f"📦 Archived Users ({len(archived_users)})"):
+            for name, info in archived_users.items():
+                arc_cols = st.columns([3, 1, 1])
+                with arc_cols[0]:
+                    st.write(f"**{name}** — {info.get('email', '')} — {info.get('program', '—')}")
+                with arc_cols[1]:
+                    if st.button("♻️ Restore", key=f"restore_{name}"):
+                        users[name]["archived"] = False
+                        save_users(users)
+                        st.rerun()
+                with arc_cols[2]:
+                    if st.button("🗑️ Delete", key=f"permdel_{name}", type="secondary"):
+                        del users[name]
+                        save_users(users)
+                        st.rerun()
 
-    # Quick assign section
-    if programs and users:
+    # ---- Quick Assign ----
+    if programs and active_users:
+        st.divider()
         st.subheader("Quick Assign")
         qcol1, qcol2, qcol3 = st.columns(3)
         with qcol1:
             qa_program = st.selectbox("Program", programs, key="qa_prog")
         with qcol2:
-            qa_users = st.multiselect("Users", list(users.keys()), key="qa_users")
+            qa_users = st.multiselect("Users", list(active_users.keys()), key="qa_users")
         with qcol3:
             qa_date = st.text_input("Start Date", value=datetime.now().strftime("%Y-%m-%d"), key="qa_date")
 
@@ -2145,8 +2183,8 @@ elif page == "👥 Users":
             else:
                 st.error("Select at least one user.")
 
-        st.divider()
-
+    # ---- Add New User ----
+    st.divider()
     st.subheader("Add New User")
     col1, col2 = st.columns(2)
     with col1:
@@ -2172,6 +2210,7 @@ elif page == "👥 Users":
             user_data = {
                 "email": new_email.strip().lower(),
                 "passwordHash": hash_password(new_password),
+                "email_verified": False,
             }
             if new_program:
                 user_data["program"] = new_program

@@ -954,6 +954,32 @@ body {
   </div>
 </div>
 
+<!-- ======== EMAIL VERIFICATION SCREEN ======== -->
+<div id="verifyScreen" class="login-screen hidden">
+  <div class="login-card">
+    <div class="login-logo">
+      <div style="font-size:48px;">📧</div>
+    </div>
+    <div class="login-title">Verify Your Email</div>
+    <div class="login-subtitle" id="verifySubtitle">We've sent a 6-digit code to your email</div>
+    <div class="login-form">
+      <div class="login-field">
+        <label for="verifyCode">Verification Code</label>
+        <input type="text" id="verifyCode" placeholder="Enter 6-digit code" maxlength="6"
+          inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
+          style="text-align:center;font-size:24px;letter-spacing:8px;font-weight:bold;">
+      </div>
+      <div class="login-error" id="verifyError"></div>
+      <button class="btn" onclick="submitVerification()">Verify</button>
+      <div style="text-align:center;margin-top:12px;">
+        <button onclick="resendVerification()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;text-decoration:underline;">Resend code</button>
+        <span style="color:var(--text-dim);margin:0 8px;">·</span>
+        <button onclick="skipVerification()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;">Skip for now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ======== WORKOUT SCREEN ======== -->
 <div id="workoutScreen" class="hidden">
   <div class="header">
@@ -1225,7 +1251,93 @@ async function doLogin() {
   }
 
   isViewOnly = false;
-  selectUser(userName);
+
+  // Check email verification
+  if (!userInfo.email_verified) {
+    showVerificationScreen(userName, userInfo.email || '');
+  } else {
+    selectUser(userName);
+  }
+}
+
+// ==================== EMAIL VERIFICATION ====================
+let pendingVerifyUser = '';
+let pendingVerifyEmail = '';
+
+function showVerificationScreen(userName, email) {
+  pendingVerifyUser = userName;
+  pendingVerifyEmail = email;
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('workoutScreen').classList.add('hidden');
+  document.getElementById('verifyScreen').classList.remove('hidden');
+  const masked = email.replace(/^(.{2})(.*)(@.*)$/, (m, a, b, c) => a + '*'.repeat(b.length) + c);
+  document.getElementById('verifySubtitle').textContent = `We've sent a 6-digit code to ${masked}`;
+  document.getElementById('verifyCode').value = '';
+  document.getElementById('verifyError').textContent = '';
+  sendVerificationCode();
+}
+
+async function sendVerificationCode() {
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/send-verification`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: pendingVerifyEmail, user: pendingVerifyUser}),
+    });
+    const data = await resp.json();
+    if (data.dev_code) {
+      // Dev mode — auto-fill for testing
+      document.getElementById('verifyCode').value = data.dev_code;
+      document.getElementById('verifyError').textContent = 'Dev mode: code auto-filled (SMTP not configured)';
+      document.getElementById('verifyError').style.color = 'var(--accent)';
+    }
+  } catch (e) {
+    console.warn('[verify] Failed to send code:', e);
+  }
+}
+
+function resendVerification() {
+  document.getElementById('verifyError').textContent = 'Sending new code...';
+  document.getElementById('verifyError').style.color = 'var(--text-dim)';
+  sendVerificationCode().then(() => {
+    document.getElementById('verifyError').textContent = 'New code sent!';
+    document.getElementById('verifyError').style.color = 'var(--green, #44b700)';
+  });
+}
+
+async function submitVerification() {
+  const code = document.getElementById('verifyCode').value.trim();
+  const errorEl = document.getElementById('verifyError');
+  errorEl.style.color = '';
+  if (!code || code.length !== 6) {
+    errorEl.textContent = 'Please enter the 6-digit code.';
+    return;
+  }
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/verify-email`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: pendingVerifyEmail, code, user: pendingVerifyUser}),
+    });
+    const data = await resp.json();
+    if (data.verified) {
+      // Update local programData
+      if (programData.users[pendingVerifyUser]) {
+        programData.users[pendingVerifyUser].email_verified = true;
+      }
+      document.getElementById('verifyScreen').classList.add('hidden');
+      selectUser(pendingVerifyUser);
+    } else {
+      errorEl.textContent = data.error || 'Verification failed.';
+    }
+  } catch (e) {
+    errorEl.textContent = 'Could not reach server. Try again.';
+  }
+}
+
+function skipVerification() {
+  document.getElementById('verifyScreen').classList.add('hidden');
+  selectUser(pendingVerifyUser);
 }
 
 // Enter key support on login fields
@@ -1234,6 +1346,9 @@ document.getElementById('loginEmail').addEventListener('keydown', (e) => {
 });
 document.getElementById('loginPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') doLogin();
+});
+document.getElementById('verifyCode').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') submitVerification();
 });
 
 // ==================== USER SELECTION ====================
