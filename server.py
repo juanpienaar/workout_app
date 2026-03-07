@@ -242,11 +242,17 @@ class NumNumHandler(http.server.SimpleHTTPRequestHandler):
                     "expires_at": time.time() + token_data.get("expires_in", 3600),
                 }
                 save_tokens(tokens)
+                app_url = os.environ.get("APP_URL", f"http://localhost:{PORT}/")
                 return self._html_response(
                     "<div style='text-align:center;padding:60px 20px;font-family:system-ui;'>"
                     "<h2 style='color:#00C853;'>Whoop Connected!</h2>"
-                    "<p>You can close this window and return to the app.</p>"
-                    "<script>setTimeout(()=>{window.opener&&window.opener.postMessage('whoop_connected','*');window.close()},1500)</script>"
+                    "<p>Redirecting back to the app...</p>"
+                    "<script>"
+                    "setTimeout(()=>{"
+                    "if(window.opener){window.opener.postMessage('whoop_connected','*');window.close();}"
+                    f"else{{window.location.href='{app_url}';}}"
+                    "},1500);"
+                    "</script>"
                     "</div>"
                 )
             except urllib.error.HTTPError as e:

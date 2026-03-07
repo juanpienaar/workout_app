@@ -1638,10 +1638,10 @@ function renderDay() {
         const setData = exData['set' + s] || {};
         html += `<div class="set-row">
           <div class="set-num">${s}</div>
-          <input class="set-input" type="number" inputmode="decimal" placeholder="kg"
+          <input class="set-input" type="number" inputmode="decimal" placeholder="kg (weight)"
             data-key="${exKey}" data-set="${s}" data-field="weight"
             value="${setData.weight || ''}" onchange="onSetChange(this)" ${disabled}>
-          <input class="set-input" type="number" inputmode="numeric" placeholder="${ex.reps}"
+          <input class="set-input" type="number" inputmode="numeric" placeholder="${ex.reps} reps"
             data-key="${exKey}" data-set="${s}" data-field="reps"
             value="${setData.reps || ''}" onchange="onSetChange(this)" ${disabled}>
           <button class="set-check ${setData.done ? 'done' : ''}"
@@ -1710,8 +1710,14 @@ function renderDay() {
       <div class="exercise-card">
         <input id="customExName" class="set-input" type="text" placeholder="Exercise name" style="margin-bottom:8px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <input id="customExSets" class="set-input" type="number" inputmode="numeric" placeholder="Sets" value="3">
-          <input id="customExReps" class="set-input" type="number" inputmode="numeric" placeholder="Reps" value="10">
+          <div style="position:relative;">
+            <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Sets</label>
+            <input id="customExSets" class="set-input" type="number" inputmode="numeric" placeholder="3" value="3">
+          </div>
+          <div style="position:relative;">
+            <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Reps</label>
+            <input id="customExReps" class="set-input" type="number" inputmode="numeric" placeholder="10" value="10">
+          </div>
         </div>
         <button class="timer-btn" style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:600;" onclick="addCustomExercise()">+ Add to Today</button>
       </div>
@@ -1759,7 +1765,7 @@ function addCustomExercise() {
   localStorage.setItem(customKey, JSON.stringify(customs));
 
   // Re-render
-  renderDayDetail();
+  renderDay();
 }
 
 // ==================== WEIGHT HISTORY ====================
@@ -2353,8 +2359,14 @@ async function connectWhoop(e) {
     const resp = await fetch(`${WHOOP_SERVER}/whoop/auth?user=${encodeURIComponent(currentUser)}`);
     const data = await resp.json();
     if (data.auth_url) {
+      // Try popup first (desktop), fall back to redirect (mobile)
       const popup = window.open(data.auth_url, 'whoop_auth', 'width=500,height=700');
-      // Listen for success message from popup
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        // Popup blocked (mobile browsers) — redirect instead
+        window.location.href = data.auth_url;
+        return;
+      }
+      // Listen for success message from popup (desktop)
       window.addEventListener('message', function handler(ev) {
         if (ev.data === 'whoop_connected') {
           window.removeEventListener('message', handler);
