@@ -845,237 +845,258 @@ if page == "🤖 Program Builder":
 
             prog_name_ai = st.text_input("Program Name", value=active_prog or "", key="ai_prog_name")
 
-            program_type = st.selectbox("Program Type", [
+            ALL_PROGRAM_TYPES = [
                 "Strength / Bodybuilding",
                 "CrossFit",
                 "Hyrox",
-            ], key="program_type_sel")
+                "Running",
+                "Cycling",
+                "Swimming",
+            ]
+            program_types = st.multiselect(
+                "Program Type(s)",
+                ALL_PROGRAM_TYPES,
+                default=["Strength / Bodybuilding"],
+                key="program_type_sel",
+                help="Select multiple to create a combined program. They will be designed to complement each other.",
+            )
+            is_combo = len(program_types) > 1
 
-            if program_type == "Strength / Bodybuilding":
-                col1, col2 = st.columns(2)
-                with col1:
-                    experience = st.selectbox("Experience Level", ["Beginner", "Intermediate", "Advanced"])
-                    goal = st.selectbox("Primary Goal", [
-                        "Hypertrophy", "Strength", "Power", "General Fitness",
-                        "Fat Loss", "Athletic Performance",
-                    ])
-                    days_per_week = st.selectbox("Training Days per Week", [3, 4, 5, 6], index=2)
-                with col2:
-                    num_weeks = st.number_input("Number of Weeks", min_value=1, max_value=16, value=4)
-                    split_type = st.selectbox("Split Type", [
-                        "Push/Pull/Legs", "Upper/Lower", "Full Body",
-                        "Bro Split", "Push/Pull/Legs/Upper/Lower", "Let AI decide",
-                    ])
-                    equipment = st.multiselect(
-                        "Available Equipment",
-                        ["Barbell", "Dumbbell", "Cable", "Machine", "Smith Machine", "Bodyweight", "EZ Bar"],
-                        default=["Barbell", "Dumbbell", "Cable", "Machine"],
-                    )
+            if is_combo:
+                st.info(f"**Combined program:** {' + '.join(program_types)} — sessions will be structured to complement each other (e.g. no heavy legs the day before a long run).")
 
-                extra_notes = st.text_area(
-                    "Additional instructions",
-                    placeholder="e.g., Focus on weak hamstrings, include face pulls every session, no deadlifts due to injury...",
-                    height=80,
-                )
+            # ---- Common settings ----
+            common_col1, common_col2, common_col3 = st.columns(3)
+            with common_col1:
+                experience = st.selectbox("Experience Level", ["Beginner", "Intermediate", "Advanced"])
+            with common_col2:
+                days_per_week = st.selectbox("Training Days per Week", [3, 4, 5, 6], index=2)
+                num_weeks = st.number_input("Number of Weeks", min_value=1, max_value=16, value=4)
+            with common_col3:
+                session_time = st.selectbox("Time per Session (minutes)", [30, 45, 60, 75, 90, 120], index=2)
 
-            elif program_type == "CrossFit":
-                col1, col2 = st.columns(2)
-                with col1:
-                    experience = st.selectbox("Experience Level", ["Beginner (Scaled)", "Intermediate (RX)", "Advanced (RX+)"])
-                    num_weeks = st.number_input("Number of Weeks", min_value=1, max_value=16, value=4)
-                    days_per_week = st.selectbox("Training Days per Week", [3, 4, 5, 6], index=2)
-                with col2:
-                    cf_focus = st.multiselect(
-                        "CrossFit Focus Areas",
-                        ["Benchmark Girls WODs", "Hero WODs", "Olympic Lifting", "Gymnastics",
-                         "Metabolic Conditioning", "Strength Cycles", "Skill Work"],
-                        default=["Benchmark Girls WODs", "Metabolic Conditioning", "Strength Cycles"],
-                    )
-                    cf_equipment = st.multiselect(
-                        "Available Equipment",
-                        ["Barbell", "Pull-up Bar", "Rings", "Rower", "Assault Bike", "Ski Erg",
-                         "Jump Rope", "Kettlebell", "Wall Ball", "GHD", "Box", "Dumbbell", "Rope"],
-                        default=["Barbell", "Pull-up Bar", "Rower", "Jump Rope", "Kettlebell", "Wall Ball", "Box", "Dumbbell"],
-                    )
+            # ---- Type-specific options ----
+            # Collect all type-specific config into a dict
+            type_config = {}
 
-                st.markdown("**Benchmark WOD Reference** (auto-included in AI prompt)")
-                with st.expander("CrossFit Benchmark WODs"):
-                    st.markdown("""
-**The Girls (Original):**
-- **Fran:** 21-15-9 Thrusters (95/65lb) & Pull-ups
-- **Diane:** 21-15-9 Deadlifts (225/155lb) & HSPU
-- **Grace:** 30 Clean & Jerks (135/95lb) for time
-- **Helen:** 3 RFT: 400m Run / 21 KB Swings (53/35lb) / 12 Pull-ups
-- **Elizabeth:** 21-15-9 Cleans (135/95lb) & Ring Dips
-- **Isabel:** 30 Snatches (135/95lb) for time
-- **Angie:** 100 Pull-ups / 100 Push-ups / 100 Sit-ups / 100 Squats
-- **Barbara:** 5 RFT: 20 Pull-ups / 30 Push-ups / 40 Sit-ups / 50 Squats (3 min rest)
-- **Chelsea:** EMOM 30: 5 Pull-ups / 10 Push-ups / 15 Squats
-- **Jackie:** 1000m Row / 50 Thrusters (45/35lb) / 30 Pull-ups
-- **Karen:** 150 Wall Balls (20/14lb)
-- **Linda:** 10-9-8-7-6-5-4-3-2-1 Deadlift (1.5x BW) / Bench (BW) / Clean (0.75x BW)
-- **Mary:** AMRAP 20: 5 HSPU / 10 Pistols / 15 Pull-ups
-- **Nancy:** 5 RFT: 400m Run / 15 OHS (95/65lb)
-- **Annie:** 50-40-30-20-10 Double-unders & Sit-ups
-- **Eva:** 5 RFT: 800m Run / 30 KB Swings (70/53lb) / 30 Pull-ups
-- **Kelly:** 5 RFT: 400m Run / 30 Box Jumps (24/20") / 30 Wall Balls (20/14lb)
-- **Amanda:** 9-7-5 Muscle-ups & Snatches (135/95lb)
-- **Cindy:** AMRAP 20: 5 Pull-ups / 10 Push-ups / 15 Squats
+            if "Strength / Bodybuilding" in program_types:
+                with st.expander("Strength / Bodybuilding Settings", expanded=not is_combo):
+                    sc1, sc2 = st.columns(2)
+                    with sc1:
+                        s_goal = st.selectbox("Primary Goal", [
+                            "Hypertrophy", "Strength", "Power", "General Fitness",
+                            "Fat Loss", "Athletic Performance",
+                        ], key="s_goal")
+                        s_split = st.selectbox("Split Type", [
+                            "Push/Pull/Legs", "Upper/Lower", "Full Body",
+                            "Bro Split", "Push/Pull/Legs/Upper/Lower", "Let AI decide",
+                        ], key="s_split")
+                    with sc2:
+                        s_equip = st.multiselect(
+                            "Available Equipment",
+                            ["Barbell", "Dumbbell", "Cable", "Machine", "Smith Machine", "Bodyweight", "EZ Bar"],
+                            default=["Barbell", "Dumbbell", "Cable", "Machine"],
+                            key="s_equip",
+                        )
+                    type_config["strength"] = {"goal": s_goal, "split": s_split, "equipment": s_equip}
 
-**Hero WODs:**
-- **Murph:** 1 Mile Run / 100 Pull-ups / 200 Push-ups / 300 Squats / 1 Mile Run (20/14lb vest)
-- **DT:** 5 RFT: 12 Deadlifts / 9 Hang Power Cleans / 6 Push Jerks (155/105lb)
-- **The Seven:** 7 RFT: 7 HSPU / 7 Thrusters (135/95lb) / 7 Knees-to-elbows / 7 Deadlifts (245/165lb) / 7 Burpees / 7 KB Swings (70/53lb) / 7 Pull-ups
-- **Nate:** AMRAP 20: 2 Muscle-ups / 4 HSPU / 8 KB Swings (70/53lb)
-- **Chad:** 1000 Box Step-ups (20" box / 45/25lb vest)
-""")
+            if "CrossFit" in program_types:
+                with st.expander("CrossFit Settings", expanded=not is_combo):
+                    cc1, cc2 = st.columns(2)
+                    with cc1:
+                        cf_focus = st.multiselect(
+                            "Focus Areas",
+                            ["Benchmark Girls WODs", "Hero WODs", "Olympic Lifting", "Gymnastics",
+                             "Metabolic Conditioning", "Strength Cycles", "Skill Work"],
+                            default=["Benchmark Girls WODs", "Metabolic Conditioning", "Strength Cycles"],
+                            key="cf_focus",
+                        )
+                    with cc2:
+                        cf_equipment = st.multiselect(
+                            "Equipment",
+                            ["Barbell", "Pull-up Bar", "Rings", "Rower", "Assault Bike", "Ski Erg",
+                             "Jump Rope", "Kettlebell", "Wall Ball", "GHD", "Box", "Dumbbell", "Rope"],
+                            default=["Barbell", "Pull-up Bar", "Rower", "Jump Rope", "Kettlebell", "Wall Ball", "Box", "Dumbbell"],
+                            key="cf_equip",
+                        )
+                    with st.expander("Benchmark WOD Reference"):
+                        st.markdown("""
+**Girls:** Fran · Diane · Grace · Helen · Elizabeth · Isabel · Angie · Barbara · Chelsea · Jackie · Karen · Linda · Mary · Nancy · Annie · Eva · Kelly · Amanda · Cindy
 
-                extra_notes = st.text_area(
-                    "Additional instructions",
-                    placeholder="e.g., Include Fran and Grace in week 1, focus on Olympic lifting technique, scale pull-ups to banded...",
-                    height=80,
-                    key="cf_notes",
-                )
+**Hero WODs:** Murph · DT · The Seven · Nate · Chad""")
+                    type_config["crossfit"] = {"focus": cf_focus, "equipment": cf_equipment}
 
-            elif program_type == "Hyrox":
-                col1, col2 = st.columns(2)
-                with col1:
-                    experience = st.selectbox("Experience Level", ["Beginner", "Intermediate", "Competitive"])
-                    num_weeks = st.number_input("Number of Weeks", min_value=1, max_value=16, value=8)
-                    days_per_week = st.selectbox("Training Days per Week", [3, 4, 5, 6], index=2)
-                with col2:
-                    hyrox_phase = st.selectbox("Training Phase", [
-                        "Base Building (aerobic foundation)",
-                        "Station Strength (station-specific work)",
-                        "Race Simulation (full practice)",
-                        "Full Prep (combined program)",
-                    ])
-                    hyrox_category = st.selectbox("Race Category", [
-                        "Singles Open", "Singles Pro", "Doubles", "Relay",
-                    ])
+            if "Hyrox" in program_types:
+                with st.expander("Hyrox Settings", expanded=not is_combo):
+                    hc1, hc2 = st.columns(2)
+                    with hc1:
+                        hyrox_phase = st.selectbox("Training Phase", [
+                            "Base Building", "Station Strength", "Race Simulation", "Full Prep",
+                        ], key="h_phase")
+                    with hc2:
+                        hyrox_category = st.selectbox("Race Category", [
+                            "Singles Open", "Singles Pro", "Doubles", "Relay",
+                        ], key="h_cat")
+                    with st.expander("Hyrox Race Stations"):
+                        st.markdown("8 × (1km Run + Station): Ski Erg 1000m · Sled Push 50m · Sled Pull 50m · Burpee Broad Jumps 80m · Rowing 1000m · Farmers Carry 200m · Sandbag Lunges 100m · Wall Balls 75-100 reps")
+                    type_config["hyrox"] = {"phase": hyrox_phase, "category": hyrox_category}
 
-                st.markdown("**Hyrox Race Stations** (auto-included in AI prompt)")
-                with st.expander("Hyrox Race Format"):
-                    st.markdown("""
-**Race structure:** 8 × (1km Run + Functional Station)
+            if "Running" in program_types:
+                with st.expander("Running Settings", expanded=not is_combo):
+                    rc1, rc2 = st.columns(2)
+                    with rc1:
+                        run_goal = st.selectbox("Running Goal", [
+                            "5K", "10K", "Half Marathon", "Marathon",
+                            "Trail Running", "General Fitness", "Speed/Intervals",
+                        ], key="run_goal")
+                    with rc2:
+                        run_current = st.selectbox("Current Weekly Mileage", [
+                            "0-10 km", "10-20 km", "20-40 km", "40-60 km", "60+ km",
+                        ], key="run_mileage")
+                    type_config["running"] = {"goal": run_goal, "mileage": run_current}
 
-**The 8 Stations (in order):**
-1. **Ski Erg** — 1000m
-2. **Sled Push** — 50m (152/102kg men/women)
-3. **Sled Pull** — 50m (103/78kg men/women)
-4. **Burpee Broad Jumps** — 80m
-5. **Rowing** — 1000m
-6. **Farmers Carry** — 200m (2×24/16kg)
-7. **Sandbag Lunges** — 100m (20/10kg)
-8. **Wall Balls** — 75/100 reps (6/4kg to 3m/2.7m target)
+            if "Cycling" in program_types:
+                with st.expander("Cycling Settings", expanded=not is_combo):
+                    cyc1, cyc2 = st.columns(2)
+                    with cyc1:
+                        cyc_goal = st.selectbox("Cycling Goal", [
+                            "General Fitness", "Endurance Base", "FTP Improvement",
+                            "Gran Fondo / Sportive", "Criterium / Road Race", "Mountain Biking",
+                        ], key="cyc_goal")
+                        cyc_type = st.selectbox("Bike Type", ["Road", "Indoor/Trainer", "Mountain", "Both Road & Indoor"], key="cyc_type")
+                    with cyc2:
+                        cyc_hours = st.selectbox("Current Weekly Hours", [
+                            "0-2 hours", "2-5 hours", "5-8 hours", "8+ hours",
+                        ], key="cyc_hours")
+                    type_config["cycling"] = {"goal": cyc_goal, "type": cyc_type, "hours": cyc_hours}
 
-**Key training elements:** Running endurance, sled conditioning, grip strength, lunging endurance, wall ball capacity, transitions.
-""")
+            if "Swimming" in program_types:
+                with st.expander("Swimming Settings", expanded=not is_combo):
+                    sw1, sw2 = st.columns(2)
+                    with sw1:
+                        swim_goal = st.selectbox("Swimming Goal", [
+                            "General Fitness", "Technique Improvement", "Open Water",
+                            "Sprint (50-100m)", "Middle Distance (200-400m)", "Distance (800m+)",
+                            "Triathlon Prep",
+                        ], key="swim_goal")
+                    with sw2:
+                        swim_level = st.selectbox("Current Level", [
+                            "Beginner (learning strokes)", "Intermediate (comfortable laps)",
+                            "Advanced (structured training)",
+                        ], key="swim_level")
+                        swim_access = st.selectbox("Pool Access", ["25m Pool", "50m Pool", "Open Water", "Both Pool & Open Water"], key="swim_access")
+                    type_config["swimming"] = {"goal": swim_goal, "level": swim_level, "access": swim_access}
 
-                extra_notes = st.text_area(
-                    "Additional instructions",
-                    placeholder="e.g., Weak on sled push, need to improve 1km run pace, focus on wall ball endurance...",
-                    height=80,
-                    key="hyrox_notes",
-                )
+            extra_notes = st.text_area(
+                "Additional instructions",
+                placeholder="e.g., I have a race in 12 weeks; no deadlifts due to injury; heavy legs and running should not be on consecutive days...",
+                height=80,
+                key="gen_extra_notes",
+            )
 
             if st.button("🤖 Generate Program", type="primary", use_container_width=True):
-                if program_type == "Strength / Bodybuilding":
-                    prompt = f"""Generate a {num_weeks}-week training program called "{prog_name_ai}".
-
-Details:
+                if not program_types:
+                    st.warning("Select at least one program type.")
+                else:
+                    # Build the prompt dynamically based on selected types
+                    type_labels = " + ".join(program_types)
+                    prompt_parts = [f'Generate a {num_weeks}-week {type_labels} training program called "{prog_name_ai}".']
+                    prompt_parts.append(f"""
+Common details:
 - Experience: {experience}
-- Goal: {goal}
 - Training days per week: {days_per_week} (scatter {7 - days_per_week} rest days across the 7-day week)
-- Split: {split_type}
-- Available equipment: {', '.join(equipment)}
 - Total days per week: 7 (training + rest = 7)
-{f'- Additional notes: {extra_notes}' if extra_notes else ''}
+- Maximum session duration: {session_time} minutes
+{f'- Additional notes: {extra_notes}' if extra_notes else ''}""")
 
+                    if is_combo:
+                        prompt_parts.append(f"""
+COMBINED PROGRAM RULES:
+- This is a combined {type_labels} program. The different disciplines must COMPLEMENT each other.
+- Never schedule heavy lower-body strength and a hard running/cycling session on the same or consecutive days.
+- Alternate hard and easy days. Balance intensity across the week.
+- Each training day should have ONE primary focus with optional light complementary work.
+- Clearly label the primary focus of each day in the Instruction of the first exercise (e.g. "PRIMARY: Strength - Upper Body" or "PRIMARY: Running - Tempo Run").
+- Rest days are shared across all disciplines.""")
+
+                    # Type-specific prompt sections
+                    if "strength" in type_config:
+                        cfg = type_config["strength"]
+                        prompt_parts.append(f"""
+STRENGTH / BODYBUILDING:
+- Goal: {cfg['goal']}
+- Split: {cfg['split']}
+- Equipment: {', '.join(cfg['equipment'])}""")
+
+                    if "crossfit" in type_config:
+                        cfg = type_config["crossfit"]
+                        prompt_parts.append(f"""
+CROSSFIT:
+- Focus: {', '.join(cfg['focus'])}
+- Equipment: {', '.join(cfg['equipment'])}
+- Include benchmark WODs periodically. Use proper CrossFit schemes: AMRAP/EMOM/RFT/For Time/Tabata.
+- Each CF day: Warm-up → Strength/Skill → WOD/MetCon.
+- Put full WOD description in Instruction field.
+
+BENCHMARK WODS: Fran (21-15-9 Thrusters 95lb & Pull-ups); Diane (21-15-9 DL 225lb & HSPU); Grace (30 C&J 135lb);
+Helen (3 RFT: 400m/21 KBS 53lb/12 PU); Elizabeth (21-15-9 Cleans 135lb & Ring Dips); Isabel (30 Snatches 135lb);
+Angie (100 PU/100 Push-ups/100 Sit-ups/100 Squats); Jackie (1000m Row/50 Thrusters 45lb/30 PU);
+Karen (150 Wall Balls 20lb); Nancy (5 RFT: 400m/15 OHS 95lb); Annie (50-40-30-20-10 DU & Sit-ups);
+Cindy (AMRAP 20: 5 PU/10 Push-ups/15 Squats); Murph (1mi/100 PU/200 Push-ups/300 Squats/1mi vest);
+DT (5 RFT: 12 DL/9 HPC/6 PJ 155lb)""")
+
+                    if "hyrox" in type_config:
+                        cfg = type_config["hyrox"]
+                        prompt_parts.append(f"""
+HYROX:
+- Phase: {cfg['phase']}
+- Category: {cfg['category']}
+- Race format: 8 × (1km Run + Station). Stations: Ski Erg 1000m; Sled Push 50m; Sled Pull 50m; Burpee Broad Jumps 80m; Rowing 1000m; Farmers Carry 200m; Sandbag Lunges 100m; Wall Balls 75-100 reps.
+- Include running intervals; station-specific training; race simulations; transition practice.""")
+
+                    if "running" in type_config:
+                        cfg = type_config["running"]
+                        prompt_parts.append(f"""
+RUNNING:
+- Goal: {cfg['goal']}
+- Current mileage: {cfg['mileage']}
+- Include: easy runs; tempo runs; interval sessions; long runs; recovery runs.
+- Progress weekly volume by no more than 10%.
+- Use Instruction field for pace zones (e.g. "Zone 2 easy pace" or "400m repeats at 5K pace with 90s rest").
+- For running exercises: Exercise=Run Type (e.g. "Easy Run" / "Tempo Run" / "Interval Session" / "Long Run"); Sets=1; Reps=distance or time; Instruction=pace details.""")
+
+                    if "cycling" in type_config:
+                        cfg = type_config["cycling"]
+                        prompt_parts.append(f"""
+CYCLING:
+- Goal: {cfg['goal']}
+- Bike type: {cfg['type']}
+- Current volume: {cfg['hours']}
+- Include: endurance rides; threshold intervals; sweet spot training; recovery spins; hill repeats.
+- Use Instruction field for power zones or RPE targets.
+- For cycling: Exercise=Ride Type (e.g. "Endurance Ride" / "Threshold Intervals" / "Recovery Spin"); Sets=1 for steady rides or number of intervals; Reps=duration; Instruction=intensity details.""")
+
+                    if "swimming" in type_config:
+                        cfg = type_config["swimming"]
+                        prompt_parts.append(f"""
+SWIMMING:
+- Goal: {cfg['goal']}
+- Level: {cfg['level']}
+- Pool access: {cfg['access']}
+- Include: technique drills; endurance sets; speed work; kick sets; pull sets; cool-down.
+- Structure sessions as: warm-up → main set → cool-down.
+- Use Instruction field for stroke type; pace; rest intervals.
+- For swimming: Exercise=Set Type (e.g. "Warm-up" / "Main Set - Freestyle" / "Kick Set" / "Speed Work"); Sets=number of repeats; Reps=distance per repeat; Instruction=stroke/pace/rest details.""")
+
+                    prompt_parts.append(f"""
 {exercise_context}
 
 Generate the complete CSV with all {num_weeks} weeks. Include the header row.
 Each week should have exactly 7 days ({days_per_week} training + {7 - days_per_week} rest).
-Use exercises from the library above when possible."""
+Fit each training session within {session_time} minutes.
+Use exercises from the library above when possible.""")
 
-                elif program_type == "CrossFit":
-                    cf_wods_context = """
-CROSSFIT BENCHMARK WODS REFERENCE:
-Girls: Fran (21-15-9 Thrusters 95lb & Pull-ups), Diane (21-15-9 DL 225lb & HSPU), Grace (30 C&J 135lb),
-Helen (3 RFT: 400m/21 KB Swings 53lb/12 Pull-ups), Elizabeth (21-15-9 Cleans 135lb & Ring Dips),
-Isabel (30 Snatches 135lb), Angie (100 PU/100 Push-ups/100 Sit-ups/100 Squats),
-Barbara (5 RFT: 20 PU/30 Push-ups/40 Sit-ups/50 Squats), Chelsea (EMOM 30: 5 PU/10 Push-ups/15 Squats),
-Jackie (1000m Row/50 Thrusters 45lb/30 PU), Karen (150 Wall Balls 20lb),
-Linda (10-1 DL 1.5xBW/Bench BW/Clean 0.75xBW), Mary (AMRAP 20: 5 HSPU/10 Pistols/15 PU),
-Nancy (5 RFT: 400m/15 OHS 95lb), Annie (50-40-30-20-10 DU & Sit-ups),
-Cindy (AMRAP 20: 5 PU/10 Push-ups/15 Squats), Kelly (5 RFT: 400m/30 BJ 24"/30 WB 20lb),
-Amanda (9-7-5 MU & Snatches 135lb), Eva (5 RFT: 800m/30 KBS 70lb/30 PU)
-
-Hero WODs: Murph (1mi/100 PU/200 Push-ups/300 Squats/1mi w/vest),
-DT (5 RFT: 12 DL/9 HPC/6 PJ 155lb), Nate (AMRAP 20: 2 MU/4 HSPU/8 KBS 70lb)
-"""
-                    prompt = f"""Generate a {num_weeks}-week CrossFit training program called "{prog_name_ai}".
-
-Details:
-- Experience: {experience}
-- Training days per week: {days_per_week} (scatter {7 - days_per_week} rest days across the 7-day week)
-- Focus areas: {', '.join(cf_focus)}
-- Available equipment: {', '.join(cf_equipment)}
-- Total days per week: 7 (training + rest = 7)
-{f'- Additional notes: {extra_notes}' if extra_notes else ''}
-
-{cf_wods_context}
-
-{exercise_context}
-
-CROSSFIT PROGRAMMING GUIDELINES:
-- Each training day should have: a Warm-up section (mobility/activation); a Strength or Skill component; a WOD/MetCon
-- Include benchmark WODs (Girls/Heroes) periodically for testing
-- Use proper CrossFit rep schemes: AMRAP; EMOM; For Time; Tabata; RFT (rounds for time)
-- For WODs: put the full WOD description in the Instruction field
-- Vary time domains: short (<7min); medium (7-15min); long (15min+)
-- Include skill progressions for gymnastics movements
-- Scale appropriately for the experience level
-
-Generate the complete CSV with all {num_weeks} weeks. Include the header row.
-Each week should have exactly 7 days ({days_per_week} training + {7 - days_per_week} rest)."""
-
-                elif program_type == "Hyrox":
-                    prompt = f"""Generate a {num_weeks}-week Hyrox training program called "{prog_name_ai}".
-
-Details:
-- Experience: {experience}
-- Training days per week: {days_per_week} (scatter {7 - days_per_week} rest days across the 7-day week)
-- Training Phase: {hyrox_phase}
-- Race Category: {hyrox_category}
-- Total days per week: 7 (training + rest = 7)
-{f'- Additional notes: {extra_notes}' if extra_notes else ''}
-
-{exercise_context}
-
-HYROX RACE FORMAT:
-8 stations each preceded by a 1km run (8km total running):
-1. Ski Erg 1000m
-2. Sled Push 50m (152/102kg)
-3. Sled Pull 50m (103/78kg)
-4. Burpee Broad Jumps 80m
-5. Rowing 1000m
-6. Farmers Carry 200m (2×24/16kg)
-7. Sandbag Lunges 100m (20/10kg)
-8. Wall Balls 75/100 reps (6/4kg)
-
-HYROX PROGRAMMING GUIDELINES:
-- Include running sessions (intervals; tempo; long runs) as primary conditioning
-- Program station-specific training: sled work; ski erg; rowing; wall balls; lunges; carries
-- Include strength work to support race demands: squats; deadlifts; pressing; grip work
-- Program transition practice (moving between stations under fatigue)
-- Include race simulation sessions combining multiple stations with running
-- Progress from base building → station strength → race-specific → taper
-- For running exercises: use Instruction field for pace/interval details
-- For station exercises: specify machine settings; distances; weights in Instruction
-
-Generate the complete CSV with all {num_weeks} weeks. Include the header row.
-Each week should have exactly 7 days ({days_per_week} training + {7 - days_per_week} rest)."""
+                    prompt = "\n".join(prompt_parts)
 
                 with st.spinner("Building your program... (this may take 15-30 seconds)"):
                     response, usage_info = call_claude(prompt, PROGRAM_SYSTEM_PROMPT)
