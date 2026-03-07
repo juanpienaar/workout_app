@@ -978,7 +978,6 @@ body {
     <div class="header-right">
       <button class="header-btn" onclick="toggleTheme()" id="themeToggleHeader" title="Toggle light/dark mode" style="font-size:16px;">&#x1f319;</button>
       <button class="header-btn" onclick="showHistory()" title="History">&#x1f4ca;</button>
-      <button class="header-btn" onclick="openSettings()" title="Settings" style="font-size:16px;">&#x2699;</button>
       <button class="header-btn" onclick="confirmLogout()" title="Log Out" style="font-size:14px;">&#x23FB;</button>
     </div>
   </div>
@@ -1897,6 +1896,7 @@ function logout() {
   sessionStorage.removeItem('workout_auth_token');
   isViewOnly = false;
   viewMode = 'week';
+  closeLogoutModal();
   showLogin();
 }
 

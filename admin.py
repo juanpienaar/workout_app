@@ -783,7 +783,7 @@ st.sidebar.divider()
 
 page = st.sidebar.radio(
     "Navigate",
-    ["🤖 Program Builder", "📋 Programs", "👥 Users", "🏋️ Exercises", "📥 Import CSV", "📊 Coach Dashboard", "🚀 Deploy"],
+    ["🤖 Program Builder", "📋 Programs", "👥 Users", "🏋️ Exercises", "📥 Import CSV", "📊 Coach Dashboard", "🚀 Deploy", "⚙️ Settings"],
 )
 
 st.sidebar.divider()
@@ -2341,3 +2341,34 @@ elif page == "🚀 Deploy":
             has_pw = "✅" if "passwordHash" in info else "❌"
             email = info.get("email", "—")
             st.markdown(f"- **{name}** ({email}) → {info.get('program', 'N/A')} (start: {info.get('startDate', 'N/A')}) | Password: {has_pw}")
+
+elif page == "⚙️ Settings":
+    st.title("⚙️ Settings & Links")
+
+    st.subheader("External Services")
+    st.markdown("""
+| Service | Link |
+|---------|------|
+| **Live App** | [numnum.fit](https://numnum.fit/) |
+| **Whoop Developer Dashboard** | [developer-dashboard.whoop.com](https://developer-dashboard.whoop.com/apps/37076ba6-13c7-435f-8476-75a5faf039ce) |
+| **Railway (Hosting)** | [railway.com](https://railway.com) |
+| **GitHub Repository** | [github.com/juanpienaar/workout_app](https://github.com/juanpienaar/workout_app) |
+""")
+
+    st.divider()
+
+    st.subheader("Railway Environment Variables")
+    st.caption("These should be set in Railway → Variables tab:")
+    st.code("""WHOOP_CLIENT_ID=37076ba6-13c7-435f-8476-75a5faf039ce
+WHOOP_CLIENT_SECRET=<your secret>
+WHOOP_REDIRECT_URI=https://numnum.fit/whoop/callback""", language="bash")
+
+    st.divider()
+
+    st.subheader("Key Paths")
+    st.markdown(f"""
+- **App directory:** `{APP_DIR}`
+- **Program CSV:** `{CSV_FILE}`
+- **Users config:** `{USERS_FILE}`
+- **Exercises:** `{EXERCISES_FILE}`
+""")
