@@ -8,7 +8,15 @@ import pandas as pd
 import json
 import hashlib
 import subprocess
+import csv
+import io
+import os
+import sys
+import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
+from datetime import datetime
 
 # ==================== CONFIG ====================
 APP_DIR = Path(__file__).parent
@@ -16,9 +24,155 @@ CSV_FILE = APP_DIR / "program.csv"
 USERS_FILE = APP_DIR / "users.json"
 EXERCISES_FILE = APP_DIR / "exercises.json"
 PROGRAM_JSON = APP_DIR / "program.json"
-GITHUB_URL = "https://juanpienaar.github.io/workout_app/"
+APP_URL = "https://numnum.fit/"
+COST_FILE = APP_DIR / "api_costs.json"
+METRICS_FILE = APP_DIR / "user_metrics.json"
 
-st.set_page_config(page_title="Workout Admin", page_icon="💪", layout="wide")
+st.set_page_config(page_title="NumNum Workout Admin", page_icon="🔥", layout="wide")
+
+# ==================== NUMNUM BRANDING ====================
+NUMNUM_LOGO_PATH = APP_DIR / "numnum-logo.svg"
+
+NUMNUM_CSS = """
+<style>
+    /* NumNum brand colors */
+    :root {
+        --nn-primary: #E8475F;
+        --nn-primary-dark: #AD1457;
+        --nn-accent: #FFC107;
+        --nn-accent-dark: #FF8F00;
+        --nn-warm: #FF7043;
+    }
+    /* Sidebar branding */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    }
+    [data-testid="stSidebar"] .stMarkdown p,
+    [data-testid="stSidebar"] .stMarkdown h1,
+    [data-testid="stSidebar"] .stMarkdown h2,
+    [data-testid="stSidebar"] .stMarkdown h3,
+    [data-testid="stSidebar"] label {
+        color: #f0f0f0 !important;
+    }
+    /* Primary buttons */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #FF7043, #E8475F, #AD1457) !important;
+        border: none !important;
+        color: white !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #FF8A65, #EF5350, #C62828) !important;
+    }
+    /* Metric styling */
+    [data-testid="stMetricValue"] {
+        color: #E8475F !important;
+    }
+    /* Tab highlight */
+    .stTabs [aria-selected="true"] {
+        color: #E8475F !important;
+        border-bottom-color: #E8475F !important;
+    }
+</style>
+"""
+st.markdown(NUMNUM_CSS, unsafe_allow_html=True)
+
+# ==================== AI MODELS ====================
+MODELS = {
+    "haiku": {
+        "id": "claude-haiku-4-5-20251001",
+        "label": "Haiku — Fast & cheap",
+        "input_per_m": 0.80,
+        "output_per_m": 4.00,
+    },
+    "sonnet": {
+        "id": "claude-sonnet-4-5-20250929",
+        "label": "Sonnet — Balanced (recommended)",
+        "input_per_m": 3.00,
+        "output_per_m": 15.00,
+    },
+    "opus": {
+        "id": "claude-opus-4-5-20251101",
+        "label": "Opus — Most capable",
+        "input_per_m": 15.00,
+        "output_per_m": 75.00,
+    },
+}
+
+
+# ==================== DATA LAYER ====================
+# Internal: CSV is the storage engine but never exposed to the user.
+
+def _load_csv():
+    if CSV_FILE.exists():
+        return pd.read_csv(CSV_FILE)
+    return pd.DataFrame(
+        columns=["Program", "Week", "Day", "Order", "Exercise",
+                 "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]
+    )
+
+
+def _save_csv(df):
+    df.to_csv(CSV_FILE, index=False)
+    st.session_state["needs_deploy"] = True
+
+
+def load_program_data():
+    """Load all program data."""
+    return _load_csv()
+
+
+def save_program_data(df):
+    """Save all program data."""
+    _save_csv(df)
+
+
+def get_program_names():
+    """Get list of all program names."""
+    df = load_program_data()
+    if "Program" in df.columns and len(df) > 0:
+        return sorted(df["Program"].dropna().unique().tolist())
+    return []
+
+
+def _safe_numeric(val):
+    """Try to convert a value to a number, return None if not possible."""
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return None
+
+
+def load_program(name):
+    """Load a single program by name, dropping rows with invalid Week/Day."""
+    df = load_program_data()
+    if len(df) > 0:
+        result = df[df["Program"] == name].copy()
+        # Drop rows where Week or Day is NaN
+        result = result.dropna(subset=["Week", "Day"])
+        # Drop rows where Week or Day aren't valid numbers
+        result = result[result["Week"].apply(_safe_numeric).notna()]
+        result = result[result["Day"].apply(_safe_numeric).notna()]
+        return result
+    return pd.DataFrame()
+
+
+def save_program(name, df):
+    """Save a single program (replaces existing if same name)."""
+    current = load_program_data()
+    if len(current) > 0:
+        current = current[current["Program"] != name]
+        combined = pd.concat([current, df], ignore_index=True)
+    else:
+        combined = df
+    save_program_data(combined)
+
+
+def delete_program(name):
+    """Delete a program by name."""
+    current = load_program_data()
+    if len(current) > 0:
+        filtered = current[current["Program"] != name]
+        save_program_data(filtered)
 
 
 # ==================== HELPERS ====================
@@ -36,19 +190,8 @@ def load_users():
 def save_users(users):
     with open(USERS_FILE, "w") as f:
         json.dump(users, f, indent=2)
-
-
-def load_csv():
-    if CSV_FILE.exists():
-        return pd.read_csv(CSV_FILE)
-    return pd.DataFrame(
-        columns=["Program", "Week", "Day", "Order", "Exercise",
-                 "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]
-    )
-
-
-def save_csv(df):
-    df.to_csv(CSV_FILE, index=False)
+    # Flag that user data has changed and needs deployment
+    st.session_state["needs_deploy"] = True
 
 
 def load_exercises():
@@ -84,14 +227,32 @@ def git_push(message="Update workout program"):
     return "\n".join(outputs)
 
 
-def get_programs_from_csv(df):
-    if "Program" in df.columns and len(df) > 0:
-        return sorted(df["Program"].dropna().unique().tolist())
-    return []
+def render_deploy_banner():
+    """Show a prominent deploy banner if changes are pending."""
+    if st.session_state.get("needs_deploy"):
+        st.markdown(
+            """<div style="background:linear-gradient(135deg,#FF7043,#E8475F);padding:12px 20px;border-radius:8px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="color:white;font-weight:600;">⚠️ Changes have been made that need to be deployed to the workout app.</span>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("🚀 Deploy Now", type="primary", key="quick_deploy"):
+                with st.spinner("Building & deploying..."):
+                    build_result = run_build()
+                    if build_result.returncode != 0:
+                        st.error(f"Build failed: {build_result.stderr}")
+                    else:
+                        push_result = git_push("Update program & user data")
+                        st.session_state["needs_deploy"] = False
+                        st.success("Deployed successfully!")
+                        st.rerun()
+        with col2:
+            st.caption("This will rebuild program.json and push to GitHub Pages.")
 
 
 def get_all_exercise_names(exercises):
-    """Flatten exercise library into a simple list of names."""
     names = []
     for body_part, categories in exercises.items():
         for category, ex_list in categories.items():
@@ -100,266 +261,1762 @@ def get_all_exercise_names(exercises):
     return sorted(set(names))
 
 
+def get_builder_rows():
+    if "builder_rows" not in st.session_state:
+        st.session_state.builder_rows = []
+    return st.session_state.builder_rows
+
+
+def get_days_for_week(rows, week):
+    """Get exercises grouped by day for a given week."""
+    days = {}
+    for r in rows:
+        if r["Week"] == week:
+            d = r["Day"]
+            if d not in days:
+                days[d] = []
+            days[d].append(r)
+    return days
+
+
+DAY_LABELS = {1: "Day 1", 2: "Day 2", 3: "Day 3", 4: "Day 4", 5: "Day 5", 6: "Day 6", 7: "Day 7"}
+
+
+# ==================== BODY METRICS ====================
+def load_metrics():
+    if METRICS_FILE.exists():
+        with open(METRICS_FILE) as f:
+            return json.load(f)
+    return {}
+
+
+def save_metrics(metrics):
+    with open(METRICS_FILE, "w") as f:
+        json.dump(metrics, f, indent=2)
+
+
+METRIC_FIELDS = [
+    ("weight_kg", "Weight (kg)"),
+    ("chest_cm", "Chest (cm)"),
+    ("waist_cm", "Waist (cm)"),
+    ("hips_cm", "Hips (cm)"),
+    ("bicep_cm", "Bicep (cm)"),
+    ("thigh_cm", "Thigh (cm)"),
+    ("calf_cm", "Calf (cm)"),
+]
+
+
+# ==================== MUSCLE DIAGRAM ====================
+# Maps exercise library body parts → muscle regions used in SVG
+MUSCLE_MAP = {
+    "Chest":                      {"primary": ["chest"], "secondary": ["front_delts", "triceps"]},
+    "Back":                       {"primary": ["upper_back", "lats"], "secondary": ["biceps", "rear_delts"]},
+    "Shoulders":                  {"primary": ["front_delts", "side_delts", "rear_delts"], "secondary": ["traps"]},
+    "Legs (Quads)":               {"primary": ["quads"], "secondary": ["glutes", "core"]},
+    "Legs (Hamstrings & Glutes)": {"primary": ["hamstrings", "glutes"], "secondary": ["lower_back"]},
+    "Calves":                     {"primary": ["calves"], "secondary": []},
+    "Biceps":                     {"primary": ["biceps"], "secondary": ["forearms"]},
+    "Triceps":                    {"primary": ["triceps"], "secondary": ["front_delts"]},
+    "Core":                       {"primary": ["core", "obliques"], "secondary": ["lower_back"]},
+}
+
+ALL_MUSCLES = [
+    "chest", "upper_back", "lats", "front_delts", "side_delts", "rear_delts",
+    "traps", "biceps", "triceps", "forearms", "quads", "hamstrings", "glutes",
+    "calves", "core", "obliques", "lower_back",
+]
+
+
+def get_exercise_body_part(exercise_name, exercises_data):
+    """Look up which body part an exercise belongs to."""
+    for body_part, categories in exercises_data.items():
+        for cat, ex_list in categories.items():
+            for ex in ex_list:
+                if ex["name"] == exercise_name:
+                    return body_part
+    return None
+
+
+def calculate_muscle_load(df, exercises_data, week=None, day=None):
+    """Calculate load per muscle region from program data.
+    Load = sets × (RPE/10) for primary muscles, half that for secondary."""
+    loads = {m: 0.0 for m in ALL_MUSCLES}
+
+    filtered = df.copy()
+    if week is not None:
+        filtered = filtered[filtered["Week"] == week]
+    if day is not None:
+        filtered = filtered[filtered["Day"] == day]
+
+    # Skip rest days
+    filtered = filtered[filtered["Order"].astype(str).str.upper() != "REST"]
+
+    for _, row in filtered.iterrows():
+        ex_name = str(row.get("Exercise", ""))
+        body_part = get_exercise_body_part(ex_name, exercises_data)
+        if not body_part or body_part not in MUSCLE_MAP:
+            continue
+
+        try:
+            sets = float(row.get("Sets", 0))
+        except (ValueError, TypeError):
+            sets = 0
+        try:
+            rpe = float(row.get("RPE", 7))
+        except (ValueError, TypeError):
+            rpe = 7
+
+        effort = sets * (rpe / 10.0)
+        mapping = MUSCLE_MAP[body_part]
+        for m in mapping["primary"]:
+            loads[m] += effort
+        for m in mapping["secondary"]:
+            loads[m] += effort * 0.4
+
+    return loads
+
+
+def load_to_color(load, max_load):
+    """Convert a load value to an RGB color. 0=grey, low=blue, high=red."""
+    if max_load == 0 or load == 0:
+        return "#2a2a3a"
+    ratio = min(load / max_load, 1.0)
+    if ratio < 0.5:
+        # Blue to yellow
+        t = ratio * 2
+        r = int(40 + t * 215)
+        g = int(80 + t * 140)
+        b = int(220 - t * 180)
+    else:
+        # Yellow to red
+        t = (ratio - 0.5) * 2
+        r = int(255)
+        g = int(220 - t * 200)
+        b = int(40 - t * 40)
+    return f"rgb({r},{g},{b})"
+
+
+def render_body_svg(muscle_loads, title="", width=220):
+    """Render a front+back body SVG with colored muscle regions."""
+    max_load = max(muscle_loads.values()) if muscle_loads else 0
+
+    def c(muscle):
+        return load_to_color(muscle_loads.get(muscle, 0), max_load)
+
+    # Simplified body diagram using basic shapes
+    svg = f'''<div style="text-align:center;">
+    {f'<div style="color:#aaa;font-size:12px;margin-bottom:4px;font-weight:600;">{title}</div>' if title else ''}
+    <div style="display:flex;justify-content:center;gap:12px;">
+    <!-- FRONT VIEW -->
+    <div>
+    <div style="color:#666;font-size:10px;margin-bottom:2px;">Front</div>
+    <svg width="{width}" height="{int(width*2.2)}" viewBox="0 0 140 310">
+    <!-- Head -->
+    <ellipse cx="70" cy="22" rx="14" ry="17" fill="#333" stroke="#555" stroke-width="0.5"/>
+    <!-- Neck/Traps -->
+    <rect x="60" y="38" width="20" height="10" rx="3" fill="{c('traps')}"/>
+    <!-- Front Delts -->
+    <ellipse cx="40" cy="56" rx="12" ry="10" fill="{c('front_delts')}"/>
+    <ellipse cx="100" cy="56" rx="12" ry="10" fill="{c('front_delts')}"/>
+    <!-- Side Delts -->
+    <ellipse cx="32" cy="52" rx="7" ry="9" fill="{c('side_delts')}"/>
+    <ellipse cx="108" cy="52" rx="7" ry="9" fill="{c('side_delts')}"/>
+    <!-- Chest -->
+    <ellipse cx="55" cy="72" rx="18" ry="14" fill="{c('chest')}"/>
+    <ellipse cx="85" cy="72" rx="18" ry="14" fill="{c('chest')}"/>
+    <!-- Biceps -->
+    <ellipse cx="28" cy="85" rx="7" ry="18" fill="{c('biceps')}"/>
+    <ellipse cx="112" cy="85" rx="7" ry="18" fill="{c('biceps')}"/>
+    <!-- Core -->
+    <rect x="50" y="88" width="40" height="35" rx="5" fill="{c('core')}"/>
+    <!-- Obliques -->
+    <rect x="42" y="92" width="9" height="26" rx="3" fill="{c('obliques')}"/>
+    <rect x="89" y="92" width="9" height="26" rx="3" fill="{c('obliques')}"/>
+    <!-- Forearms -->
+    <ellipse cx="22" cy="118" rx="5" ry="18" fill="{c('forearms')}"/>
+    <ellipse cx="118" cy="118" rx="5" ry="18" fill="{c('forearms')}"/>
+    <!-- Quads -->
+    <ellipse cx="55" cy="165" rx="14" ry="35" fill="{c('quads')}"/>
+    <ellipse cx="85" cy="165" rx="14" ry="35" fill="{c('quads')}"/>
+    <!-- Calves (front) -->
+    <ellipse cx="52" cy="235" rx="9" ry="28" fill="{c('calves')}"/>
+    <ellipse cx="88" cy="235" rx="9" ry="28" fill="{c('calves')}"/>
+    </svg>
+    </div>
+    <!-- BACK VIEW -->
+    <div>
+    <div style="color:#666;font-size:10px;margin-bottom:2px;">Back</div>
+    <svg width="{width}" height="{int(width*2.2)}" viewBox="0 0 140 310">
+    <!-- Head -->
+    <ellipse cx="70" cy="22" rx="14" ry="17" fill="#333" stroke="#555" stroke-width="0.5"/>
+    <!-- Traps -->
+    <path d="M50,42 Q70,32 90,42 L85,55 Q70,48 55,55 Z" fill="{c('traps')}"/>
+    <!-- Rear Delts -->
+    <ellipse cx="38" cy="56" rx="10" ry="9" fill="{c('rear_delts')}"/>
+    <ellipse cx="102" cy="56" rx="10" ry="9" fill="{c('rear_delts')}"/>
+    <!-- Upper Back -->
+    <rect x="48" y="58" width="44" height="22" rx="5" fill="{c('upper_back')}"/>
+    <!-- Triceps -->
+    <ellipse cx="30" cy="82" rx="7" ry="18" fill="{c('triceps')}"/>
+    <ellipse cx="110" cy="82" rx="7" ry="18" fill="{c('triceps')}"/>
+    <!-- Lats -->
+    <path d="M48,78 L42,105 Q70,115 98,105 L92,78 Z" fill="{c('lats')}"/>
+    <!-- Lower Back -->
+    <rect x="55" y="105" width="30" height="20" rx="4" fill="{c('lower_back')}"/>
+    <!-- Forearms -->
+    <ellipse cx="22" cy="118" rx="5" ry="18" fill="{c('forearms')}"/>
+    <ellipse cx="118" cy="118" rx="5" ry="18" fill="{c('forearms')}"/>
+    <!-- Glutes -->
+    <ellipse cx="55" cy="135" rx="16" ry="12" fill="{c('glutes')}"/>
+    <ellipse cx="85" cy="135" rx="16" ry="12" fill="{c('glutes')}"/>
+    <!-- Hamstrings -->
+    <ellipse cx="55" cy="175" rx="13" ry="30" fill="{c('hamstrings')}"/>
+    <ellipse cx="85" cy="175" rx="13" ry="30" fill="{c('hamstrings')}"/>
+    <!-- Calves (back) -->
+    <ellipse cx="52" cy="235" rx="9" ry="28" fill="{c('calves')}"/>
+    <ellipse cx="88" cy="235" rx="9" ry="28" fill="{c('calves')}"/>
+    </svg>
+    </div>
+    </div>'''
+
+    # Legend: show muscles with load > 0
+    active = {m: v for m, v in muscle_loads.items() if v > 0}
+    if active:
+        sorted_muscles = sorted(active.items(), key=lambda x: -x[1])
+        legend_items = "".join(
+            f'<span style="display:inline-block;margin:2px 6px;padding:2px 8px;border-radius:4px;'
+            f'background:{load_to_color(v, max_load)};color:#fff;font-size:10px;">'
+            f'{m.replace("_", " ").title()} ({v:.0f})</span>'
+            for m, v in sorted_muscles
+        )
+        svg += f'<div style="margin-top:6px;">{legend_items}</div>'
+
+    svg += '</div>'
+    return svg
+
+
+# ==================== AI FUNCTIONS ====================
+def load_api_key():
+    env_file = APP_DIR / ".env"
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            if line.startswith("ANTHROPIC_API_KEY="):
+                return line.split("=", 1)[1].strip()
+    import os
+    return os.environ.get("ANTHROPIC_API_KEY", "")
+
+
+def load_costs():
+    if COST_FILE.exists():
+        with open(COST_FILE) as f:
+            return json.load(f)
+    return {"total_cost_usd": 0.0, "requests": []}
+
+
+def save_costs(costs):
+    with open(COST_FILE, "w") as f:
+        json.dump(costs, f, indent=2)
+
+
+def track_usage(input_tokens, output_tokens, model_key="sonnet", description=""):
+    costs = load_costs()
+    model_info = MODELS.get(model_key, MODELS["sonnet"])
+    cost = (input_tokens / 1_000_000) * model_info["input_per_m"] + \
+           (output_tokens / 1_000_000) * model_info["output_per_m"]
+    costs["total_cost_usd"] = costs.get("total_cost_usd", 0.0) + cost
+    costs["requests"].append({
+        "timestamp": datetime.now().isoformat(),
+        "model": model_key,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cost_usd": round(cost, 6),
+        "description": description,
+    })
+    save_costs(costs)
+    return cost
+
+
+def call_claude(prompt, system_prompt="", model_key=None):
+    """Call Claude API with the selected model and track costs."""
+    if model_key is None:
+        model_key = st.session_state.get("selected_model", "sonnet")
+    model_id = MODELS[model_key]["id"]
+    api_key = load_api_key()
+    if not api_key:
+        return None, "No API key found. Add it to .env file."
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model=model_id,
+            max_tokens=16384,
+            system=system_prompt,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        input_tokens = message.usage.input_tokens
+        output_tokens = message.usage.output_tokens
+        cost = track_usage(input_tokens, output_tokens, model_key, prompt[:80])
+        response_text = message.content[0].text
+        return response_text, f"Model: {model_key} | Tokens: {input_tokens:,} in / {output_tokens:,} out | Cost: ${cost:.4f}"
+    except Exception as e:
+        return None, f"API Error: {str(e)}"
+
+
+def build_exercise_library_context(exercises):
+    """Format exercise library for Claude context."""
+    lines = ["Available exercises in the gym:"]
+    for body_part, categories in exercises.items():
+        lines.append(f"\n{body_part}:")
+        for cat, ex_list in categories.items():
+            names = [ex["name"] for ex in ex_list]
+            lines.append(f"  {cat}: {', '.join(names)}")
+    return "\n".join(lines)
+
+
+def build_program_context(program_name):
+    """Format a program's current structure for Claude context."""
+    df = load_program(program_name)
+    if len(df) == 0:
+        return f"Program '{program_name}' is empty."
+
+    lines = [f"Current program: {program_name}"]
+    lines.append(f"Full CSV data:\nProgram,Week,Day,Order,Exercise,Sets,Reps,Tempo,Rest,RPE,Instruction")
+    for _, row in df.iterrows():
+        vals = [str(row.get(c, "")) for c in ["Program", "Week", "Day", "Order", "Exercise",
+                                                "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]]
+        lines.append(",".join(vals))
+    return "\n".join(lines)
+
+
+def parse_ai_csv(response_text):
+    """Parse Claude's CSV response into a DataFrame."""
+    csv_text = response_text.strip()
+    # Strip markdown code fences
+    if csv_text.startswith("```"):
+        lines = csv_text.split("\n")
+        csv_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+
+    EXPECTED_COLS = ["Program", "Week", "Day", "Order", "Exercise",
+                     "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]
+
+    # Try standard parse first
+    try:
+        df = pd.read_csv(io.StringIO(csv_text))
+        if list(df.columns) == EXPECTED_COLS:
+            return df
+    except Exception:
+        pass
+
+    # Fallback: parse line by line, handling extra commas in the last field (Instruction)
+    lines = csv_text.strip().split("\n")
+    header = lines[0].strip()
+    # Skip header line
+    rows = []
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        parts = line.split(",")
+        if len(parts) >= 11:
+            # First 10 fields, then join the rest as Instruction
+            row = parts[:10] + [",".join(parts[10:])]
+            rows.append([v.strip().strip('"') for v in row])
+        elif len(parts) == 11:
+            rows.append([v.strip().strip('"') for v in parts])
+
+    df = pd.DataFrame(rows, columns=EXPECTED_COLS)
+    return df
+
+
+# ==================== SYSTEM PROMPTS ====================
+PROGRAM_SYSTEM_PROMPT = """You are an expert strength and conditioning coach. You design training programs in CSV format.
+
+RULES:
+- Always output valid CSV with these exact columns: Program,Week,Day,Order,Exercise,Sets,Reps,Tempo,Rest,RPE,Instruction
+- Use exercises from the provided exercise library when possible
+- For supersets, use orders like 1a, 1b. For circuits, use 1a, 1b, 1c
+- Rest days should have Order=REST, Exercise=Rest Day, Sets=0, Reps=0, empty Tempo/Rest/RPE
+- Tempo format: eccentric-pause-concentric-pause (e.g., 3-1-2-0)
+- Rest in seconds with s suffix (e.g., 90s, 120s) or minutes (e.g., 2min)
+- RPE scale 1-10
+- Instruction should be brief form cues
+- NEVER use commas inside any field value. Use semicolons or slashes instead (e.g., "rower/bike/jump rope" not "rower, bike, jump rope")
+- Output ONLY the CSV data, no markdown, no explanation, no code fences"""
+
+AMENDMENT_SYSTEM_PROMPT = """You are an expert strength and conditioning coach. You amend existing training programs based on specific requests.
+
+CRITICAL RULES:
+- Output valid CSV with header: Program,Week,Day,Order,Exercise,Sets,Reps,Tempo,Rest,RPE,Instruction
+- Only modify what was explicitly requested — keep untouched sections exactly as they are
+- For new exercises, prefer the provided exercise library
+- Maintain program integrity (valid day/week numbers, proper order values)
+- Use supersets (1a, 1b) and circuits (1a, 1b, 1c) when appropriate
+- Tempo format: eccentric-pause-concentric-pause (e.g., 3-1-2-0)
+- Rest in seconds (90s, 120s) or minutes (2min)
+- RPE scale 1-10
+- Output ONLY the complete updated CSV (with header), no markdown, no explanation, no code fences"""
+
+DAY_SUGGEST_SYSTEM_PROMPT = """You are an expert strength and conditioning coach. You suggest exercises for specific training days.
+
+RULES:
+- Output valid CSV rows with columns: Program,Week,Day,Order,Exercise,Sets,Reps,Tempo,Rest,RPE,Instruction
+- Use exercises from the provided exercise library when possible
+- For supersets, use orders like 1a, 1b. For circuits, use 1a, 1b, 1c
+- Tempo format: eccentric-pause-concentric-pause (e.g., 3-1-2-0)
+- Rest in seconds with s suffix (e.g., 90s, 120s)
+- RPE scale 1-10
+- Instruction should be brief form cues
+- Output ONLY the CSV rows (no header row), no markdown, no explanation, no code fences
+- The user will provide Program name, Week, and Day numbers to use"""
+
+PDF_IMPORT_SYSTEM_PROMPT = """You are an expert strength and conditioning coach. You convert workout program PDFs into structured CSV format.
+
+You will receive raw text extracted from a PDF workout program. Your job is to parse it into the standard CSV format.
+
+RULES:
+- Output valid CSV with these exact columns: Program,Week,Day,Order,Exercise,Sets,Reps,Tempo,Rest,RPE,Instruction
+- Parse the PDF structure carefully: identify weeks, days, exercises, sets, reps, tempo, rest periods
+- CRITICAL: You MUST include ALL weeks from the PDF. If it says 8 weeks, output all 8 weeks. Do NOT stop early or truncate.
+- For supersets (A1/A2 or paired exercises), use orders like 1a, 1b. For circuits/giant sets (B1/B2/B3), use 2a, 2b, 2c
+- Map PDF ordering labels (A1, A2, B1, B2, C, D) to numeric orders (1a, 1b, 2a, 2b, 3, 4)
+- Tempo format: eccentric-pause-concentric-pause (e.g., 3-0-1-1). Convert from PDF format if different (e.g., "3011" → "3-0-1-1")
+- Rest in seconds with s suffix (e.g., 75s, 90s) or minutes (e.g., 2min)
+- RPE scale 1-10. If not specified in the PDF, estimate based on rep ranges and context (lower reps = higher RPE)
+- Warmup exercises should be included with Order starting from W1, W2, etc. or as separate entries with "Warmup" in Instruction
+- Conditioning/finisher sections (e.g., "For Time", "EMOM") should be included as single entries with full description in Instruction
+- DAY MAPPING: Map days to a 7-day week where Day 1=Monday through Day 7=Sunday. Rest days should typically be Day 6 (Saturday) and Day 7 (Sunday) unless the PDF specifies otherwise. If the PDF has 5 training days, they should be Days 1-5 with Days 6-7 as rest.
+- Rest days: Order=REST, Exercise=Rest Day, Sets=0, Reps=0
+- Every week MUST have exactly 7 days (training + rest = 7)
+- Instruction column: include any form cues, notes, or special instructions from the PDF. Keep instructions concise.
+- LANGUAGE: The PDF may be in ANY language (Spanish, French, Portuguese, German, etc.). You MUST detect the language and translate ALL exercise names, instructions, and notes into English. The final CSV must be entirely in English.
+- NEVER use commas inside any field value. Use semicolons or slashes instead (e.g., "rower/bike/jump rope" not "rower, bike, jump rope")
+- Be concise in Instruction fields to save space — use short form cues not full sentences
+- Output ONLY the CSV data, no markdown, no explanation, no code fences"""
+
+
+# ==================== WEEK VISUAL ====================
+def render_week_visual(rows, week, allow_edit=True):
+    """Render a 7-day week visual with exercise blocks."""
+    days = get_days_for_week(rows, week)
+    cols = st.columns(7)
+
+    for day_num in range(1, 8):
+        with cols[day_num - 1]:
+            day_exercises = days.get(day_num, [])
+            is_rest = any(r["Order"] == "REST" for r in day_exercises)
+            has_content = len(day_exercises) > 0
+            ex_count = len([r for r in day_exercises if r["Order"] != "REST"])
+
+            if is_rest:
+                st.markdown(f"**{DAY_LABELS[day_num]}**")
+                st.markdown(
+                    '<div style="background:#1a2e1a;border:1px solid #2a4a2a;border-radius:8px;'
+                    'padding:10px;text-align:center;min-height:120px;">'
+                    '<span style="font-size:24px;">🧘</span><br>'
+                    '<span style="color:#4ade80;font-size:13px;font-weight:600;">REST</span>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+            elif has_content:
+                st.markdown(f"**{DAY_LABELS[day_num]}**")
+                ex_html = ""
+                for r in day_exercises:
+                    ex_html += (
+                        f'<div style="background:#1a1a2e;border-radius:4px;padding:4px 6px;'
+                        f'margin-bottom:3px;font-size:11px;">'
+                        f'<b>{r["Exercise"]}</b><br>'
+                        f'<span style="color:#888;">{r["Sets"]}×{r["Reps"]}</span>'
+                        f'</div>'
+                    )
+                st.markdown(
+                    f'<div style="background:#16213e;border:1px solid #2a2a4a;border-radius:8px;'
+                    f'padding:8px;min-height:120px;">'
+                    f'<span style="color:#60a5fa;font-size:11px;font-weight:600;">'
+                    f'{ex_count} exercises</span><br>'
+                    f'{ex_html}'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(f"**{DAY_LABELS[day_num]}**")
+                st.markdown(
+                    '<div style="background:#111;border:1px dashed #333;border-radius:8px;'
+                    'padding:10px;text-align:center;min-height:120px;color:#555;font-size:12px;">'
+                    'Empty'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+
+            if allow_edit and has_content:
+                if st.button(f"Edit", key=f"edit_w{week}_d{day_num}", use_container_width=True):
+                    st.session_state.edit_day = {"week": week, "day": day_num}
+                    st.rerun()
+
+
 # ==================== SIDEBAR ====================
-st.sidebar.title("💪 Workout Admin")
+# NumNum logo — use base64-encoded SVG for reliable rendering
+import base64
+if NUMNUM_LOGO_PATH.exists():
+    logo_b64 = base64.b64encode(NUMNUM_LOGO_PATH.read_bytes()).decode()
+    st.sidebar.markdown(
+        f'<div style="text-align:center;padding:10px 0;"><img src="data:image/svg+xml;base64,{logo_b64}" width="120" alt="NumNum"></div>',
+        unsafe_allow_html=True,
+    )
+st.sidebar.markdown('<h2 style="text-align:center;margin:0;padding:0 0 5px 0;color:#E8475F;">NumNum Workout</h2>', unsafe_allow_html=True)
+st.sidebar.caption('<p style="text-align:center;">Admin Dashboard</p>', unsafe_allow_html=True)
+
+# Model selector in sidebar
+if "selected_model" not in st.session_state:
+    st.session_state.selected_model = "sonnet"
+
+model_options = {v["label"]: k for k, v in MODELS.items()}
+selected_label = st.sidebar.selectbox(
+    "AI Model",
+    list(model_options.keys()),
+    index=list(model_options.values()).index(st.session_state.selected_model),
+)
+st.session_state.selected_model = model_options[selected_label]
+model_info = MODELS[st.session_state.selected_model]
+st.sidebar.caption(f"${model_info['input_per_m']}/M in · ${model_info['output_per_m']}/M out")
+
+st.sidebar.divider()
+
 page = st.sidebar.radio(
     "Navigate",
-    ["📋 Programs", "🏗️ Program Builder", "🏋️ Exercise Library", "👥 Users", "🚀 Deploy"],
+    ["🤖 Program Builder", "📋 Programs", "👥 Users", "🏋️ Exercises", "📥 Import CSV", "📊 Coach Dashboard", "🚀 Deploy"],
 )
+
 st.sidebar.divider()
-st.sidebar.caption(f"App URL: [{GITHUB_URL}]({GITHUB_URL})")
+
+# Persistent program name
+if "active_program_name" not in st.session_state:
+    st.session_state.active_program_name = ""
+
+st.sidebar.subheader("Active Program")
+st.session_state.active_program_name = st.sidebar.text_input(
+    "Program Name",
+    value=st.session_state.active_program_name,
+    placeholder="e.g., Hypertrophy A",
+    key="sidebar_prog_name",
+)
+active_prog = st.session_state.active_program_name
+
+st.sidebar.divider()
+st.sidebar.caption(f"App: [{APP_URL}]({APP_URL})")
+st.sidebar.markdown('<p style="text-align:center;font-size:11px;color:#666;margin-top:20px;">Powered by NumNum V5</p>', unsafe_allow_html=True)
 
 
-# ==================== PROGRAMS PAGE ====================
-if page == "📋 Programs":
-    st.title("📋 Program Editor")
+# ==================== PAGE: PROGRAM BUILDER (AI-first) ====================
+if page == "🤖 Program Builder":
+    st.title("🤖 Program Builder")
 
-    df = load_csv()
-    programs = get_programs_from_csv(df)
+    exercises_data = load_exercises()
+    exercise_context = build_exercise_library_context(exercises_data) if exercises_data else ""
 
-    # Upload new CSV
-    st.subheader("Upload CSV")
-    uploaded = st.file_uploader("Upload a new program CSV", type=["csv"])
-    if uploaded:
-        new_df = pd.read_csv(uploaded)
-        required_cols = ["Program", "Week", "Day", "Order", "Exercise",
-                         "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]
-        missing = [c for c in required_cols if c not in new_df.columns]
-        if missing:
-            st.error(f"Missing columns: {', '.join(missing)}")
-        else:
-            save_csv(new_df)
-            st.success(f"Uploaded! {len(new_df)} rows, programs: {get_programs_from_csv(new_df)}")
-            st.rerun()
+    api_key = load_api_key()
+    if not api_key:
+        st.error("No API key found. Create a `.env` file with `ANTHROPIC_API_KEY=sk-ant-...`")
+    else:
+        st.success(f"API connected · Model: **{MODELS[st.session_state.selected_model]['label']}**")
+
+        tab1, tab2, tab3, tab_pdf, tab4 = st.tabs([
+            "📝 Generate Program",
+            "✏️ Amend Program",
+            "👤 User Variant",
+            "📄 Import from PDF",
+            "💰 Cost Tracker",
+        ])
+
+        # ==================== TAB 1: GENERATE FULL PROGRAM ====================
+        with tab1:
+            st.subheader("Generate a New Program")
+            st.caption("Describe the program and the AI will build it for you.")
+
+            prog_name_ai = st.text_input("Program Name", value=active_prog or "", key="ai_prog_name")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                experience = st.selectbox("Experience Level", ["Beginner", "Intermediate", "Advanced"])
+                goal = st.selectbox("Primary Goal", [
+                    "Hypertrophy", "Strength", "Power", "General Fitness",
+                    "Fat Loss", "Athletic Performance",
+                ])
+                days_per_week = st.selectbox("Training Days per Week", [3, 4, 5, 6], index=2)
+            with col2:
+                num_weeks = st.number_input("Number of Weeks", min_value=1, max_value=16, value=4)
+                split_type = st.selectbox("Split Type", [
+                    "Push/Pull/Legs", "Upper/Lower", "Full Body",
+                    "Bro Split", "Push/Pull/Legs/Upper/Lower", "Let AI decide",
+                ])
+                equipment = st.multiselect(
+                    "Available Equipment",
+                    ["Barbell", "Dumbbell", "Cable", "Machine", "Smith Machine", "Bodyweight", "EZ Bar"],
+                    default=["Barbell", "Dumbbell", "Cable", "Machine"],
+                )
+
+            extra_notes = st.text_area(
+                "Additional instructions",
+                placeholder="e.g., Focus on weak hamstrings, include face pulls every session, no deadlifts due to injury...",
+                height=80,
+            )
+
+            if st.button("🤖 Generate Program", type="primary", use_container_width=True):
+                prompt = f"""Generate a {num_weeks}-week training program called "{prog_name_ai}".
+
+Details:
+- Experience: {experience}
+- Goal: {goal}
+- Training days per week: {days_per_week} (scatter {7 - days_per_week} rest days across the 7-day week)
+- Split: {split_type}
+- Available equipment: {', '.join(equipment)}
+- Total days per week: 7 (training + rest = 7)
+{f'- Additional notes: {extra_notes}' if extra_notes else ''}
+
+{exercise_context}
+
+Generate the complete CSV with all {num_weeks} weeks. Include the header row.
+Each week should have exactly 7 days ({days_per_week} training + {7 - days_per_week} rest).
+Use exercises from the library above when possible."""
+
+                with st.spinner("Building your program... (this may take 15-30 seconds)"):
+                    response, usage_info = call_claude(prompt, PROGRAM_SYSTEM_PROMPT)
+
+                if response:
+                    try:
+                        df_ai = parse_ai_csv(response)
+                        # Store in session state so it persists across reruns
+                        st.session_state["generated_program"] = df_ai.to_dict("records")
+                        st.session_state["generated_program_name"] = prog_name_ai
+                        st.session_state["generated_usage_info"] = usage_info
+                        st.rerun()
+                    except Exception as e:
+                        st.warning(f"Could not parse response: {e}")
+                        st.text("Raw AI response:")
+                        st.code(response)
+                else:
+                    st.error(usage_info)
+
+            # Show generated program (persists across reruns)
+            if "generated_program" in st.session_state and st.session_state["generated_program"]:
+                df_ai = pd.DataFrame(st.session_state["generated_program"])
+                gen_name = st.session_state.get("generated_program_name", prog_name_ai)
+                gen_usage = st.session_state.get("generated_usage_info", "")
+
+                st.divider()
+                st.subheader(f"Generated: {gen_name}")
+                if gen_usage:
+                    st.caption(gen_usage)
+                st.success(f"{len(df_ai)} exercises across {df_ai['Week'].nunique()} weeks")
+                st.dataframe(df_ai, use_container_width=True)
+
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    if st.button("💾 Save to Program Library", key="ai_save_prog", type="primary"):
+                        save_program(gen_name, df_ai)
+                        st.session_state.active_program_name = gen_name
+                        # Clear the generated data
+                        del st.session_state["generated_program"]
+                        st.success(f"Saved **{gen_name}**! View it on the 📋 Programs page.")
+                        st.rerun()
+                with col2:
+                    if st.button("💾 Save & Assign", key="ai_save_assign"):
+                        save_program(gen_name, df_ai)
+                        st.session_state.active_program_name = gen_name
+                        del st.session_state["generated_program"]
+                        st.success(f"Saved! Switch to 👥 Users to assign.")
+                        st.rerun()
+                with col3:
+                    if st.button("📥 Load into Editor", key="ai_load_builder"):
+                        rows = get_builder_rows()
+                        st.session_state.builder_rows = [
+                            r for r in rows if r.get("Program") != gen_name
+                        ]
+                        for _, row in df_ai.iterrows():
+                            st.session_state.builder_rows.append(row.to_dict())
+                        st.session_state.active_program_name = gen_name
+                        del st.session_state["generated_program"]
+                        st.success("Loaded into editor!")
+                        st.rerun()
+                with col4:
+                    if st.button("🗑️ Discard", key="ai_discard"):
+                        del st.session_state["generated_program"]
+                        st.rerun()
+
+        # ==================== TAB 2: AMEND EXISTING PROGRAM ====================
+        with tab2:
+            st.subheader("Amend an Existing Program")
+            st.caption("Select a program and describe what you want to change. The AI will update it.")
+
+            programs = get_program_names()
+            if not programs:
+                st.info("No programs saved yet. Generate one first.")
+            else:
+                amend_prog = st.selectbox("Select program to amend", programs, key="amend_prog_sel")
+
+                # Show current program preview
+                with st.expander("View current program", expanded=False):
+                    df_current = load_program(amend_prog)
+                    if len(df_current) > 0:
+                        for week in sorted(df_current["Week"].unique()):
+                            week_df = df_current[df_current["Week"] == week]
+                            st.markdown(f"**Week {int(float(week))}**")
+                            for day in sorted(week_df["Day"].unique()):
+                                day_df = week_df[week_df["Day"] == day]
+                                is_rest = any(day_df["Order"].astype(str).str.upper() == "REST")
+                                if is_rest:
+                                    st.markdown(f"  Day {int(float(day))}: 🧘 Rest")
+                                else:
+                                    exs = day_df["Exercise"].tolist()
+                                    st.markdown(f"  Day {int(float(day))}: {', '.join(exs)}")
+
+                amendment = st.text_area(
+                    "What would you like to change?",
+                    placeholder="e.g., Replace chest exercises on Day 1 with dumbbell variations\n"
+                                "Make Week 3 harder by increasing RPE by 1\n"
+                                "Add face pulls to every upper body day\n"
+                                "Swap Day 2 and Day 4",
+                    height=100,
+                    key="amendment_text",
+                )
+
+                if st.button("✏️ Apply Amendment", type="primary", use_container_width=True):
+                    if not amendment:
+                        st.error("Describe what you want to change.")
+                    else:
+                        program_context = build_program_context(amend_prog)
+                        prompt = f"""Amend this training program based on the request below.
+
+{program_context}
+
+AMENDMENT REQUEST: {amendment}
+
+Available exercises:
+{exercise_context}
+
+Output the COMPLETE updated program as CSV with header row. Keep everything not explicitly changed exactly as-is."""
+
+                        with st.spinner("Applying amendment..."):
+                            response, usage_info = call_claude(prompt, AMENDMENT_SYSTEM_PROMPT)
+
+                        if response:
+                            try:
+                                df_amended = parse_ai_csv(response)
+                                st.session_state["amended_program"] = df_amended.to_dict("records")
+                                st.session_state["amended_program_name"] = amend_prog
+                                st.session_state["amended_usage_info"] = usage_info
+                                st.rerun()
+                            except Exception as e:
+                                st.warning(f"Could not parse: {e}")
+                                st.code(response)
+                        else:
+                            st.error(usage_info)
+
+                # Show amended result (persists across reruns)
+                if "amended_program" in st.session_state and st.session_state["amended_program"]:
+                    df_amended = pd.DataFrame(st.session_state["amended_program"])
+                    amend_name = st.session_state.get("amended_program_name", amend_prog)
+                    amend_usage = st.session_state.get("amended_usage_info", "")
+
+                    st.divider()
+                    st.subheader(f"Amended: {amend_name}")
+                    if amend_usage:
+                        st.caption(amend_usage)
+
+                    # Side by side
+                    df_original = load_program(amend_name)
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**Before**")
+                        st.caption(f"{len(df_original)} rows")
+                        st.dataframe(df_original[["Week", "Day", "Exercise", "Sets", "Reps", "RPE"]].head(20), use_container_width=True)
+                    with col2:
+                        st.markdown("**After**")
+                        st.caption(f"{len(df_amended)} rows")
+                        st.dataframe(df_amended[["Week", "Day", "Exercise", "Sets", "Reps", "RPE"]].head(20), use_container_width=True)
+
+                    bcol1, bcol2, bcol3 = st.columns(3)
+                    with bcol1:
+                        if st.button("✅ Save Updated Program", key="amend_save", type="primary"):
+                            save_program(amend_name, df_amended)
+                            del st.session_state["amended_program"]
+                            st.success(f"Saved updated {amend_name}!")
+                            st.rerun()
+                    with bcol2:
+                        if st.button("🔄 Save as New Program", key="amend_save_new"):
+                            new_name = f"{amend_name} v2"
+                            df_amended["Program"] = new_name
+                            save_program(new_name, df_amended)
+                            del st.session_state["amended_program"]
+                            st.success(f"Saved as '{new_name}'!")
+                            st.rerun()
+                    with bcol3:
+                        if st.button("🗑️ Discard", key="amend_discard"):
+                            del st.session_state["amended_program"]
+                            st.rerun()
+
+        # ==================== TAB 3: USER VARIANT ====================
+        with tab3:
+            st.subheader("Create a User-Specific Variant")
+            st.caption("Modify a user's program with natural language. Creates a personal variant.")
+
+            users = load_users()
+            if not users:
+                st.info("No users yet. Add users on the Users page first.")
+            else:
+                user_options = {
+                    f"{name} — {info.get('program', 'No program')}": name
+                    for name, info in users.items()
+                }
+                selected_user_label = st.selectbox("Select user", list(user_options.keys()), key="variant_user")
+                selected_user = user_options[selected_user_label]
+                user_info = users[selected_user]
+                current_program = user_info.get("program", "")
+
+                if not current_program:
+                    st.warning(f"{selected_user} has no program assigned.")
+                else:
+                    st.markdown(f"Current program: **{current_program}**")
+
+                    # Show current program preview
+                    with st.expander("View current program", expanded=False):
+                        df_user_prog = load_program(current_program)
+                        if len(df_user_prog) > 0:
+                            for week in sorted(df_user_prog["Week"].unique()):
+                                week_df = df_user_prog[df_user_prog["Week"] == week]
+                                st.markdown(f"**Week {int(float(week))}**")
+                                for day in sorted(week_df["Day"].unique()):
+                                    day_df = week_df[week_df["Day"] == day]
+                                    is_rest = any(day_df["Order"].astype(str).str.upper() == "REST")
+                                    if is_rest:
+                                        st.markdown(f"  Day {int(float(day))}: 🧘 Rest")
+                                    else:
+                                        exs = day_df["Exercise"].tolist()
+                                        st.markdown(f"  Day {int(float(day))}: {', '.join(exs)}")
+
+                    variant_request = st.text_area(
+                        f"What should we change for {selected_user}?",
+                        placeholder=f"e.g., Change Day 3 to a pull day\n"
+                                    f"Remove all barbell exercises (shoulder injury)\n"
+                                    f"Add more core work on rest days",
+                        height=100,
+                        key="variant_text",
+                    )
+
+                    if st.button(f"🤖 Create Variant for {selected_user}", type="primary", use_container_width=True):
+                        if not variant_request:
+                            st.error("Describe what to change.")
+                        else:
+                            program_context = build_program_context(current_program)
+                            prompt = f"""Amend this training program for {selected_user}.
+
+{program_context}
+
+CHANGE REQUEST: {variant_request}
+
+Available exercises:
+{exercise_context}
+
+Output the COMPLETE updated program as CSV with header row.
+IMPORTANT: Keep the Program column as "{current_program}" — the system will rename it."""
+
+                            with st.spinner(f"Building variant for {selected_user}..."):
+                                response, usage_info = call_claude(prompt, AMENDMENT_SYSTEM_PROMPT)
+
+                            if response:
+                                try:
+                                    df_variant = parse_ai_csv(response)
+                                    variant_name = f"{current_program} ({selected_user})"
+                                    df_variant["Program"] = variant_name
+                                    st.session_state["variant_program"] = df_variant.to_dict("records")
+                                    st.session_state["variant_name"] = variant_name
+                                    st.session_state["variant_user"] = selected_user
+                                    st.session_state["variant_usage_info"] = usage_info
+                                    st.rerun()
+                                except Exception as e:
+                                    st.warning(f"Could not parse: {e}")
+                                    st.code(response)
+                            else:
+                                st.error(usage_info)
+
+                    # Show variant result (persists across reruns)
+                    if "variant_program" in st.session_state and st.session_state["variant_program"]:
+                        df_variant = pd.DataFrame(st.session_state["variant_program"])
+                        v_name = st.session_state.get("variant_name", "")
+                        v_user = st.session_state.get("variant_user", selected_user)
+                        v_usage = st.session_state.get("variant_usage_info", "")
+
+                        st.divider()
+                        st.subheader(f"Variant: {v_name}")
+                        if v_usage:
+                            st.caption(v_usage)
+                        st.success(f"{len(df_variant)} rows")
+                        st.dataframe(df_variant[["Week", "Day", "Exercise", "Sets", "Reps", "RPE"]].head(20), use_container_width=True)
+
+                        bcol1, bcol2 = st.columns(2)
+                        with bcol1:
+                            if st.button("✅ Save & Assign Variant", key="variant_save", type="primary"):
+                                save_program(v_name, df_variant)
+                                users = load_users()
+                                users[v_user]["program"] = v_name
+                                save_users(users)
+                                del st.session_state["variant_program"]
+                                st.success(f"Saved and assigned {v_name} to {v_user}!")
+                                st.rerun()
+                        with bcol2:
+                            if st.button("🗑️ Discard", key="variant_discard"):
+                                del st.session_state["variant_program"]
+                                st.rerun()
+
+        # ==================== TAB: IMPORT FROM PDF ====================
+        with tab_pdf:
+            st.subheader("Import Program from PDF")
+            st.caption("Upload a PDF containing a workout program. The AI will parse it into a usable program.")
+
+            pdf_prog_name = st.text_input("Program Name", value="", key="pdf_prog_name",
+                                          placeholder="e.g., Functional Body Composition")
+
+            uploaded_pdf = st.file_uploader("Upload workout PDF", type=["pdf"], key="pdf_uploader")
+
+            # Extract text from PDF and store in session state
+            if uploaded_pdf:
+                # Auto-install pdfplumber if missing
+                try:
+                    import pdfplumber
+                except ImportError:
+                    with st.spinner("Installing PDF reader (one-time setup)..."):
+                        import subprocess as _sp
+                        _sp.check_call([sys.executable, "-m", "pip", "install", "pdfplumber", "-q"])
+                    import pdfplumber
+
+                try:
+                    pdf_bytes = uploaded_pdf.read()
+                    pdf_text_pages = []
+                    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                        total_pages = len(pdf.pages)
+                        st.caption(f"PDF loaded: {total_pages} pages")
+
+                        for page in pdf.pages:
+                            text = page.extract_text()
+                            if text:
+                                pdf_text_pages.append(text)
+
+                    full_text = "\n\n--- PAGE BREAK ---\n\n".join(pdf_text_pages)
+                    # Store in session state so it survives reruns
+                    st.session_state["pdf_extracted_text"] = full_text
+
+                    with st.expander("Preview extracted text", expanded=False):
+                        st.text(full_text[:3000] + ("..." if len(full_text) > 3000 else ""))
+                        st.caption(f"Total characters: {len(full_text):,}")
+
+                except Exception as e:
+                    st.error(f"Could not read PDF: {e}")
+
+            # Retrieve stored text
+            full_text = st.session_state.get("pdf_extracted_text", None)
+
+            # Show button — always visible, checks conditions on click
+            if st.button("🤖 Parse PDF into Program", type="primary", use_container_width=True):
+                if not full_text:
+                    st.error("Please upload a PDF first.")
+                elif not pdf_prog_name:
+                    st.error("Please enter a program name.")
+                else:
+                    prompt = f"""Parse this workout program PDF into CSV format.
+
+Program name to use: "{pdf_prog_name}"
+
+Here is the extracted text from the PDF:
+
+{full_text}
+
+Convert ALL weeks and days found in the PDF into the CSV format.
+Use "{pdf_prog_name}" as the Program column value for all rows.
+Include the CSV header row."""
+
+                    with st.spinner("Parsing PDF... (this may take 30-60 seconds for large programs)"):
+                        response, usage_info = call_claude(prompt, PDF_IMPORT_SYSTEM_PROMPT)
+
+                    if response:
+                        try:
+                            df_pdf = parse_ai_csv(response)
+                            df_pdf["Program"] = pdf_prog_name
+                            st.session_state["pdf_imported_program"] = df_pdf.to_dict("records")
+                            st.session_state["pdf_imported_name"] = pdf_prog_name
+                            st.session_state["pdf_imported_usage"] = usage_info
+                            # Clear extracted text
+                            if "pdf_extracted_text" in st.session_state:
+                                del st.session_state["pdf_extracted_text"]
+                            st.rerun()
+                        except Exception as e:
+                            st.warning(f"Could not parse AI response: {e}")
+                            st.text("Raw AI response:")
+                            st.code(response)
+                    else:
+                        st.error(usage_info)
+
+            # Show imported result (persists across reruns)
+            if "pdf_imported_program" in st.session_state and st.session_state["pdf_imported_program"]:
+                df_pdf = pd.DataFrame(st.session_state["pdf_imported_program"])
+                pdf_name = st.session_state.get("pdf_imported_name", pdf_prog_name)
+                pdf_usage = st.session_state.get("pdf_imported_usage", "")
+
+                st.divider()
+                st.subheader(f"Imported: {pdf_name}")
+                if pdf_usage:
+                    st.caption(pdf_usage)
+
+                weeks_found = df_pdf["Week"].nunique() if "Week" in df_pdf.columns else 0
+                days_found = df_pdf[~df_pdf["Order"].astype(str).str.upper().eq("REST")]["Day"].nunique() if "Day" in df_pdf.columns else 0
+                st.success(f"{len(df_pdf)} rows · {weeks_found} weeks · {days_found} training day types")
+                st.dataframe(df_pdf, use_container_width=True)
+
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    if st.button("💾 Save to Program Library", key="pdf_save", type="primary"):
+                        save_program(pdf_name, df_pdf)
+                        st.session_state.active_program_name = pdf_name
+                        del st.session_state["pdf_imported_program"]
+                        st.success(f"Saved **{pdf_name}**! View it on the 📋 Programs page.")
+                        st.rerun()
+                with col2:
+                    if st.button("💾 Save & Assign", key="pdf_save_assign"):
+                        save_program(pdf_name, df_pdf)
+                        st.session_state.active_program_name = pdf_name
+                        del st.session_state["pdf_imported_program"]
+                        st.success(f"Saved! Switch to 👥 Users to assign.")
+                        st.rerun()
+                with col3:
+                    csv_data = df_pdf.to_csv(index=False)
+                    st.download_button(
+                        "📥 Export CSV",
+                        data=csv_data,
+                        file_name=f"{pdf_name.replace(' ', '_').lower()}.csv",
+                        mime="text/csv",
+                        key="pdf_export_csv",
+                    )
+                with col4:
+                    if st.button("🗑️ Discard", key="pdf_discard"):
+                        del st.session_state["pdf_imported_program"]
+                        st.rerun()
+
+        # ==================== TAB 4: COST TRACKER ====================
+        with tab4:
+            st.subheader("💰 API Cost Tracker")
+
+            costs = load_costs()
+
+            total_cost = costs.get("total_cost_usd", 0.0)
+            requests = costs.get("requests", [])
+
+            # Summary metrics
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Total Spend", f"${total_cost:.4f}")
+            col2.metric("Total Requests", len(requests))
+
+            # Per-model breakdown
+            model_costs = {}
+            for req in requests:
+                m = req.get("model", "sonnet")
+                if m not in model_costs:
+                    model_costs[m] = {"cost": 0.0, "count": 0}
+                model_costs[m]["cost"] += req.get("cost_usd", 0.0)
+                model_costs[m]["count"] += 1
+
+            breakdown = " · ".join(
+                f"{m.capitalize()}: ${info['cost']:.4f} ({info['count']})"
+                for m, info in model_costs.items()
+            )
+            col3.metric("Breakdown", breakdown if breakdown else "No requests yet")
+
+            st.caption("Pricing: " + " · ".join(
+                f"{m.capitalize()}: ${info['input_per_m']}/{info['output_per_m']} per M tokens"
+                for m, info in MODELS.items()
+            ))
+
+            if requests:
+                st.divider()
+                st.markdown("**Recent Requests:**")
+                for req in reversed(requests[-20:]):
+                    ts = req.get("timestamp", "")[:16].replace("T", " ")
+                    m = req.get("model", "sonnet")
+                    st.markdown(
+                        f"- `{ts}` **{m}** — {req.get('input_tokens', 0):,} in / {req.get('output_tokens', 0):,} out "
+                        f"— **${req.get('cost_usd', 0):.4f}** — _{req.get('description', '')}_"
+                    )
+
+                st.divider()
+                if st.button("🗑️ Reset Cost Tracker"):
+                    save_costs({"total_cost_usd": 0.0, "requests": []})
+                    st.success("Reset!")
+                    st.rerun()
+            else:
+                st.info("No API calls yet. Generate a program to see costs here.")
+
+
+# ==================== PAGE: PROGRAMS ====================
+elif page == "📋 Programs":
+    st.title("📋 Programs")
+    render_deploy_banner()
+
+    programs = get_program_names()
+
+    if not programs:
+        st.info("No programs yet. Use the Program Builder to generate one.")
+    else:
+        # Program cards
+        for prog_name in programs:
+            df_prog = load_program(prog_name)
+            users = load_users()
+            assigned_users = [n for n, info in users.items() if info.get("program") == prog_name]
+            weeks = sorted(df_prog["Week"].dropna().unique()) if len(df_prog) > 0 else []
+            training_days = len(df_prog[~df_prog["Order"].astype(str).str.upper().eq("REST")]["Day"].dropna().unique()) if len(df_prog) > 0 else 0
+
+            with st.expander(
+                f"**{prog_name}** — {len(weeks)} weeks · {len(assigned_users)} user{'s' if len(assigned_users) != 1 else ''}",
+                expanded=len(programs) == 1,
+            ):
+                if assigned_users:
+                    st.caption(f"Assigned to: {', '.join(assigned_users)}")
+
+                # Week visual
+                rows_for_visual = [r.to_dict() for _, r in df_prog.iterrows()]
+                if weeks:
+                    vis_week = st.selectbox(
+                        "View week", [int(float(w)) for w in weeks],
+                        key=f"vis_{prog_name}",
+                    )
+                    render_week_visual(rows_for_visual, vis_week, allow_edit=False)
+
+                    # Day detail drill-down
+                    DAY_NAMES = {1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday",
+                                 5: "Friday", 6: "Saturday", 7: "Sunday"}
+                    week_data = df_prog[df_prog["Week"].apply(lambda x: int(float(x))) == vis_week]
+                    all_days = sorted([int(float(d)) for d in week_data["Day"].unique() if _safe_numeric(d) is not None])
+
+                    if all_days:
+                        detail_day = st.selectbox(
+                            "Drill into day",
+                            all_days,
+                            format_func=lambda d: f"Day {d} — {DAY_NAMES.get(d, '')}",
+                            key=f"detail_day_{prog_name}",
+                        )
+                        day_data = week_data[week_data["Day"].apply(lambda x: int(float(x))) == detail_day]
+
+                        is_rest = any(day_data["Order"].astype(str).str.upper() == "REST")
+                        if is_rest:
+                            st.info(f"🧘 Day {detail_day} ({DAY_NAMES.get(detail_day, '')}) is a rest day.")
+                        else:
+                            st.markdown(f"**Day {detail_day} — {DAY_NAMES.get(detail_day, '')}**")
+                            for _, row in day_data.iterrows():
+                                order = str(row.get("Order", ""))
+                                exercise = str(row.get("Exercise", ""))
+                                sets = row.get("Sets", "")
+                                reps = row.get("Reps", "")
+                                tempo = row.get("Tempo", "")
+                                rest = row.get("Rest", "")
+                                rpe = row.get("RPE", "")
+                                instruction = str(row.get("Instruction", ""))
+
+                                # Format as a clean block
+                                detail_parts = []
+                                if sets and str(sets) != "nan" and str(sets) != "0":
+                                    detail_parts.append(f"**Sets:** {int(float(sets)) if _safe_numeric(sets) else sets}")
+                                if reps and str(reps) != "nan":
+                                    detail_parts.append(f"**Reps:** {reps}")
+                                if tempo and str(tempo) != "nan":
+                                    detail_parts.append(f"**Tempo:** {tempo}")
+                                if rest and str(rest) != "nan":
+                                    detail_parts.append(f"**Rest:** {rest}")
+                                if rpe and str(rpe) != "nan":
+                                    detail_parts.append(f"**RPE:** {rpe}")
+
+                                st.markdown(f"**{order}.** {exercise}")
+                                if detail_parts:
+                                    st.caption(" · ".join(detail_parts))
+                                if instruction and instruction != "nan":
+                                    st.caption(f"💡 {instruction}")
+
+                    st.divider()
+
+                    # Muscle diagram: per-day + full week
+                    exercises_data = load_exercises()
+                    if exercises_data:
+                        st.divider()
+                        st.markdown("**Muscle Load Map**")
+
+                        # Day selector for per-day view
+                        week_df = df_prog[df_prog["Week"] == vis_week]
+                        available_days = sorted(week_df["Day"].unique())
+                        training_days_list = [
+                            int(float(d)) for d in available_days
+                            if _safe_numeric(d) is not None and not any(week_df[(week_df["Day"] == d)]["Order"].astype(str).str.upper() == "REST")
+                        ]
+
+                        diagram_cols = st.columns(2)
+                        with diagram_cols[0]:
+                            if training_days_list:
+                                sel_day = st.selectbox(
+                                    "View day", training_days_list,
+                                    key=f"muscle_day_{prog_name}",
+                                )
+                                day_loads = calculate_muscle_load(df_prog, exercises_data, week=vis_week, day=sel_day)
+                                st.markdown(
+                                    render_body_svg(day_loads, title=f"Day {sel_day}"),
+                                    unsafe_allow_html=True,
+                                )
+                            else:
+                                st.caption("No training days this week.")
+
+                        with diagram_cols[1]:
+                            week_loads = calculate_muscle_load(df_prog, exercises_data, week=vis_week)
+                            st.markdown(
+                                render_body_svg(week_loads, title=f"Full Week {int(vis_week)}"),
+                                unsafe_allow_html=True,
+                            )
+
+                # Actions
+                st.divider()
+                acol1, acol2, acol3, acol4 = st.columns(4)
+                with acol1:
+                    if st.button("📥 Load into Editor", key=f"load_{prog_name}"):
+                        rows = get_builder_rows()
+                        st.session_state.builder_rows = [
+                            r for r in rows if r.get("Program") != prog_name
+                        ]
+                        for _, row in df_prog.iterrows():
+                            st.session_state.builder_rows.append(row.to_dict())
+                        st.session_state.active_program_name = prog_name
+                        st.success(f"Loaded {prog_name}! Switch to Exercises page to edit.")
+                with acol2:
+                    if st.button("👥 Assign to Users", key=f"assign_{prog_name}"):
+                        st.session_state.active_program_name = prog_name
+                        st.session_state["assign_program"] = prog_name
+                        st.rerun()
+                with acol3:
+                    if st.button("✏️ Amend with AI", key=f"amend_{prog_name}"):
+                        st.session_state.active_program_name = prog_name
+                        st.info("Switch to Program Builder → Amend Program tab.")
+                with acol4:
+                    if st.button("🗑️ Delete", key=f"del_{prog_name}", type="secondary"):
+                        delete_program(prog_name)
+                        st.success(f"Deleted {prog_name}")
+                        st.rerun()
+
+        # Quick assign flow (triggered from program card)
+        if "assign_program" in st.session_state:
+            assign_prog = st.session_state["assign_program"]
+            st.divider()
+            st.subheader(f"Assign '{assign_prog}' to Users")
+
+            users = load_users()
+            all_users = list(users.keys())
+
+            if not all_users:
+                st.warning("No users exist yet. Add users on the Users page first.")
+            else:
+                selected_users = st.multiselect("Select users", all_users, key="assign_users_multi")
+                assign_date = st.text_input("Start Date", value=datetime.now().strftime("%Y-%m-%d"), key="assign_date")
+
+                bcol1, bcol2 = st.columns(2)
+                with bcol1:
+                    if st.button("✅ Assign", type="primary"):
+                        for u in selected_users:
+                            users[u]["program"] = assign_prog
+                            users[u]["startDate"] = assign_date
+                        save_users(users)
+                        st.success(f"Assigned {assign_prog} to {', '.join(selected_users)}")
+                        del st.session_state["assign_program"]
+                        st.rerun()
+                with bcol2:
+                    if st.button("Cancel"):
+                        del st.session_state["assign_program"]
+                        st.rerun()
+
+        # Manage programs section
+        st.divider()
+        st.subheader("Manage Programs")
+        del_prog = st.selectbox("Select program", programs, key="del_prog_sel")
+        dcol1, dcol2 = st.columns([1, 3])
+        with dcol1:
+            if st.button("🗑️ Delete Program", type="secondary"):
+                # Check if any users are assigned
+                users_check = load_users()
+                affected = [n for n, info in users_check.items() if info.get("program") == del_prog]
+                if affected:
+                    st.warning(f"⚠️ {', '.join(affected)} {'is' if len(affected) == 1 else 'are'} assigned to this program. Unassign them first or they'll have a missing program.")
+                    st.session_state[f"confirm_delete_{del_prog}"] = True
+                else:
+                    delete_program(del_prog)
+                    st.success(f"Deleted {del_prog}")
+                    st.rerun()
+        with dcol2:
+            if st.session_state.get(f"confirm_delete_{del_prog}"):
+                if st.button(f"⚠️ Yes, delete {del_prog} anyway", type="primary"):
+                    delete_program(del_prog)
+                    del st.session_state[f"confirm_delete_{del_prog}"]
+                    st.success(f"Deleted {del_prog}")
+                    st.rerun()
+
+        st.divider()
+        with st.expander("⚠️ Danger Zone"):
+            st.caption("This will permanently delete ALL programs from the library.")
+            if st.button("🗑️ Delete All Programs", type="secondary", key="nuke_all"):
+                st.session_state["confirm_nuke"] = True
+            if st.session_state.get("confirm_nuke"):
+                st.warning("Are you sure? This cannot be undone.")
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("⚠️ Yes, delete everything", type="primary", key="nuke_confirm"):
+                        save_program_data(pd.DataFrame(
+                            columns=["Program", "Week", "Day", "Order", "Exercise",
+                                     "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]
+                        ))
+                        if "confirm_nuke" in st.session_state:
+                            del st.session_state["confirm_nuke"]
+                        st.success("All programs deleted.")
+                        st.rerun()
+                with c2:
+                    if st.button("Cancel", key="nuke_cancel"):
+                        del st.session_state["confirm_nuke"]
+                        st.rerun()
+
+
+# ==================== PAGE: USERS ====================
+elif page == "👥 Users":
+    st.title("👥 Users")
+    render_deploy_banner()
+
+    users = load_users()
+    programs = get_program_names()
+    all_metrics = load_metrics()
+
+    if users:
+        st.subheader("Current Users")
+        for name, info in users.items():
+            prog_display = info.get("program") or "No program"
+            date_display = info.get("startDate") or "—"
+            with st.expander(f"**{name}** → {prog_display} (started {date_display})"):
+
+                # --- Program & Password ---
+                st.markdown("**Program & Account**")
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    prog_options = ["— No program —"] + programs
+                    current_prog = info.get("program", "")
+                    prog_idx = prog_options.index(current_prog) if current_prog in prog_options else 0
+                    new_program = st.selectbox(
+                        "Program", prog_options,
+                        index=prog_idx,
+                        key=f"prog_{name}",
+                    )
+                    if new_program == "— No program —":
+                        new_program = ""
+                    new_date = st.text_input("Start Date (YYYY-MM-DD)", info.get("startDate", ""), key=f"date_{name}")
+
+                with col2:
+                    current_email = info.get("email", "")
+                    new_email = st.text_input("Email", value=current_email, key=f"email_{name}")
+                    new_pass = st.text_input("New Password (leave blank to keep)", type="password", key=f"pass_{name}")
+                    has_password = "passwordHash" in info
+                    st.caption(f"Password set: {'✅ Yes' if has_password else '❌ No'}")
+
+                col_save, col_variant, col_del = st.columns(3)
+                with col_save:
+                    if st.button(f"Save {name}", key=f"save_{name}"):
+                        users[name]["program"] = new_program
+                        users[name]["startDate"] = new_date
+                        if new_email.strip():
+                            users[name]["email"] = new_email.strip().lower()
+                        if new_pass:
+                            users[name]["passwordHash"] = hash_password(new_pass)
+                        save_users(users)
+                        st.success(f"Updated {name}")
+                        st.rerun()
+
+                with col_variant:
+                    if st.button(f"🤖 Create AI Variant", key=f"variant_{name}"):
+                        st.info("Switch to Program Builder → User Variant tab.")
+
+                with col_del:
+                    if st.button(f"🗑️ Remove {name}", key=f"del_{name}", type="secondary"):
+                        del users[name]
+                        save_users(users)
+                        st.success(f"Removed {name}")
+                        st.rerun()
+
+                # --- Body Metrics ---
+                st.divider()
+                st.markdown("**📊 Body Metrics**")
+
+                user_entries = all_metrics.get(name, {}).get("entries", [])
+
+                # Log new entry
+                with st.expander("Log new measurement", expanded=False):
+                    m_date = st.date_input("Date", value=datetime.now(), key=f"mdate_{name}")
+                    mcols = st.columns(len(METRIC_FIELDS))
+                    m_values = {}
+                    for i, (field_key, field_label) in enumerate(METRIC_FIELDS):
+                        with mcols[i]:
+                            val = st.number_input(
+                                field_label, min_value=0.0, max_value=500.0, value=0.0,
+                                step=0.1, key=f"m_{field_key}_{name}",
+                            )
+                            if val > 0:
+                                m_values[field_key] = val
+
+                    if st.button("📏 Save Measurement", key=f"msave_{name}"):
+                        if m_values:
+                            entry = {"date": m_date.strftime("%Y-%m-%d"), **m_values}
+                            if name not in all_metrics:
+                                all_metrics[name] = {"entries": []}
+                            all_metrics[name]["entries"].append(entry)
+                            # Sort by date
+                            all_metrics[name]["entries"].sort(key=lambda x: x["date"])
+                            save_metrics(all_metrics)
+                            st.success("Measurement saved!")
+                            st.rerun()
+                        else:
+                            st.error("Enter at least one measurement.")
+
+                # Progress chart
+                if user_entries:
+                    chart_df = pd.DataFrame(user_entries)
+                    chart_df["date"] = pd.to_datetime(chart_df["date"])
+
+                    # Find which metrics have data
+                    available_metrics = [
+                        (k, label) for k, label in METRIC_FIELDS
+                        if k in chart_df.columns and chart_df[k].notna().any()
+                    ]
+
+                    if available_metrics:
+                        metric_labels = [label for _, label in available_metrics]
+                        metric_keys = [k for k, _ in available_metrics]
+                        selected_metrics = st.multiselect(
+                            "Show on chart",
+                            metric_labels,
+                            default=metric_labels[:2],
+                            key=f"mchart_{name}",
+                        )
+
+                        if selected_metrics:
+                            sel_keys = [metric_keys[metric_labels.index(l)] for l in selected_metrics]
+                            chart_data = chart_df[["date"] + sel_keys].set_index("date")
+                            chart_data.columns = [dict(METRIC_FIELDS)[k] for k in sel_keys]
+                            st.line_chart(chart_data)
+
+                    # Show raw data
+                    with st.expander("View all entries"):
+                        display_df = chart_df.copy()
+                        display_df["date"] = display_df["date"].dt.strftime("%Y-%m-%d")
+                        st.dataframe(display_df, use_container_width=True)
+
+                        if st.button(f"🗑️ Clear all metrics for {name}", key=f"mclear_{name}"):
+                            all_metrics[name] = {"entries": []}
+                            save_metrics(all_metrics)
+                            st.rerun()
+                else:
+                    st.caption("No measurements logged yet.")
+
+    else:
+        st.info("No users yet. Add one below.")
 
     st.divider()
 
-    if len(df) > 0:
-        st.subheader("Current Programs")
+    # Quick assign section
+    if programs and users:
+        st.subheader("Quick Assign")
+        qcol1, qcol2, qcol3 = st.columns(3)
+        with qcol1:
+            qa_program = st.selectbox("Program", programs, key="qa_prog")
+        with qcol2:
+            qa_users = st.multiselect("Users", list(users.keys()), key="qa_users")
+        with qcol3:
+            qa_date = st.text_input("Start Date", value=datetime.now().strftime("%Y-%m-%d"), key="qa_date")
 
-        if programs:
-            selected_program = st.selectbox("Filter by program", ["All"] + programs)
-            if selected_program != "All":
-                df_view = df[df["Program"] == selected_program].copy()
+        if st.button("✅ Assign Program", type="primary"):
+            if qa_users:
+                for u in qa_users:
+                    users[u]["program"] = qa_program
+                    users[u]["startDate"] = qa_date
+                save_users(users)
+                st.success(f"Assigned {qa_program} to {', '.join(qa_users)}")
+                st.rerun()
             else:
-                df_view = df.copy()
-        else:
-            df_view = df.copy()
-
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Programs", len(programs))
-        col2.metric("Total Rows", len(df_view))
-        if "Week" in df_view.columns:
-            col3.metric("Weeks", df_view["Week"].nunique())
-
-        if "Week" in df_view.columns and "Day" in df_view.columns:
-            for week in sorted(df_view["Week"].unique()):
-                week_df = df_view[df_view["Week"] == week]
-                with st.expander(f"Week {int(week)}", expanded=bool(week == df_view["Week"].min())):
-                    for day in sorted(week_df["Day"].unique()):
-                        day_df = week_df[week_df["Day"] == day]
-                        is_rest = any(day_df["Order"].astype(str).str.upper() == "REST")
-                        if is_rest:
-                            st.markdown(f"**Day {int(day)}** — 🧘 Rest Day")
-                        else:
-                            exercises = day_df["Exercise"].tolist()
-                            st.markdown(f"**Day {int(day)}** — {', '.join(exercises)}")
+                st.error("Select at least one user.")
 
         st.divider()
 
-        st.subheader("Edit Data")
-        st.caption("Edit directly in the table below, then click Save.")
-        edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="csv_editor")
-
-        if st.button("💾 Save CSV", type="primary"):
-            save_csv(edited_df)
-            st.success("CSV saved!")
-    else:
-        st.info("No program CSV found. Upload one above or use the Program Builder.")
-
-
-# ==================== PROGRAM BUILDER ====================
-elif page == "🏗️ Program Builder":
-    st.title("🏗️ Program Builder")
-    st.caption("Build a training program day by day using the exercise library.")
-
-    exercises = load_exercises()
-    all_exercise_names = get_all_exercise_names(exercises)
-
-    # Session state for builder
-    if "builder_rows" not in st.session_state:
-        st.session_state.builder_rows = []
-
-    # Program metadata
+    st.subheader("Add New User")
     col1, col2 = st.columns(2)
     with col1:
-        prog_name = st.text_input("Program Name", placeholder="e.g., Hypertrophy A")
+        new_name = st.text_input("Name")
+        new_email = st.text_input("Email")
     with col2:
-        total_weeks = st.number_input("Total Weeks", min_value=1, max_value=52, value=4)
+        new_password = st.text_input("Password", type="password")
+        new_prog_options = ["— No program —"] + programs
+        new_program = st.selectbox("Program (optional)", new_prog_options, key="new_user_prog")
+        if new_program == "— No program —":
+            new_program = ""
 
-    st.divider()
-
-    # Day builder
-    st.subheader("Add Exercises to Day")
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        build_week = st.number_input("Week", min_value=1, max_value=52, value=1)
-    with col2:
-        build_day = st.number_input("Day", min_value=1, max_value=7, value=1)
-    with col3:
-        is_rest_day = st.checkbox("Rest Day")
-
-    if is_rest_day:
-        rest_note = st.text_input("Rest day note", value="Active recovery. Light walking or stretching recommended.")
-        if st.button("➕ Add Rest Day", type="primary"):
-            st.session_state.builder_rows.append({
-                "Program": prog_name,
-                "Week": build_week,
-                "Day": build_day,
-                "Order": "REST",
-                "Exercise": "Rest Day",
-                "Sets": 0,
-                "Reps": 0,
-                "Tempo": "",
-                "Rest": "",
-                "RPE": "",
-                "Instruction": rest_note,
-            })
-            st.success(f"Added rest day: Week {build_week}, Day {build_day}")
+    if st.button("➕ Add User", type="primary"):
+        if not new_name:
+            st.error("Name is required")
+        elif not new_email:
+            st.error("Email is required")
+        elif not new_password:
+            st.error("Password is required")
+        elif new_name in users:
+            st.error(f"{new_name} already exists")
+        else:
+            user_data = {
+                "email": new_email.strip().lower(),
+                "passwordHash": hash_password(new_password),
+            }
+            if new_program:
+                user_data["program"] = new_program
+                user_data["startDate"] = datetime.now().strftime("%Y-%m-%d")
+            else:
+                user_data["program"] = ""
+                user_data["startDate"] = ""
+            users[new_name] = user_data
+            save_users(users)
+            st.success(f"Added {new_name}" + (f" → {new_program}" if new_program else ""))
             st.rerun()
-    else:
-        # Exercise selection with library
-        st.markdown("**Select from library or type custom:**")
-
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            body_part = st.selectbox("Body Part", ["All"] + list(exercises.keys()))
-        with col2:
-            # Filter exercises by body part
-            if body_part != "All" and body_part in exercises:
-                filtered = []
-                for cat, ex_list in exercises[body_part].items():
-                    for ex in ex_list:
-                        filtered.append(ex["name"])
-                filtered = sorted(set(filtered))
-            else:
-                filtered = [name.split(" (")[0] for name in all_exercise_names]
-                filtered = sorted(set(filtered))
-
-            exercise_name = st.selectbox(
-                "Exercise",
-                ["-- Type custom --"] + filtered,
-                key="exercise_select",
-            )
-
-        if exercise_name == "-- Type custom --":
-            exercise_name = st.text_input("Custom exercise name")
-
-        # Exercise details
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
-        with col1:
-            ex_order = st.text_input("Order", value="1", help="Use 1a, 1b for supersets")
-        with col2:
-            ex_sets = st.number_input("Sets", min_value=1, max_value=10, value=3)
-        with col3:
-            ex_reps = st.text_input("Reps", value="10")
-        with col4:
-            ex_tempo = st.text_input("Tempo", value="3-1-2-0")
-        with col5:
-            ex_rest = st.text_input("Rest", value="90s")
-        with col6:
-            ex_rpe = st.text_input("RPE", value="7")
-
-        ex_instruction = st.text_area("Instructions / Form Cues", height=68)
-
-        if st.button("➕ Add Exercise", type="primary"):
-            if exercise_name and exercise_name != "-- Type custom --":
-                st.session_state.builder_rows.append({
-                    "Program": prog_name,
-                    "Week": build_week,
-                    "Day": build_day,
-                    "Order": ex_order,
-                    "Exercise": exercise_name,
-                    "Sets": ex_sets,
-                    "Reps": ex_reps,
-                    "Tempo": ex_tempo,
-                    "Rest": ex_rest,
-                    "RPE": ex_rpe,
-                    "Instruction": ex_instruction,
-                })
-                st.success(f"Added {exercise_name}")
-                st.rerun()
-            else:
-                st.error("Select or type an exercise name")
-
-    st.divider()
-
-    # Show current builder contents
-    if st.session_state.builder_rows:
-        st.subheader("Program Preview")
-        builder_df = pd.DataFrame(st.session_state.builder_rows)
-        st.dataframe(builder_df, use_container_width=True)
-
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("🔄 Duplicate to More Weeks"):
-                """Duplicate current week 1 content across all weeks."""
-                week1 = [r for r in st.session_state.builder_rows if r["Week"] == 1]
-                for w in range(2, total_weeks + 1):
-                    for row in week1:
-                        new_row = row.copy()
-                        new_row["Week"] = w
-                        st.session_state.builder_rows.append(new_row)
-                st.success(f"Duplicated Week 1 to Weeks 2-{total_weeks}")
-                st.rerun()
-
-        with col2:
-            if st.button("💾 Save to CSV", type="primary"):
-                new_df = pd.DataFrame(st.session_state.builder_rows)
-                existing_df = load_csv()
-                # Append or replace
-                if len(existing_df) > 0 and prog_name:
-                    existing_df = existing_df[existing_df["Program"] != prog_name]
-                    combined = pd.concat([existing_df, new_df], ignore_index=True)
-                else:
-                    combined = new_df
-                save_csv(combined)
-                st.success(f"Saved {prog_name} to CSV! ({len(new_df)} rows)")
-
-        with col3:
-            if st.button("🗑️ Clear Builder"):
-                st.session_state.builder_rows = []
-                st.rerun()
-
-        # Delete individual rows
-        st.caption("Remove a row:")
-        for i, row in enumerate(st.session_state.builder_rows):
-            col_info, col_del = st.columns([5, 1])
-            with col_info:
-                rest_label = "🧘 REST" if row["Order"] == "REST" else f"{row['Order']}. {row['Exercise']} — {row['Sets']}×{row['Reps']}"
-                st.text(f"W{row['Week']}D{row['Day']}: {rest_label}")
-            with col_del:
-                if st.button("✕", key=f"del_row_{i}"):
-                    st.session_state.builder_rows.pop(i)
-                    st.rerun()
-    else:
-        st.info("Start adding exercises above. They'll appear here as you build.")
 
 
-# ==================== EXERCISE LIBRARY ====================
-elif page == "🏋️ Exercise Library":
+# ==================== PAGE: EXERCISES ====================
+elif page == "🏋️ Exercises":
     st.title("🏋️ Exercise Library")
 
-    exercises = load_exercises()
+    exercises_data = load_exercises()
+    rows = get_builder_rows()
 
-    if not exercises:
-        st.warning("No exercises.json found.")
+    if "selected_exercises" not in st.session_state:
+        st.session_state.selected_exercises = {}
+    if "edit_day" not in st.session_state:
+        st.session_state.edit_day = None
+
+    if not exercises_data:
+        st.warning("No exercises found. Add some below.")
     else:
-        # Filter
+        # ==================== WEEK VISUAL (if active program) ====================
+        if active_prog:
+            st.subheader(f"📅 {active_prog} — Week Planner")
+
+            weeks_in_builder = sorted(set(r["Week"] for r in rows if r.get("Program") == active_prog)) if rows else []
+            current_week = st.selectbox(
+                "Viewing Week",
+                [1] + [w for w in weeks_in_builder if w != 1],
+                key="visual_week",
+            ) if weeks_in_builder else 1
+
+            prog_rows = [r for r in rows if r.get("Program") == active_prog]
+            render_week_visual(prog_rows, current_week)
+
+            # Quick actions
+            qcol1, qcol2, qcol3, qcol4 = st.columns(4)
+            with qcol1:
+                rest_day = st.selectbox("Add rest day to:", [f"Day {d}" for d in range(1, 8)], key="rest_day_sel")
+                if st.button("🧘 Add Rest Day"):
+                    d = int(rest_day.split(" ")[1])
+                    st.session_state.builder_rows = [
+                        r for r in rows if not (r.get("Program") == active_prog and r["Week"] == current_week and r["Day"] == d)
+                    ]
+                    st.session_state.builder_rows.append({
+                        "Program": active_prog, "Week": current_week, "Day": d,
+                        "Order": "REST", "Exercise": "Rest Day", "Sets": 0, "Reps": 0,
+                        "Tempo": "", "Rest": "", "RPE": "",
+                        "Instruction": "Active recovery. Light walking or stretching recommended.",
+                    })
+                    st.rerun()
+            with qcol2:
+                total_weeks = st.number_input("Total weeks", min_value=1, max_value=52, value=4, key="vis_total_weeks")
+                if st.button("🔄 Copy Week 1 → All"):
+                    week1 = [r for r in rows if r.get("Program") == active_prog and r["Week"] == 1]
+                    st.session_state.builder_rows = [
+                        r for r in rows if not (r.get("Program") == active_prog and r["Week"] > 1)
+                    ]
+                    for w in range(2, total_weeks + 1):
+                        for row in week1:
+                            new_row = row.copy()
+                            new_row["Week"] = w
+                            st.session_state.builder_rows.append(new_row)
+                    st.success(f"Copied to {total_weeks} weeks")
+                    st.rerun()
+            with qcol3:
+                if st.button("💾 Save Program", type="primary", use_container_width=True):
+                    if rows:
+                        new_df = pd.DataFrame([r for r in rows if r.get("Program") == active_prog])
+                        save_program(active_prog, new_df)
+                        st.success(f"Saved {active_prog}!")
+            with qcol4:
+                if st.button("🗑️ Clear Program"):
+                    st.session_state.builder_rows = [r for r in rows if r.get("Program") != active_prog]
+                    st.rerun()
+
+            st.divider()
+
+            # ==================== EDIT DAY PANEL ====================
+            if st.session_state.edit_day:
+                ed = st.session_state.edit_day
+                st.subheader(f"✏️ Editing Week {ed['week']}, Day {ed['day']}")
+
+                day_rows = [
+                    r for r in rows
+                    if r.get("Program") == active_prog and r["Week"] == ed["week"] and r["Day"] == ed["day"]
+                ]
+
+                if any(r["Order"] == "REST" for r in day_rows):
+                    st.info("This is a rest day. Clear it to add exercises.")
+                    if st.button("Clear Rest Day"):
+                        st.session_state.builder_rows = [
+                            r for r in rows
+                            if not (r.get("Program") == active_prog and r["Week"] == ed["week"] and r["Day"] == ed["day"])
+                        ]
+                        st.session_state.edit_day = None
+                        st.rerun()
+                else:
+                    for idx, r in enumerate(day_rows):
+                        global_idx = rows.index(r)
+                        ecols = st.columns([0.5, 2, 0.8, 0.8, 1, 0.8, 0.8, 0.5])
+                        with ecols[0]:
+                            new_order = st.text_input("Ord", value=str(r["Order"]), key=f"eord_{idx}", label_visibility="collapsed")
+                        with ecols[1]:
+                            st.markdown(f"**{r['Exercise']}**")
+                        with ecols[2]:
+                            new_sets = st.number_input("Sets", value=int(r["Sets"]), min_value=1, max_value=10, key=f"esets_{idx}", label_visibility="collapsed")
+                        with ecols[3]:
+                            new_reps = st.text_input("Reps", value=str(r["Reps"]), key=f"ereps_{idx}", label_visibility="collapsed")
+                        with ecols[4]:
+                            new_tempo = st.text_input("Tempo", value=str(r["Tempo"]), key=f"etempo_{idx}", label_visibility="collapsed")
+                        with ecols[5]:
+                            new_rest = st.text_input("Rest", value=str(r["Rest"]), key=f"erest_{idx}", label_visibility="collapsed")
+                        with ecols[6]:
+                            new_rpe = st.text_input("RPE", value=str(r["RPE"]), key=f"erpe_{idx}", label_visibility="collapsed")
+                        with ecols[7]:
+                            if st.button("✕", key=f"edel_{idx}"):
+                                st.session_state.builder_rows.pop(global_idx)
+                                st.rerun()
+
+                        st.session_state.builder_rows[global_idx]["Order"] = new_order
+                        st.session_state.builder_rows[global_idx]["Sets"] = new_sets
+                        st.session_state.builder_rows[global_idx]["Reps"] = new_reps
+                        st.session_state.builder_rows[global_idx]["Tempo"] = new_tempo
+                        st.session_state.builder_rows[global_idx]["Rest"] = new_rest
+                        st.session_state.builder_rows[global_idx]["RPE"] = new_rpe
+
+                if st.button("✅ Done Editing", type="primary"):
+                    st.session_state.edit_day = None
+                    st.rerun()
+
+                st.divider()
+        else:
+            st.info("Set an **Active Program** name in the sidebar to start building.")
+            st.divider()
+
+        # ==================== SELECTION CONFIG BAR ====================
+        selected_count = sum(1 for v in st.session_state.selected_exercises.values() if v)
+
+        if selected_count > 0:
+            st.subheader(f"📝 {selected_count} exercise{'s' if selected_count > 1 else ''} selected")
+
+            with st.expander("Configure & Add to Program", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    lib_day = st.number_input("Add to Day", min_value=1, max_value=7, value=1, key="lib_day")
+                with col2:
+                    lib_week = st.number_input("Add to Week", min_value=1, max_value=52, value=1, key="lib_week")
+
+                st.markdown("**Default values for all selected:**")
+                dcol1, dcol2, dcol3, dcol4, dcol5 = st.columns(5)
+                with dcol1:
+                    default_sets = st.number_input("Sets", min_value=1, max_value=10, value=3, key="lib_def_sets")
+                with dcol2:
+                    default_reps = st.text_input("Reps", value="10", key="lib_def_reps")
+                with dcol3:
+                    default_tempo = st.text_input("Tempo", value="3-1-2-0", key="lib_def_tempo")
+                with dcol4:
+                    default_rest = st.text_input("Rest", value="90s", key="lib_def_rest")
+                with dcol5:
+                    default_rpe = st.text_input("RPE", value="7", key="lib_def_rpe")
+
+                auto_order = st.checkbox("Auto-assign order numbers", value=True, key="lib_auto_order")
+
+                st.divider()
+
+                st.markdown("**Edit individual exercises:**")
+                st.caption("Order | Exercise | Sets | Reps | Tempo | Rest | RPE")
+                selected_names = [name for name, sel in st.session_state.selected_exercises.items() if sel]
+
+                existing_day_count = len([
+                    r for r in rows
+                    if r.get("Program") == active_prog and r["Week"] == lib_week and r["Day"] == lib_day and r["Order"] != "REST"
+                ])
+
+                override_data = {}
+                for i, ex_name in enumerate(selected_names):
+                    order_val = str(existing_day_count + i + 1) if auto_order else ""
+                    cols = st.columns([0.5, 2.5, 0.8, 0.8, 1, 0.8, 0.8])
+                    with cols[0]:
+                        ov_order = st.text_input("Ord", value=order_val, key=f"ov_ord_{i}", label_visibility="collapsed")
+                    with cols[1]:
+                        st.markdown(f"**{ex_name}**")
+                    with cols[2]:
+                        ov_sets = st.number_input("S", value=default_sets, min_value=1, max_value=10, key=f"ov_sets_{i}", label_visibility="collapsed")
+                    with cols[3]:
+                        ov_reps = st.text_input("R", value=default_reps, key=f"ov_reps_{i}", label_visibility="collapsed")
+                    with cols[4]:
+                        ov_tempo = st.text_input("T", value=default_tempo, key=f"ov_tempo_{i}", label_visibility="collapsed")
+                    with cols[5]:
+                        ov_rest = st.text_input("Rst", value=default_rest, key=f"ov_rest_{i}", label_visibility="collapsed")
+                    with cols[6]:
+                        ov_rpe = st.text_input("RPE", value=default_rpe, key=f"ov_rpe_{i}", label_visibility="collapsed")
+
+                    override_data[ex_name] = {
+                        "order": ov_order, "sets": ov_sets, "reps": ov_reps,
+                        "tempo": ov_tempo, "rest": ov_rest, "rpe": ov_rpe,
+                    }
+
+                st.markdown("")
+                bcol1, bcol2 = st.columns(2)
+                with bcol1:
+                    if st.button("➕ Add to Program", type="primary", use_container_width=True):
+                        if not active_prog:
+                            st.error("Set an Active Program name in the sidebar first!")
+                        else:
+                            for ex_name, ov in override_data.items():
+                                st.session_state.builder_rows.append({
+                                    "Program": active_prog,
+                                    "Week": lib_week,
+                                    "Day": lib_day,
+                                    "Order": ov["order"],
+                                    "Exercise": ex_name,
+                                    "Sets": ov["sets"],
+                                    "Reps": ov["reps"],
+                                    "Tempo": ov["tempo"],
+                                    "Rest": ov["rest"],
+                                    "RPE": ov["rpe"],
+                                    "Instruction": "",
+                                })
+                            st.session_state.selected_exercises = {}
+                            st.success(f"Added {len(override_data)} exercises to Day {lib_day}!")
+                            st.rerun()
+
+                with bcol2:
+                    if st.button("🗑️ Clear Selection", use_container_width=True):
+                        st.session_state.selected_exercises = {}
+                        st.rerun()
+
+            st.divider()
+
+        # ==================== EXERCISE BROWSE ====================
+        st.subheader("Browse Exercises")
+
         col1, col2 = st.columns(2)
         with col1:
-            body_filter = st.selectbox("Filter by Body Part", ["All"] + list(exercises.keys()))
+            body_filter = st.selectbox("Filter by Body Part", ["All"] + list(exercises_data.keys()))
         with col2:
             equip_filter = st.selectbox(
                 "Filter by Equipment",
@@ -367,8 +2024,7 @@ elif page == "🏋️ Exercise Library":
                  "Dumbbell", "Bodyweight", "Band"],
             )
 
-        # Display
-        for body_part, categories in exercises.items():
+        for body_part, categories in exercises_data.items():
             if body_filter != "All" and body_part != body_filter:
                 continue
 
@@ -382,21 +2038,34 @@ elif page == "🏋️ Exercise Library":
 
                     st.markdown(f"*{category}*")
                     for ex in filtered:
-                        st.markdown(f"- {ex['name']} `{ex['equipment']}`")
+                        ex_key = ex["name"]
+                        is_selected = st.session_state.selected_exercises.get(ex_key, False)
+                        col_check, col_name = st.columns([0.3, 4])
+                        with col_check:
+                            new_val = st.checkbox(
+                                "sel",
+                                value=is_selected,
+                                key=f"cb_{body_part}_{category}_{ex['name']}",
+                                label_visibility="collapsed",
+                            )
+                            if new_val != is_selected:
+                                st.session_state.selected_exercises[ex_key] = new_val
+                                st.rerun()
+                        with col_name:
+                            st.markdown(f"{ex['name']} `{ex['equipment']}`")
 
-        # Count
         total = sum(
-            len(ex_list) for cats in exercises.values() for ex_list in cats.values()
+            len(ex_list) for cats in exercises_data.values() for ex_list in cats.values()
         )
         st.divider()
-        st.caption(f"Total exercises: {total}")
+        st.caption(f"Total exercises in library: {total}")
 
         # Add custom exercise
         st.divider()
         st.subheader("Add Custom Exercise")
         col1, col2, col3 = st.columns(3)
         with col1:
-            new_body = st.selectbox("Body Part", list(exercises.keys()), key="new_ex_body")
+            new_body = st.selectbox("Body Part", list(exercises_data.keys()), key="new_ex_body")
         with col2:
             new_cat = st.selectbox("Category", ["Machine", "Barbell", "Dumbbell", "Bodyweight"], key="new_ex_cat")
         with col3:
@@ -405,109 +2074,221 @@ elif page == "🏋️ Exercise Library":
 
         if st.button("➕ Add Exercise to Library", type="primary"):
             if new_ex_name:
-                if new_cat not in exercises[new_body]:
-                    exercises[new_body][new_cat] = []
-                exercises[new_body][new_cat].append({
+                if new_cat not in exercises_data[new_body]:
+                    exercises_data[new_body][new_cat] = []
+                exercises_data[new_body][new_cat].append({
                     "name": new_ex_name,
                     "equipment": new_equip,
                 })
-                save_exercises(exercises)
+                save_exercises(exercises_data)
                 st.success(f"Added {new_ex_name} to {new_body} / {new_cat}")
                 st.rerun()
 
 
-# ==================== USERS PAGE ====================
-elif page == "👥 Users":
-    st.title("👥 User Management")
+# ==================== PAGE: DEPLOY ====================
+elif page == "📥 Import CSV":
+    st.title("📥 Import Program CSV")
+    st.markdown("Upload a CSV file to import a new workout program. The CSV must have these columns: **Program, Week, Day, Order, Exercise, Sets, Reps, Tempo, Rest, RPE, Instruction**")
 
-    users = load_users()
-    df = load_csv()
-    programs = get_programs_from_csv(df)
+    REQUIRED_COLS = ["Program", "Week", "Day", "Order", "Exercise", "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]
 
-    if users:
-        st.subheader("Current Users")
-        for name, info in users.items():
-            with st.expander(f"**{name}** → {info.get('program', 'N/A')} (started {info.get('startDate', 'N/A')})"):
-                col1, col2 = st.columns(2)
+    uploaded = st.file_uploader("Choose a CSV file", type=["csv"])
 
-                with col1:
-                    new_program = st.selectbox(
-                        "Program", programs if programs else [info.get("program", "")],
-                        index=programs.index(info["program"]) if info.get("program") in programs else 0,
-                        key=f"prog_{name}",
-                    )
-                    new_date = st.text_input("Start Date (YYYY-MM-DD)", info.get("startDate", ""), key=f"date_{name}")
+    if uploaded:
+        try:
+            import_df = pd.read_csv(uploaded)
+        except Exception as e:
+            st.error(f"Failed to read CSV: {e}")
+            import_df = None
 
-                with col2:
-                    new_pass = st.text_input("New Password (leave blank to keep current)", type="password", key=f"pass_{name}")
-                    has_password = "passwordHash" in info
-                    st.caption(f"Password set: {'✅ Yes' if has_password else '❌ No'}")
+        if import_df is not None:
+            missing = [c for c in REQUIRED_COLS if c not in import_df.columns]
+            if missing:
+                st.error(f"Missing required columns: {', '.join(missing)}")
+                st.markdown(f"**Found columns:** {', '.join(import_df.columns.tolist())}")
+            else:
+                programs_in_file = sorted(import_df["Program"].dropna().unique().tolist())
+                weeks_count = import_df[["Program", "Week"]].drop_duplicates().shape[0]
+                rows_count = len(import_df)
 
-                col_save, col_del = st.columns(2)
-                with col_save:
-                    if st.button(f"Save {name}", key=f"save_{name}"):
-                        users[name]["program"] = new_program
-                        users[name]["startDate"] = new_date
-                        if new_pass:
-                            users[name]["passwordHash"] = hash_password(new_pass)
-                        save_users(users)
-                        st.success(f"Updated {name}")
-                        st.rerun()
+                st.success(f"CSV looks good!")
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Programs", len(programs_in_file))
+                col2.metric("Weeks", weeks_count)
+                col3.metric("Rows", rows_count)
 
-                with col_del:
-                    if st.button(f"🗑️ Remove {name}", key=f"del_{name}", type="secondary"):
-                        del users[name]
-                        save_users(users)
-                        st.success(f"Removed {name}")
-                        st.rerun()
+                st.markdown("**Programs found:** " + ", ".join(programs_in_file))
+
+                # Preview
+                with st.expander("Preview data", expanded=False):
+                    st.dataframe(import_df.head(30), use_container_width=True)
+
+                # Import mode
+                existing_programs = get_program_names()
+                overlap = [p for p in programs_in_file if p in existing_programs]
+
+                if overlap:
+                    st.warning(f"These programs already exist and will be **replaced**: {', '.join(overlap)}")
+
+                import_mode = st.radio("Import mode", ["Add / Replace programs", "Replace entire CSV"], horizontal=True)
+
+                if st.button("📥 Import", type="primary", use_container_width=True):
+                    existing_df = load_program_data()
+
+                    if import_mode == "Replace entire CSV":
+                        save_program_data(import_df)
+                        st.success(f"Replaced entire CSV with {rows_count} rows.")
+                    else:
+                        # Remove existing programs that match, then append
+                        if len(existing_df) > 0 and overlap:
+                            existing_df = existing_df[~existing_df["Program"].isin(programs_in_file)]
+                        combined = pd.concat([existing_df, import_df], ignore_index=True)
+                        save_program_data(combined)
+                        st.success(f"Imported {rows_count} rows for: {', '.join(programs_in_file)}")
+
+                    # Auto-build
+                    with st.spinner("Building program.json..."):
+                        result = run_build()
+                    if result.returncode == 0:
+                        st.success("Build successful! Program is ready.")
+                        st.code(result.stdout)
+                        st.session_state["needs_deploy"] = True
+                        st.info("Don't forget to **Deploy** to push changes to the live app.")
+                    else:
+                        st.error("Build failed!")
+                        st.code(result.stderr)
+
+elif page == "📊 Coach Dashboard":
+    st.title("📊 Coach Dashboard")
+    st.caption("View workout logs and Whoop data synced from the live app.")
+
+    # Server URL - defaults to numnum.fit, can be overridden
+    COACH_SERVER = os.environ.get("NUMNUM_SERVER_URL", "https://numnum.fit")
+
+    @st.cache_data(ttl=30)
+    def fetch_coach_users(server_url):
+        """Fetch user list from the server's coach API."""
+        try:
+            r = urllib.request.urlopen(f"{server_url}/api/coach/users", timeout=10)
+            return json.loads(r.read())
+        except Exception as e:
+            return {"error": str(e)}
+
+    @st.cache_data(ttl=30)
+    def fetch_coach_user_data(server_url, user_key):
+        """Fetch a specific user's full data from the server."""
+        try:
+            encoded = urllib.parse.quote(user_key)
+            r = urllib.request.urlopen(f"{server_url}/api/coach/user/{encoded}", timeout=10)
+            return json.loads(r.read())
+        except Exception as e:
+            return {"error": str(e)}
+
+    if st.button("🔄 Refresh Data", type="primary"):
+        st.cache_data.clear()
+
+    result = fetch_coach_users(COACH_SERVER)
+
+    if "error" in result:
+        st.error(f"Could not connect to server: {result['error']}")
+        st.info(f"Make sure the app is running at `{COACH_SERVER}`. Set `NUMNUM_SERVER_URL` env var to override.")
     else:
-        st.info("No users yet. Add one below.")
-
-    st.divider()
-
-    st.subheader("Add New User")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        new_name = st.text_input("Name")
-    with col2:
-        new_program = st.selectbox("Program", programs if programs else ["No programs found"])
-    with col3:
-        new_date = st.text_input("Start Date", placeholder="YYYY-MM-DD")
-    with col4:
-        new_password = st.text_input("Password", type="password")
-
-    if st.button("➕ Add User", type="primary"):
-        if not new_name:
-            st.error("Name is required")
-        elif not new_date:
-            st.error("Start date is required")
-        elif not new_password:
-            st.error("Password is required")
-        elif new_name in users:
-            st.error(f"{new_name} already exists")
+        users_list = result.get("users", [])
+        if not users_list:
+            st.info("No user data on server yet. Users need to log in and complete workouts on the app.")
         else:
-            users[new_name] = {
-                "program": new_program,
-                "startDate": new_date,
-                "passwordHash": hash_password(new_password),
-            }
-            save_users(users)
-            st.success(f"Added {new_name} → {new_program} starting {new_date}")
-            st.rerun()
+            st.metric("Active Users", len(users_list))
+            for u in sorted(users_list, key=lambda x: x.get("latest_log") or "", reverse=True):
+                with st.expander(f"**{u['user']}** — {u['workout_logs']} logs, {u['whoop_snapshots']} Whoop snapshots"):
+                    user_data = fetch_coach_user_data(COACH_SERVER, u["user"])
+                    if "error" in user_data:
+                        st.error(f"Error loading data: {user_data['error']}")
+                        continue
 
+                    tab_logs, tab_whoop = st.tabs(["🏋️ Workout Logs", "📈 Whoop Data"])
 
-# ==================== DEPLOY PAGE ====================
+                    with tab_logs:
+                        logs = user_data.get("workout_logs", {})
+                        if not logs:
+                            st.info("No workout logs yet.")
+                        else:
+                            # Show most recent logs first
+                            sorted_logs = sorted(logs.items(), key=lambda x: x[1].get("saved_at", ""), reverse=True)
+                            for day_key, entry in sorted_logs[:20]:
+                                meta = entry.get("meta", {})
+                                label = f"Week {meta.get('week', '?')} · Day {meta.get('day', '?')}"
+                                if meta.get("date"):
+                                    label += f" · {meta['date']}"
+                                saved = entry.get("saved_at", "")[:10]
+                                st.markdown(f"**{label}** (saved {saved})")
+                                data = entry.get("data", {})
+                                for ex_key, sets in data.items():
+                                    if isinstance(sets, dict):
+                                        parts = []
+                                        for s_key in sorted(sets.keys()):
+                                            s = sets[s_key]
+                                            if isinstance(s, dict):
+                                                w = s.get("weight", "")
+                                                r = s.get("reps", "")
+                                                done = "✅" if s.get("done") else ""
+                                                if w or r:
+                                                    parts.append(f"{w}kg×{r} {done}")
+                                        if parts:
+                                            st.caption(f"  {ex_key}: {' | '.join(parts)}")
+                                st.divider()
+
+                    with tab_whoop:
+                        snaps = user_data.get("whoop_snapshots", [])
+                        if not snaps:
+                            st.info("No Whoop data yet.")
+                        else:
+                            # Chart the last 30 snapshots
+                            chart_data = []
+                            for snap in snaps[-30:]:
+                                row = {"date": snap.get("date", snap.get("saved_at", "")[:10])}
+                                if snap.get("recovery") is not None:
+                                    row["Recovery %"] = snap["recovery"]
+                                if snap.get("strain") is not None:
+                                    row["Strain"] = snap["strain"]
+                                sleep_val = snap.get("sleep_score") or snap.get("sleep")
+                                if sleep_val is not None:
+                                    row["Sleep %"] = sleep_val
+                                if snap.get("hrv") is not None:
+                                    row["HRV"] = snap["hrv"]
+                                if snap.get("rhr") is not None:
+                                    row["Resting HR"] = snap["rhr"]
+                                chart_data.append(row)
+
+                            if chart_data:
+                                df_whoop = pd.DataFrame(chart_data)
+                                if "date" in df_whoop.columns:
+                                    df_whoop = df_whoop.set_index("date")
+                                st.line_chart(df_whoop)
+
+                            # Also show latest snapshot
+                            latest = snaps[-1]
+                            cols = st.columns(5)
+                            metrics = [
+                                ("Recovery", latest.get("recovery"), "%"),
+                                ("Strain", latest.get("strain"), ""),
+                                ("Sleep", latest.get("sleep_score") or latest.get("sleep"), "%"),
+                                ("HRV", latest.get("hrv"), " ms"),
+                                ("RHR", latest.get("rhr"), " bpm"),
+                            ]
+                            for col, (label, val, suffix) in zip(cols, metrics):
+                                col.metric(label, f"{val}{suffix}" if val is not None else "—")
+
 elif page == "🚀 Deploy":
     st.title("🚀 Deploy to GitHub")
 
-    st.markdown(f"**Live app:** [{GITHUB_URL}]({GITHUB_URL})")
+    st.markdown(f"**Live app:** [{APP_URL}]({APP_URL})")
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.subheader("Step 1: Build")
-        st.caption("Converts your CSV + user config into program.json")
-        if st.button("🔨 Build program.json", type="primary", use_container_width=True):
+        st.caption("Generates the app data from your programs and user config.")
+        if st.button("🔨 Build App Data", type="primary", use_container_width=True):
             result = run_build()
             if result.returncode == 0:
                 st.success("Build successful!")
@@ -539,7 +2320,8 @@ elif page == "🚀 Deploy":
             with st.spinner("Pushing to GitHub..."):
                 output = git_push("Update workout program")
             st.code(output)
-            st.success(f"Done! Live at {GITHUB_URL}")
+            st.session_state["needs_deploy"] = False
+            st.success(f"Done! Live at {APP_URL}")
 
     st.divider()
 
@@ -547,15 +2329,15 @@ elif page == "🚀 Deploy":
     col1, col2, col3 = st.columns(3)
 
     users = load_users()
-    df = load_csv()
-    programs = get_programs_from_csv(df)
+    programs = get_program_names()
 
     col1.metric("Programs", len(programs))
     col2.metric("Users", len(users))
-    col3.metric("CSV Rows", len(df))
+    col3.metric("Exercises", sum(len(ex) for cats in load_exercises().values() for ex in cats.values()))
 
     if users:
         st.markdown("**User Assignments:**")
         for name, info in users.items():
             has_pw = "✅" if "passwordHash" in info else "❌"
-            st.markdown(f"- **{name}** → {info.get('program', 'N/A')} (start: {info.get('startDate', 'N/A')}) | Password: {has_pw}")
+            email = info.get("email", "—")
+            st.markdown(f"- **{name}** ({email}) → {info.get('program', 'N/A')} (start: {info.get('startDate', 'N/A')}) | Password: {has_pw}")

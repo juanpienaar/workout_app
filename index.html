@@ -63,46 +63,56 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  padding: 40px 24px;
+  height: 100vh;
+  height: 100dvh;
+  padding: 20px 24px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 .login-card {
   width: 100%;
   max-width: 380px;
   text-align: center;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
-.login-logo { margin-bottom: 24px; }
+.login-logo { margin-bottom: clamp(8px, 2vh, 24px); }
+.login-logo svg { width: clamp(48px, 10vh, 80px); height: auto; }
 .login-title {
-  font-size: 28px;
+  font-size: clamp(20px, 4vh, 28px);
   font-weight: 700;
   color: #E8475F;
   margin-bottom: 4px;
 }
 .login-subtitle {
-  font-size: 14px;
+  font-size: clamp(12px, 1.8vh, 14px);
   color: var(--text-dim);
-  margin-bottom: 36px;
+  margin-bottom: clamp(12px, 3vh, 36px);
 }
 .login-form {
   background: var(--card);
   border: 1px solid var(--card-border);
   border-radius: 16px;
-  padding: 28px 24px;
+  padding: clamp(16px, 3vh, 28px) 24px;
   text-align: left;
+  width: 100%;
 }
-.login-field { margin-bottom: 16px; }
+.login-field { margin-bottom: clamp(8px, 1.5vh, 16px); }
 .login-field label {
   display: block;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-dim);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .login-field input {
   width: 100%;
-  padding: 14px 16px;
+  padding: clamp(10px, 1.5vh, 14px) 16px;
   border-radius: 10px;
   border: 1px solid var(--card-border);
   background: var(--input-bg);
@@ -768,6 +778,121 @@ body {
   border-color: var(--accent);
 }
 
+/* --- Whoop Integration --- */
+.whoop-banner {
+  margin: 0 16px 12px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.whoop-banner.collapsed { cursor: pointer; }
+.whoop-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.whoop-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.whoop-logo-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #44b700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #000;
+  flex-shrink: 0;
+}
+.whoop-banner-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+.whoop-chevron {
+  font-size: 16px;
+  color: var(--text-dim);
+  transition: transform 0.3s;
+}
+.whoop-banner:not(.collapsed) .whoop-chevron { transform: rotate(180deg); }
+.whoop-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+.whoop-card {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.whoop-card-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.whoop-card-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+.whoop-card-unit {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+.whoop-recovery-green { color: #44b700; }
+.whoop-recovery-yellow { color: #f5a623; }
+.whoop-recovery-red { color: #e53935; }
+.whoop-connect-prompt {
+  text-align: center;
+  padding: 12px 0 4px;
+}
+.whoop-connect-prompt p {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.whoop-connect-btn {
+  display: inline-block;
+  padding: 10px 24px;
+  border-radius: 10px;
+  border: none;
+  background: #44b700;
+  color: #000;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.whoop-connect-btn:active { opacity: 0.8; }
+.whoop-disconnect-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 8px 0 0;
+  text-decoration: underline;
+}
+.whoop-loading {
+  text-align: center;
+  padding: 16px 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
 .hidden { display: none !important; }
 </style>
 </head>
@@ -862,6 +987,20 @@ body {
       <button onclick="setTimerPreset(90)">1:30</button>
       <button onclick="setTimerPreset(120)">2:00</button>
       <button onclick="setTimerPreset(180)">3:00</button>
+    </div>
+  </div>
+
+  <!-- WHOOP BANNER -->
+  <div id="whoopBanner" class="whoop-banner collapsed hidden" onclick="toggleWhoopBanner(event)">
+    <div class="whoop-banner-header">
+      <div class="whoop-banner-left">
+        <div class="whoop-logo-icon">W</div>
+        <span class="whoop-banner-title" id="whoopBannerTitle">Whoop</span>
+      </div>
+      <span class="whoop-chevron">&#9662;</span>
+    </div>
+    <div id="whoopContent" class="hidden">
+      <!-- Filled dynamically -->
     </div>
   </div>
 
@@ -1111,6 +1250,8 @@ function selectUser(name) {
 
   archiveView = 'current';
   showWorkout();
+  initWhoop();
+  pullDataFromServer().then(() => syncAllToServer());
 }
 
 // ==================== WORKOUT SCREEN ====================
@@ -1464,6 +1605,18 @@ function renderDay() {
 }
 
 // ==================== DATA PERSISTENCE ====================
+const SERVER_URL = window.location.origin;
+let serverAvailable = null; // null = unknown, true/false after first check
+
+async function checkServer() {
+  if (serverAvailable !== null) return serverAvailable;
+  try {
+    const r = await fetch(`${SERVER_URL}/whoop/status?user=_ping`, {method: 'GET'});
+    serverAvailable = r.ok;
+  } catch { serverAvailable = false; }
+  return serverAvailable;
+}
+
 function getStorageKey(dayIndex) {
   return `workout_${currentUser}_day${dayIndex}`;
 }
@@ -1477,6 +1630,24 @@ function loadDayData(dayIndex) {
 
 function saveDayData(dayIndex, data) {
   localStorage.setItem(getStorageKey(dayIndex), JSON.stringify(data));
+  // Also sync to server
+  syncDayToServer(dayIndex, data);
+}
+
+function syncDayToServer(dayIndex, data) {
+  if (serverAvailable === false) return;
+  const day = allDays[dayIndex];
+  const meta = day ? {week: day.week, day: day.day, label: day.label || ''} : {};
+  const userInfo = programData?.users?.[currentUser];
+  if (userInfo?.startDate) {
+    const start = new Date(userInfo.startDate + 'T00:00:00');
+    meta.date = new Date(start.getTime() + dayIndex * 86400000).toISOString().split('T')[0];
+  }
+  fetch(`${SERVER_URL}/api/save-day`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({user: currentUser, day_key: `day_${dayIndex}`, data, meta}),
+  }).catch(e => console.warn('[sync] save-day failed:', e));
 }
 
 function saveCurrentDay() {
@@ -1484,6 +1655,63 @@ function saveCurrentDay() {
   const data = collectCurrentData();
   if (Object.keys(data).length > 0) {
     saveDayData(currentDayIndex, data);
+  }
+}
+
+// Pull workout data from server (for cross-device access)
+async function pullDataFromServer() {
+  if (!(await checkServer())) return;
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/data?user=${encodeURIComponent(currentUser)}`);
+    if (!resp.ok) return;
+    const serverData = await resp.json();
+    const logs = serverData.workout_logs || {};
+    let merged = 0;
+    for (const [dayKey, entry] of Object.entries(logs)) {
+      const match = dayKey.match(/^day_(\d+)$/);
+      if (!match) continue;
+      const idx = parseInt(match[1]);
+      const localData = loadDayData(idx);
+      // Only fill in from server if localStorage is empty for this day
+      if (Object.keys(localData).length === 0 && entry.data && Object.keys(entry.data).length > 0) {
+        localStorage.setItem(getStorageKey(idx), JSON.stringify(entry.data));
+        merged++;
+      }
+    }
+    if (merged > 0) {
+      console.log(`[sync] Pulled ${merged} days from server`);
+      // Re-render if we got new data
+      if (viewMode === 'week') renderWeekOverview();
+      else renderDayDetail();
+    }
+  } catch (e) {
+    console.warn('[sync] Pull from server failed:', e);
+  }
+}
+
+// Sync all existing localStorage data to server on login
+async function syncAllToServer() {
+  if (!(await checkServer())) return;
+  const days = {};
+  for (let i = 0; i < allDays.length; i++) {
+    const data = loadDayData(i);
+    if (Object.keys(data).length > 0) {
+      const day = allDays[i];
+      const meta = day ? {week: day.week, day: day.day} : {};
+      const userInfo = programData?.users?.[currentUser];
+      if (userInfo?.startDate) {
+        const start = new Date(userInfo.startDate + 'T00:00:00');
+        meta.date = new Date(start.getTime() + i * 86400000).toISOString().split('T')[0];
+      }
+      days[`day_${i}`] = {data, meta};
+    }
+  }
+  if (Object.keys(days).length > 0) {
+    fetch(`${SERVER_URL}/api/sync-all`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user: currentUser, days}),
+    }).catch(e => console.warn('[sync] sync-all failed:', e));
   }
 }
 
@@ -1840,6 +2068,205 @@ function confirmLogout() {
 
 function closeLogoutModal() {
   document.getElementById('logoutModal').classList.add('hidden');
+}
+
+// ==================== WHOOP INTEGRATION ====================
+const WHOOP_SERVER = window.location.origin; // works when served via server.py
+let whoopExpanded = false;
+
+function toggleWhoopBanner(e) {
+  // Don't toggle when clicking buttons inside
+  if (e && (e.target.closest('button') || e.target.closest('a'))) return;
+  const banner = document.getElementById('whoopBanner');
+  const content = document.getElementById('whoopContent');
+  whoopExpanded = !whoopExpanded;
+  if (whoopExpanded) {
+    banner.classList.remove('collapsed');
+    content.classList.remove('hidden');
+  } else {
+    banner.classList.add('collapsed');
+    content.classList.add('hidden');
+  }
+}
+
+async function initWhoop() {
+  if (!currentUser) return;
+  const banner = document.getElementById('whoopBanner');
+  try {
+    const resp = await fetch(`${WHOOP_SERVER}/whoop/status?user=${encodeURIComponent(currentUser)}`);
+    if (!resp.ok) { banner.classList.add('hidden'); return; }
+    const data = await resp.json();
+    banner.classList.remove('hidden');
+    if (data.connected) {
+      loadWhoopData();
+    } else {
+      showWhoopConnect();
+    }
+  } catch (e) {
+    // Server not running – hide whoop section silently
+    banner.classList.add('hidden');
+  }
+}
+
+function showWhoopConnect() {
+  document.getElementById('whoopBannerTitle').textContent = 'Connect Whoop';
+  document.getElementById('whoopContent').innerHTML =
+    '<div class="whoop-connect-prompt">' +
+    '<p>Link your Whoop to see recovery, strain & sleep</p>' +
+    '<button class="whoop-connect-btn" onclick="connectWhoop(event)">Connect Whoop</button>' +
+    '</div>';
+}
+
+async function connectWhoop(e) {
+  if (e) e.stopPropagation();
+  try {
+    const resp = await fetch(`${WHOOP_SERVER}/whoop/auth?user=${encodeURIComponent(currentUser)}`);
+    const data = await resp.json();
+    if (data.auth_url) {
+      const popup = window.open(data.auth_url, 'whoop_auth', 'width=500,height=700');
+      // Listen for success message from popup
+      window.addEventListener('message', function handler(ev) {
+        if (ev.data === 'whoop_connected') {
+          window.removeEventListener('message', handler);
+          loadWhoopData();
+        }
+      });
+    } else {
+      alert(data.error || 'Could not start Whoop authorization.');
+    }
+  } catch (e) {
+    alert('Could not reach the server. Make sure server.py is running.');
+  }
+}
+
+async function loadWhoopData() {
+  document.getElementById('whoopBannerTitle').textContent = 'Whoop';
+  document.getElementById('whoopContent').innerHTML = '<div class="whoop-loading">Loading...</div>';
+
+  try {
+    const resp = await fetch(`${WHOOP_SERVER}/whoop/summary?user=${encodeURIComponent(currentUser)}`);
+    if (!resp.ok) {
+      if (resp.status === 401) { showWhoopConnect(); return; }
+      throw new Error('API error');
+    }
+    const data = await resp.json();
+    if (data.error) {
+      if (data.error === 'not_connected') { showWhoopConnect(); return; }
+      throw new Error(data.error);
+    }
+    renderWhoopData(data);
+    saveWhoopSnapshot(data);
+  } catch (e) {
+    document.getElementById('whoopContent').innerHTML =
+      '<div class="whoop-loading">Unable to load Whoop data</div>';
+  }
+}
+
+function renderWhoopData(data) {
+  // Extract values with safe fallbacks
+  let recoveryScore = '--';
+  let recoveryClass = '';
+  let strain = '--';
+  let sleepScore = '--';
+  let hrv = '--';
+  let rhr = '--';
+
+  // Recovery (single object from /cycle/{id}/recovery, or records array)
+  if (data.recovery) {
+    const rec = data.recovery.records ? data.recovery.records[0] : data.recovery;
+    const score = rec?.score?.recovery_score;
+    if (score != null) {
+      recoveryScore = Math.round(score);
+      if (recoveryScore >= 67) recoveryClass = 'whoop-recovery-green';
+      else if (recoveryScore >= 34) recoveryClass = 'whoop-recovery-yellow';
+      else recoveryClass = 'whoop-recovery-red';
+    }
+    const h = rec?.score?.hrv_rmssd_milli;
+    if (h != null) hrv = Math.round(h);
+    const r = rec?.score?.resting_heart_rate;
+    if (r != null) rhr = Math.round(r);
+  }
+
+  // Strain
+  if (data.strain && data.strain.records && data.strain.records.length > 0) {
+    const cyc = data.strain.records[0];
+    const s = cyc.score?.strain;
+    if (s != null) strain = s.toFixed(1);
+  }
+
+  // Sleep
+  if (data.sleep && data.sleep.records && data.sleep.records.length > 0) {
+    const slp = data.sleep.records[0];
+    const perf = slp.score?.sleep_performance_percentage;
+    if (perf != null) sleepScore = Math.round(perf);
+  }
+
+  // Update banner title with recovery score
+  const titleEl = document.getElementById('whoopBannerTitle');
+  if (recoveryScore !== '--') {
+    titleEl.innerHTML = `Whoop &middot; <span class="${recoveryClass}">${recoveryScore}%</span>`;
+  }
+
+  document.getElementById('whoopContent').innerHTML =
+    '<div class="whoop-cards">' +
+      '<div class="whoop-card">' +
+        '<div class="whoop-card-label">Recovery</div>' +
+        `<div class="whoop-card-value ${recoveryClass}">${recoveryScore}<span style="font-size:14px">%</span></div>` +
+      '</div>' +
+      '<div class="whoop-card">' +
+        '<div class="whoop-card-label">Strain</div>' +
+        `<div class="whoop-card-value">${strain}</div>` +
+      '</div>' +
+      '<div class="whoop-card">' +
+        '<div class="whoop-card-label">Sleep</div>' +
+        `<div class="whoop-card-value">${sleepScore}<span style="font-size:14px">%</span></div>` +
+      '</div>' +
+    '</div>' +
+    '<div class="whoop-cards" style="grid-template-columns: repeat(2, 1fr); margin-top: 10px;">' +
+      '<div class="whoop-card">' +
+        '<div class="whoop-card-label">HRV</div>' +
+        `<div class="whoop-card-value">${hrv}<span style="font-size:14px">ms</span></div>` +
+      '</div>' +
+      '<div class="whoop-card">' +
+        '<div class="whoop-card-label">Resting HR</div>' +
+        `<div class="whoop-card-value">${rhr}<span style="font-size:14px">bpm</span></div>` +
+      '</div>' +
+    '</div>' +
+    '<div style="text-align:center"><button class="whoop-disconnect-btn" onclick="disconnectWhoop(event)">Disconnect Whoop</button></div>';
+}
+
+function saveWhoopSnapshot(data) {
+  // Extract key metrics and save to server for coach visibility
+  const snapshot = {date: new Date().toISOString().split('T')[0]};
+  if (data.recovery?.records?.[0]?.score) {
+    const s = data.recovery.records[0].score;
+    snapshot.recovery = Math.round(s.recovery_score || 0);
+    snapshot.hrv = Math.round(s.hrv_rmssd_milli || 0);
+    snapshot.rhr = Math.round(s.resting_heart_rate || 0);
+    snapshot.spo2 = s.spo2_percentage ? Math.round(s.spo2_percentage * 10) / 10 : null;
+  }
+  if (data.strain?.records?.[0]?.score) {
+    snapshot.strain = Math.round(data.strain.records[0].score.strain * 10) / 10;
+  }
+  if (data.sleep?.records?.[0]?.score) {
+    const s = data.sleep.records[0].score;
+    snapshot.sleep_score = Math.round(s.sleep_performance_percentage || 0);
+    snapshot.sleep_consistency = Math.round(s.sleep_consistency_percentage || 0);
+  }
+  fetch(`${SERVER_URL}/api/save-whoop`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({user: currentUser, snapshot}),
+  }).catch(e => console.warn('[sync] save-whoop failed:', e));
+}
+
+async function disconnectWhoop(e) {
+  if (e) e.stopPropagation();
+  if (!confirm('Disconnect your Whoop account?')) return;
+  try {
+    await fetch(`${WHOOP_SERVER}/whoop/disconnect?user=${encodeURIComponent(currentUser)}`);
+  } catch {}
+  showWhoopConnect();
 }
 
 // ==================== START ====================
