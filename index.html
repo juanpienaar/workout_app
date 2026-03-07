@@ -739,6 +739,23 @@ body {
   color: white;
 }
 
+/* --- Settings Links --- */
+.settings-links { display: flex; flex-direction: column; gap: 10px; }
+.settings-link-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 10px;
+  background: var(--bg); border: 1px solid var(--card-border);
+  text-decoration: none; color: var(--text); font-size: 14px;
+  transition: border-color 0.2s;
+}
+.settings-link-item:active { border-color: var(--accent); }
+.settings-link-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 15px; color: white; flex-shrink: 0;
+  background: linear-gradient(135deg, #FF7043, #E8475F);
+}
+
 /* --- Archive --- */
 .archive-day-btn {
   background: none;
@@ -961,6 +978,7 @@ body {
     <div class="header-right">
       <button class="header-btn" onclick="toggleTheme()" id="themeToggleHeader" title="Toggle light/dark mode" style="font-size:16px;">&#x1f319;</button>
       <button class="header-btn" onclick="showHistory()" title="History">&#x1f4ca;</button>
+      <button class="header-btn" onclick="openSettings()" title="Settings" style="font-size:16px;">&#x2699;</button>
       <button class="header-btn" onclick="confirmLogout()" title="Log Out" style="font-size:14px;">&#x23FB;</button>
     </div>
   </div>
@@ -1064,6 +1082,30 @@ body {
     <div class="confirm-buttons">
       <button class="confirm-cancel" onclick="closeLogoutModal()">Cancel</button>
       <button class="confirm-logout" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== SETTINGS MODAL ======== -->
+<div id="settingsModal" class="confirm-overlay hidden">
+  <div class="confirm-box" style="max-width:360px;">
+    <h3 style="margin-bottom:16px;">Settings</h3>
+    <div class="settings-links">
+      <a href="https://developer-dashboard.whoop.com/apps/37076ba6-13c7-435f-8476-75a5faf039ce" target="_blank" class="settings-link-item">
+        <span class="settings-link-icon">W</span>
+        <span>Whoop Developer Dashboard</span>
+      </a>
+      <a href="https://railway.com" target="_blank" class="settings-link-item">
+        <span class="settings-link-icon">R</span>
+        <span>Railway (Hosting)</span>
+      </a>
+      <a href="https://github.com/juanpienaar/workout_app" target="_blank" class="settings-link-item">
+        <span class="settings-link-icon">G</span>
+        <span>GitHub Repository</span>
+      </a>
+    </div>
+    <div style="margin-top:16px;">
+      <button class="confirm-cancel" onclick="closeSettings()" style="width:100%;">Close</button>
     </div>
   </div>
 </div>
@@ -2068,6 +2110,13 @@ function confirmLogout() {
 
 function closeLogoutModal() {
   document.getElementById('logoutModal').classList.add('hidden');
+}
+
+function openSettings() {
+  document.getElementById('settingsModal').classList.remove('hidden');
+}
+function closeSettings() {
+  document.getElementById('settingsModal').classList.add('hidden');
 }
 
 // ==================== WHOOP INTEGRATION ====================
