@@ -1478,29 +1478,208 @@ elif page == "📋 Programs":
                 st.divider()
                 acol1, acol2, acol3, acol4 = st.columns(4)
                 with acol1:
-                    if st.button("📥 Load into Editor", key=f"load_{prog_name}"):
-                        rows = get_builder_rows()
-                        st.session_state.builder_rows = [
-                            r for r in rows if r.get("Program") != prog_name
-                        ]
-                        for _, row in df_prog.iterrows():
-                            st.session_state.builder_rows.append(row.to_dict())
-                        st.session_state.active_program_name = prog_name
-                        st.success(f"Loaded {prog_name}! Switch to Exercises page to edit.")
+                    edit_key = f"editing_{prog_name}"
+                    if st.session_state.get(edit_key):
+                        if st.button("❌ Cancel Edit", key=f"cancel_edit_{prog_name}"):
+                            st.session_state[edit_key] = False
+                            st.rerun()
+                    else:
+                        if st.button("✏️ Edit Program", key=f"edit_{prog_name}"):
+                            st.session_state[edit_key] = True
+                            st.rerun()
                 with acol2:
                     if st.button("👥 Assign to Users", key=f"assign_{prog_name}"):
                         st.session_state.active_program_name = prog_name
                         st.session_state["assign_program"] = prog_name
                         st.rerun()
                 with acol3:
-                    if st.button("✏️ Amend with AI", key=f"amend_{prog_name}"):
-                        st.session_state.active_program_name = prog_name
-                        st.info("Switch to Program Builder → Amend Program tab.")
+                    ai_edit_key = f"ai_editing_{prog_name}"
+                    if st.session_state.get(ai_edit_key):
+                        if st.button("❌ Cancel AI", key=f"cancel_ai_{prog_name}"):
+                            st.session_state[ai_edit_key] = False
+                            st.rerun()
+                    else:
+                        if st.button("🤖 AI Edit", key=f"ai_edit_{prog_name}"):
+                            st.session_state[ai_edit_key] = True
+                            st.rerun()
                 with acol4:
                     if st.button("🗑️ Delete", key=f"del_{prog_name}", type="secondary"):
                         delete_program(prog_name)
                         st.success(f"Deleted {prog_name}")
                         st.rerun()
+
+                # --- Inline Manual Edit ---
+                if st.session_state.get(f"editing_{prog_name}"):
+                    st.markdown("#### ✏️ Edit Program")
+                    st.caption("Edit exercises directly. Changes apply to the selected week/day.")
+
+                    edit_cols = ["Order", "Exercise", "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]
+                    edit_df = day_data[edit_cols].copy() if 'day_data' in dir() and len(day_data) > 0 else pd.DataFrame(columns=edit_cols)
+
+                    edited = st.data_editor(
+                        edit_df,
+                        num_rows="dynamic",
+                        use_container_width=True,
+                        key=f"editor_{prog_name}_{vis_week}_{detail_day if 'detail_day' in dir() else 0}",
+                    )
+
+                    save_col1, save_col2 = st.columns(2)
+                    with save_col1:
+                        if st.button("💾 Save Changes", key=f"save_edit_{prog_name}", type="primary"):
+                            if 'vis_week' in dir() and 'detail_day' in dir():
+                                # Build updated rows with Program/Week/Day
+                                new_rows = edited.copy()
+                                new_rows["Program"] = prog_name
+                                new_rows["Week"] = vis_week
+                                new_rows["Day"] = detail_day
+
+                                # Remove old day data from full program, add new
+                                full_df = load_program_data()
+                                mask = (
+                                    (full_df["Program"] == prog_name) &
+                                    (full_df["Week"].apply(lambda x: int(float(x)) if _safe_numeric(x) else None) == int(vis_week)) &
+                                    (full_df["Day"].apply(lambda x: int(float(x)) if _safe_numeric(x) else None) == int(detail_day))
+                                )
+                                kept = full_df[~mask]
+                                combined = pd.concat([kept, new_rows], ignore_index=True)
+                                save_program_data(combined)
+
+                                # Rebuild JSON
+                                with st.spinner("Rebuilding program.json..."):
+                                    result = run_build()
+                                if result.returncode == 0:
+                                    st.success("Saved & rebuilt!")
+                                    st.session_state["needs_deploy"] = True
+                                    st.session_state[f"editing_{prog_name}"] = False
+                                    st.rerun()
+                                else:
+                                    st.error(f"Build failed: {result.stderr}")
+                            else:
+                                st.warning("Select a week and day first.")
+                    with save_col2:
+                        if st.button("📋 Save Entire Week", key=f"save_week_{prog_name}"):
+                            st.info("Use Save Changes on each day, or use AI Edit for bulk changes.")
+
+                # --- AI Edit ---
+                if st.session_state.get(f"ai_editing_{prog_name}"):
+                    st.markdown("#### 🤖 AI Program Editor")
+                    st.caption("Describe the changes you want and AI will update the program.")
+
+                    ai_scope = st.radio(
+                        "Scope of changes",
+                        ["Selected day only", "Selected week", "Entire program"],
+                        key=f"ai_scope_{prog_name}",
+                        horizontal=True,
+                    )
+
+                    ai_instruction = st.text_area(
+                        "What changes would you like?",
+                        placeholder="e.g. Replace barbell bench press with dumbbell bench press, add 2 sets of face pulls at the end, increase RPE by 1 across all exercises...",
+                        key=f"ai_instruction_{prog_name}",
+                    )
+
+                    if st.button("🚀 Apply AI Changes", key=f"apply_ai_{prog_name}", type="primary"):
+                        if not ai_instruction.strip():
+                            st.warning("Please describe the changes you want.")
+                        else:
+                            # Build context based on scope
+                            if ai_scope == "Selected day only" and 'vis_week' in dir() and 'detail_day' in dir():
+                                scope_df = df_prog[
+                                    (df_prog["Week"].apply(lambda x: int(float(x)) if _safe_numeric(x) else None) == int(vis_week)) &
+                                    (df_prog["Day"].apply(lambda x: int(float(x)) if _safe_numeric(x) else None) == int(detail_day))
+                                ]
+                                scope_label = f"Week {vis_week}, Day {detail_day}"
+                            elif ai_scope == "Selected week" and 'vis_week' in dir():
+                                scope_df = df_prog[df_prog["Week"].apply(lambda x: int(float(x)) if _safe_numeric(x) else None) == int(vis_week)]
+                                scope_label = f"Week {vis_week}"
+                            else:
+                                scope_df = df_prog
+                                scope_label = "entire program"
+
+                            # Build CSV context
+                            csv_lines = ["Program,Week,Day,Order,Exercise,Sets,Reps,Tempo,Rest,RPE,Instruction"]
+                            for _, row in scope_df.iterrows():
+                                vals = [str(row.get(c, "")) for c in ["Program", "Week", "Day", "Order", "Exercise",
+                                                                       "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]]
+                                csv_lines.append(",".join(vals))
+                            csv_context = "\n".join(csv_lines)
+
+                            exercises_data = load_exercises()
+                            ex_context = build_exercise_library_context(exercises_data) if exercises_data else ""
+
+                            prompt = f"""You are a strength & conditioning coach editing a workout program.
+
+SCOPE: {scope_label} of program "{prog_name}"
+
+CURRENT PROGRAM DATA (CSV):
+{csv_context}
+
+{ex_context}
+
+USER REQUEST:
+{ai_instruction}
+
+INSTRUCTIONS:
+- Return ONLY the updated CSV rows (including the header line).
+- Keep the exact same CSV format: Program,Week,Day,Order,Exercise,Sets,Reps,Tempo,Rest,RPE,Instruction
+- Only modify what the user requested. Keep everything else unchanged.
+- Use exercises from the library when possible.
+- Do NOT include any explanation, just the CSV."""
+
+                            with st.spinner("AI is editing the program..."):
+                                response, usage_info = call_claude(prompt)
+
+                            if response:
+                                st.caption(usage_info)
+                                # Parse AI response as CSV
+                                try:
+                                    from io import StringIO
+                                    ai_csv = response.strip()
+                                    # Remove markdown code fences if present
+                                    if ai_csv.startswith("```"):
+                                        ai_csv = "\n".join(ai_csv.split("\n")[1:])
+                                    if ai_csv.endswith("```"):
+                                        ai_csv = ai_csv.rsplit("```", 1)[0]
+                                    ai_df = pd.read_csv(StringIO(ai_csv.strip()))
+
+                                    st.markdown("**Preview of changes:**")
+                                    st.dataframe(ai_df, use_container_width=True)
+
+                                    if st.button("✅ Accept Changes", key=f"accept_ai_{prog_name}", type="primary"):
+                                        # Replace scope in full data
+                                        full_df = load_program_data()
+                                        if ai_scope == "Selected day only" and 'vis_week' in dir() and 'detail_day' in dir():
+                                            mask = (
+                                                (full_df["Program"] == prog_name) &
+                                                (full_df["Week"].apply(lambda x: int(float(x)) if _safe_numeric(x) else None) == int(vis_week)) &
+                                                (full_df["Day"].apply(lambda x: int(float(x)) if _safe_numeric(x) else None) == int(detail_day))
+                                            )
+                                        elif ai_scope == "Selected week" and 'vis_week' in dir():
+                                            mask = (
+                                                (full_df["Program"] == prog_name) &
+                                                (full_df["Week"].apply(lambda x: int(float(x)) if _safe_numeric(x) else None) == int(vis_week))
+                                            )
+                                        else:
+                                            mask = (full_df["Program"] == prog_name)
+
+                                        kept = full_df[~mask]
+                                        combined = pd.concat([kept, ai_df], ignore_index=True)
+                                        save_program_data(combined)
+
+                                        with st.spinner("Rebuilding program.json..."):
+                                            result = run_build()
+                                        if result.returncode == 0:
+                                            st.success("AI changes applied & rebuilt!")
+                                            st.session_state["needs_deploy"] = True
+                                            st.session_state[f"ai_editing_{prog_name}"] = False
+                                            st.rerun()
+                                        else:
+                                            st.error(f"Build failed: {result.stderr}")
+                                except Exception as e:
+                                    st.error(f"Failed to parse AI response as CSV: {e}")
+                                    st.code(response)
+                            else:
+                                st.error(usage_info)
 
         # Quick assign flow (triggered from program card)
         if "assign_program" in st.session_state:
@@ -2165,12 +2344,17 @@ elif page == "📊 Coach Dashboard":
     # Server URL - defaults to numnum.fit, can be overridden
     COACH_SERVER = os.environ.get("NUMNUM_SERVER_URL", "https://numnum.fit")
 
+    def _coach_request(url):
+        """Make a request with proper User-Agent to avoid Cloudflare blocks."""
+        req = urllib.request.Request(url, headers={"User-Agent": "NumNumAdmin/1.0"})
+        r = urllib.request.urlopen(req, timeout=10)
+        return json.loads(r.read())
+
     @st.cache_data(ttl=30)
     def fetch_coach_users(server_url):
         """Fetch user list from the server's coach API."""
         try:
-            r = urllib.request.urlopen(f"{server_url}/api/coach/users", timeout=10)
-            return json.loads(r.read())
+            return _coach_request(f"{server_url}/api/coach/users")
         except Exception as e:
             return {"error": str(e)}
 
@@ -2179,10 +2363,33 @@ elif page == "📊 Coach Dashboard":
         """Fetch a specific user's full data from the server."""
         try:
             encoded = urllib.parse.quote(user_key)
-            r = urllib.request.urlopen(f"{server_url}/api/coach/user/{encoded}", timeout=10)
-            return json.loads(r.read())
+            return _coach_request(f"{server_url}/api/coach/user/{encoded}")
         except Exception as e:
             return {"error": str(e)}
+
+    def calc_day_metrics(day_data):
+        """Calculate completion % and tonnage from a single day's workout data."""
+        total_sets = 0
+        done_sets = 0
+        tonnage = 0.0
+        data = day_data.get("data", {})
+        for ex_key, sets in data.items():
+            if not isinstance(sets, dict):
+                continue
+            for s_key, s_val in sets.items():
+                if not s_key.startswith("set") or not isinstance(s_val, dict):
+                    continue
+                total_sets += 1
+                if s_val.get("done"):
+                    done_sets += 1
+                try:
+                    w = float(s_val.get("weight", 0) or 0)
+                    r = float(s_val.get("reps", 0) or 0)
+                    tonnage += w * r
+                except (ValueError, TypeError):
+                    pass
+        completion = round(done_sets / total_sets * 100) if total_sets > 0 else 0
+        return total_sets, done_sets, completion, round(tonnage)
 
     if st.button("🔄 Refresh Data", type="primary"):
         st.cache_data.clear()
@@ -2198,85 +2405,336 @@ elif page == "📊 Coach Dashboard":
             st.info("No user data on server yet. Users need to log in and complete workouts on the app.")
         else:
             st.metric("Active Users", len(users_list))
-            for u in sorted(users_list, key=lambda x: x.get("latest_log") or "", reverse=True):
-                with st.expander(f"**{u['user']}** — {u['workout_logs']} logs, {u['whoop_snapshots']} Whoop snapshots"):
-                    user_data = fetch_coach_user_data(COACH_SERVER, u["user"])
+
+            # Helper: load prescribed program data
+            def get_prescribed_program(user_name):
+                users_cfg = load_users()
+                prog_name = users_cfg.get(user_name, {}).get("program", "")
+                prog_data = {}
+                if PROGRAM_JSON.exists():
+                    with open(PROGRAM_JSON) as f:
+                        prog_data = json.load(f)
+                return prog_name, prog_data.get("programs", {}).get(prog_name, {})
+
+            def get_prescribed_day(prescribed, w_num, d_num):
+                if not prescribed or not w_num or not d_num:
+                    return None
+                for w in prescribed.get("weeks", []):
+                    if w.get("week") == w_num:
+                        for d in w.get("days", []):
+                            if d.get("day") == d_num:
+                                return d
+                return None
+
+            def build_exercise_detail(day_entry, prescribed_day):
+                """Build exercise-level rows for a day drill-down."""
+                data = day_entry.get("data", {})
+                prescribed_exercises = {}
+                if prescribed_day:
+                    for group in prescribed_day.get("exerciseGroups", []):
+                        for ex in group.get("exercises", []):
+                            prescribed_exercises[ex["name"].lower()] = ex
+                rows = []
+                for ex_key, sets_data in data.items():
+                    if not isinstance(sets_data, dict):
+                        continue
+                    rx = prescribed_exercises.get(ex_key.lower(), {})
+                    for s_key in sorted(sets_data.keys()):
+                        s_val = sets_data[s_key]
+                        if not s_key.startswith("set") or not isinstance(s_val, dict):
+                            continue
+                        w = s_val.get("weight", "")
+                        r = s_val.get("reps", "")
+                        try:
+                            st_ton = round(float(w or 0) * float(r or 0))
+                        except (ValueError, TypeError):
+                            st_ton = 0
+                        rows.append({
+                            "Exercise": ex_key,
+                            "Set": s_key.replace("set", ""),
+                            "Weight (kg)": w, "Reps": r,
+                            "Done": "Yes" if s_val.get("done") else "No",
+                            "Set Tonnage": st_ton,
+                            "Rx Sets": rx.get("sets", "—"),
+                            "Rx Reps": rx.get("reps", "—"),
+                            "Rx RPE": rx.get("rpe", "—"),
+                        })
+                    if sets_data.get("notes"):
+                        rows.append({"Exercise": ex_key, "Set": "Notes", "Weight (kg)": sets_data["notes"],
+                                     "Reps": "", "Done": "", "Set Tonnage": "", "Rx Sets": "", "Rx Reps": "", "Rx RPE": ""})
+                return rows
+
+            def build_ai_prompt(user_name, date_from, date_to, filtered_logs, filtered_snaps, coach_notes=""):
+                """Build the full AI analysis prompt."""
+                prog_name, prescribed = get_prescribed_program(user_name)
+
+                workout_summary = []
+                for day_key, entry in sorted(filtered_logs.items(), key=lambda x: x[1].get("meta", {}).get("date", "")):
+                    meta = entry.get("meta", {})
+                    date = meta.get("date", "?")
+                    week = meta.get("week", "?")
+                    day = meta.get("day", "?")
+                    total_sets, done_sets, completion, tonnage = calc_day_metrics(entry)
+                    exercises_detail = []
+                    data = entry.get("data", {})
+                    for ex_key, sets_data in data.items():
+                        if not isinstance(sets_data, dict):
+                            continue
+                        sets_info = []
+                        for s_key in sorted(sets_data.keys()):
+                            s_val = sets_data[s_key]
+                            if s_key.startswith("set") and isinstance(s_val, dict):
+                                w = s_val.get("weight", "0")
+                                r = s_val.get("reps", "0")
+                                done = "done" if s_val.get("done") else "not done"
+                                sets_info.append(f"{w}kg x {r} ({done})")
+                        if sets_info:
+                            exercises_detail.append(f"  {ex_key}: {', '.join(sets_info)}")
+                    workout_summary.append(
+                        f"Date: {date} | Week {week} Day {day} | Completion: {completion}% | Tonnage: {tonnage}kg\n" +
+                        "\n".join(exercises_detail))
+
+                prescribed_summary = ""
+                if prescribed:
+                    prescribed_lines = []
+                    for w in prescribed.get("weeks", []):
+                        for d in w.get("days", []):
+                            if d.get("isRest"):
+                                prescribed_lines.append(f"Week {w['week']} Day {d['day']}: REST")
+                                continue
+                            exs = []
+                            for g in d.get("exerciseGroups", []):
+                                for ex in g.get("exercises", []):
+                                    exs.append(f"  {ex['name']}: {ex['sets']} sets x {ex['reps']} reps @ RPE {ex.get('rpe', '?')}")
+                            prescribed_lines.append(f"Week {w['week']} Day {d['day']}:\n" + "\n".join(exs))
+                    prescribed_summary = "\n\n".join(prescribed_lines)
+
+                whoop_summary = ""
+                if filtered_snaps:
+                    whoop_lines = []
+                    for s in filtered_snaps:
+                        d = s.get("date", "?")
+                        parts = []
+                        if s.get("recovery") is not None: parts.append(f"Recovery {s['recovery']}%")
+                        if s.get("strain") is not None: parts.append(f"Strain {s['strain']}")
+                        ss = s.get("sleep_score") or s.get("sleep")
+                        if ss is not None: parts.append(f"Sleep {ss}%")
+                        if s.get("hrv") is not None: parts.append(f"HRV {s['hrv']}ms")
+                        if s.get("rhr") is not None: parts.append(f"RHR {s['rhr']}bpm")
+                        whoop_lines.append(f"{d}: {', '.join(parts)}")
+                    whoop_summary = "\n".join(whoop_lines)
+
+                coach_section = f"\nCOACH NOTES/QUESTIONS:\n{coach_notes}" if coach_notes.strip() else ""
+
+                return f"""Analyse athlete "{user_name}" from {date_from} to {date_to}. Be concise — no day-by-day exercise breakdowns.
+
+PRESCRIBED PROGRAM ({prog_name}):
+{prescribed_summary if prescribed_summary else "N/A"}
+
+ACTUAL LOGS:
+{chr(10).join(workout_summary)}
+
+{"WHOOP:" + chr(10) + whoop_summary if whoop_summary else ""}
+{coach_section}
+
+Provide a SHORT analysis (max 500 words) covering:
+1. **Adherence summary** — overall compliance %, key missed sessions or exercises (not day-by-day)
+2. **Tonnage trend** — weekly totals, direction (up/plateau/down), notable shifts
+3. **Key performance flags** — top 2-3 observations (regressions, PRs, stalls)
+4. **Health correlation** — only if Whoop data present, 1-2 sentences
+5. **Top 3 recommendations** — specific, actionable
+
+Do NOT list individual exercises per day. Keep it punchy and coach-friendly."""
+
+            # ==================== PER-USER CARDS ====================
+            for u_idx, u in enumerate(sorted(users_list, key=lambda x: x.get("latest_log") or "", reverse=True)):
+                user_name = u["user"]
+                header_col1, header_col2 = st.columns([0.9, 0.1])
+                with header_col1:
+                    expanded = st.expander(f"**{user_name}** — {u['workout_logs']} logs, {u['whoop_snapshots']} Whoop snapshots")
+                with header_col2:
+                    ai_clicked = st.button("🤖", key=f"ai_btn_{u_idx}", help=f"AI analysis for {user_name}")
+
+                if ai_clicked:
+                    st.session_state[f"show_ai_{user_name}"] = not st.session_state.get(f"show_ai_{user_name}", False)
+
+                with expanded:
+                    user_data = fetch_coach_user_data(COACH_SERVER, user_name)
                     if "error" in user_data:
                         st.error(f"Error loading data: {user_data['error']}")
                         continue
 
-                    tab_logs, tab_whoop = st.tabs(["🏋️ Workout Logs", "📈 Whoop Data"])
+                    logs = user_data.get("workout_logs", {})
+                    snaps = user_data.get("whoop_snapshots", [])
 
-                    with tab_logs:
-                        logs = user_data.get("workout_logs", {})
-                        if not logs:
-                            st.info("No workout logs yet.")
+                    # Index Whoop snapshots by date
+                    whoop_by_date = {}
+                    for snap in snaps:
+                        d = snap.get("date", snap.get("saved_at", "")[:10])
+                        whoop_by_date[d] = snap
+
+                    # Build overview table rows
+                    table_rows = []
+                    day_key_by_date = {}
+                    if logs:
+                        for day_key, entry in sorted(logs.items(), key=lambda x: x[1].get("meta", {}).get("date") or x[1].get("saved_at", ""), reverse=True):
+                            meta = entry.get("meta", {})
+                            date = meta.get("date", entry.get("saved_at", "")[:10])
+                            week = meta.get("week", "—")
+                            day = meta.get("day", "—")
+                            total_sets, done_sets, completion, tonnage = calc_day_metrics(entry)
+                            whoop = whoop_by_date.get(date, {})
+                            day_key_by_date[date] = day_key
+                            table_rows.append({
+                                "Date": date, "Week": week, "Day": day,
+                                "Completion %": completion, "Sets": f"{done_sets}/{total_sets}",
+                                "Tonnage (kg)": tonnage,
+                                "Recovery %": whoop.get("recovery") if whoop.get("recovery") is not None else "—",
+                                "Strain": whoop.get("strain") if whoop.get("strain") is not None else "—",
+                                "Sleep %": (whoop.get("sleep_score") or whoop.get("sleep")) if (whoop.get("sleep_score") or whoop.get("sleep")) is not None else "—",
+                                "HRV (ms)": whoop.get("hrv") if whoop.get("hrv") is not None else "—",
+                                "RHR (bpm)": whoop.get("rhr") if whoop.get("rhr") is not None else "—",
+                            })
+
+                    # Add Whoop-only dates
+                    logged_dates = {r["Date"] for r in table_rows}
+                    for d, snap in sorted(whoop_by_date.items(), reverse=True):
+                        if d not in logged_dates:
+                            table_rows.append({
+                                "Date": d, "Week": "—", "Day": "—",
+                                "Completion %": "—", "Sets": "—", "Tonnage (kg)": "—",
+                                "Recovery %": snap.get("recovery", "—"),
+                                "Strain": snap.get("strain", "—"),
+                                "Sleep %": snap.get("sleep_score") or snap.get("sleep", "—"),
+                                "HRV (ms)": snap.get("hrv", "—"),
+                                "RHR (bpm)": snap.get("rhr", "—"),
+                            })
+
+                    table_rows.sort(key=lambda r: r["Date"], reverse=True)
+
+                    if table_rows:
+                        df = pd.DataFrame(table_rows)
+                        st.caption("Click a row to drill into that day's workout.")
+                        selection = st.dataframe(
+                            df, use_container_width=True, hide_index=True,
+                            on_select="rerun", selection_mode="single-row",
+                            key=f"table_{u_idx}",
+                        )
+
+                        # Summary metrics
+                        workout_rows = [r for r in table_rows if isinstance(r.get("Completion %"), (int, float))]
+                        if workout_rows:
+                            avg_comp = round(sum(r["Completion %"] for r in workout_rows) / len(workout_rows))
+                            tot_ton = sum(r["Tonnage (kg)"] for r in workout_rows if isinstance(r["Tonnage (kg)"], (int, float)))
+                            w_rows = [r for r in table_rows if isinstance(r.get("Recovery %"), (int, float))]
+                            avg_rec = round(sum(r["Recovery %"] for r in w_rows) / len(w_rows)) if w_rows else None
+                            avg_hrv = round(sum(r["HRV (ms)"] for r in w_rows if isinstance(r["HRV (ms)"], (int, float))) / len(w_rows)) if w_rows else None
+                            cols = st.columns(4)
+                            cols[0].metric("Avg Completion", f"{avg_comp}%")
+                            cols[1].metric("Total Tonnage", f"{tot_ton:,} kg")
+                            cols[2].metric("Avg Recovery", f"{avg_rec}%" if avg_rec else "—")
+                            cols[3].metric("Avg HRV", f"{avg_hrv} ms" if avg_hrv else "—")
+
+                        # ---- Day drill-down: shown only when a row is selected ----
+                        selected_rows = selection.selection.rows if selection and selection.selection else []
+                        if selected_rows:
+                            sel_idx = selected_rows[0]
+                            sel_row = table_rows[sel_idx]
+                            sel_date = sel_row["Date"]
+                            sel_key = day_key_by_date.get(sel_date)
+
+                            if sel_key and sel_key in logs:
+                                st.markdown("---")
+                                drill_entry = logs[sel_key]
+                                drill_meta = drill_entry.get("meta", {})
+                                st.markdown(f"**{sel_date} — Week {drill_meta.get('week', '?')} Day {drill_meta.get('day', '?')}**")
+                                ts, ds, comp, ton = calc_day_metrics(drill_entry)
+                                c1, c2, c3 = st.columns(3)
+                                c1.metric("Completion", f"{comp}%")
+                                c2.metric("Tonnage", f"{ton:,} kg")
+                                c3.metric("Sets", f"{ds}/{ts}")
+
+                                _, prescribed_prog = get_prescribed_program(user_name)
+                                rx_day = get_prescribed_day(prescribed_prog, drill_meta.get("week"), drill_meta.get("day"))
+                                ex_rows = build_exercise_detail(drill_entry, rx_day)
+                                if ex_rows:
+                                    st.dataframe(pd.DataFrame(ex_rows), use_container_width=True, hide_index=True)
+                                else:
+                                    st.info("No exercise data for this day.")
+                            elif sel_date not in day_key_by_date:
+                                st.markdown("---")
+                                st.info(f"**{sel_date}** — Whoop data only (no workout logged).")
+                    else:
+                        st.info("No workout or Whoop data yet.")
+
+                # ---- AI Analysis Form (shown when 🤖 is clicked) ----
+                if st.session_state.get(f"show_ai_{user_name}", False):
+                    with st.container():
+                        st.markdown(f"#### 🤖 AI Analysis for {user_name}")
+                        api_key = load_api_key()
+                        if not api_key:
+                            st.warning("Add `ANTHROPIC_API_KEY=sk-ant-...` to your `.env` file to enable AI analysis.")
                         else:
-                            # Show most recent logs first
-                            sorted_logs = sorted(logs.items(), key=lambda x: x[1].get("saved_at", ""), reverse=True)
-                            for day_key, entry in sorted_logs[:20]:
-                                meta = entry.get("meta", {})
-                                label = f"Week {meta.get('week', '?')} · Day {meta.get('day', '?')}"
-                                if meta.get("date"):
-                                    label += f" · {meta['date']}"
-                                saved = entry.get("saved_at", "")[:10]
-                                st.markdown(f"**{label}** (saved {saved})")
-                                data = entry.get("data", {})
-                                for ex_key, sets in data.items():
-                                    if isinstance(sets, dict):
-                                        parts = []
-                                        for s_key in sorted(sets.keys()):
-                                            s = sets[s_key]
-                                            if isinstance(s, dict):
-                                                w = s.get("weight", "")
-                                                r = s.get("reps", "")
-                                                done = "✅" if s.get("done") else ""
-                                                if w or r:
-                                                    parts.append(f"{w}kg×{r} {done}")
-                                        if parts:
-                                            st.caption(f"  {ex_key}: {' | '.join(parts)}")
-                                st.divider()
+                            with st.form(key=f"ai_form_{u_idx}"):
+                                col_from, col_to = st.columns(2)
+                                with col_from:
+                                    ai_date_from = st.date_input("From", value=datetime.now().date().replace(day=1), key=f"ai_from_{u_idx}")
+                                with col_to:
+                                    ai_date_to = st.date_input("To", value=datetime.now().date(), key=f"ai_to_{u_idx}")
 
-                    with tab_whoop:
-                        snaps = user_data.get("whoop_snapshots", [])
-                        if not snaps:
-                            st.info("No Whoop data yet.")
-                        else:
-                            # Chart the last 30 snapshots
-                            chart_data = []
-                            for snap in snaps[-30:]:
-                                row = {"date": snap.get("date", snap.get("saved_at", "")[:10])}
-                                if snap.get("recovery") is not None:
-                                    row["Recovery %"] = snap["recovery"]
-                                if snap.get("strain") is not None:
-                                    row["Strain"] = snap["strain"]
-                                sleep_val = snap.get("sleep_score") or snap.get("sleep")
-                                if sleep_val is not None:
-                                    row["Sleep %"] = sleep_val
-                                if snap.get("hrv") is not None:
-                                    row["HRV"] = snap["hrv"]
-                                if snap.get("rhr") is not None:
-                                    row["Resting HR"] = snap["rhr"]
-                                chart_data.append(row)
+                                coach_notes = st.text_area(
+                                    "Coach notes / specific questions",
+                                    placeholder="e.g. Is their squat progressing? Are they recovering well enough for the volume? Any concerns about their sleep?",
+                                    key=f"ai_notes_{u_idx}")
 
-                            if chart_data:
-                                df_whoop = pd.DataFrame(chart_data)
-                                if "date" in df_whoop.columns:
-                                    df_whoop = df_whoop.set_index("date")
-                                st.line_chart(df_whoop)
+                                analysis_focus = st.multiselect(
+                                    "Focus areas",
+                                    ["Adherence vs program", "Tonnage progression", "Performance trends", "Recovery & health correlation", "Recommendations"],
+                                    default=["Adherence vs program", "Tonnage progression", "Recommendations"],
+                                    key=f"ai_focus_{u_idx}")
 
-                            # Also show latest snapshot
-                            latest = snaps[-1]
-                            cols = st.columns(5)
-                            metrics = [
-                                ("Recovery", latest.get("recovery"), "%"),
-                                ("Strain", latest.get("strain"), ""),
-                                ("Sleep", latest.get("sleep_score") or latest.get("sleep"), "%"),
-                                ("HRV", latest.get("hrv"), " ms"),
-                                ("RHR", latest.get("rhr"), " bpm"),
-                            ]
-                            for col, (label, val, suffix) in zip(cols, metrics):
-                                col.metric(label, f"{val}{suffix}" if val is not None else "—")
+                                submitted = st.form_submit_button("Run Analysis", type="primary", use_container_width=True)
+
+                            if submitted:
+                                ai_user_data = fetch_coach_user_data(COACH_SERVER, user_name)
+                                if "error" in ai_user_data:
+                                    st.error(f"Error: {ai_user_data['error']}")
+                                else:
+                                    ai_logs = ai_user_data.get("workout_logs", {})
+                                    ai_snaps = ai_user_data.get("whoop_snapshots", [])
+
+                                    filtered_logs = {k: v for k, v in ai_logs.items()
+                                                     if str(ai_date_from) <= (v.get("meta", {}).get("date") or v.get("saved_at", "")[:10]) <= str(ai_date_to)}
+                                    filtered_snaps = [s for s in ai_snaps
+                                                      if str(ai_date_from) <= s.get("date", s.get("saved_at", "")[:10]) <= str(ai_date_to)]
+
+                                    if not filtered_logs:
+                                        st.warning("No workout data in this date range.")
+                                    else:
+                                        # Tonnage bar chart
+                                        tonnage_chart = []
+                                        for dk, dv in sorted(filtered_logs.items(), key=lambda x: x[1].get("meta", {}).get("date", "")):
+                                            m = dv.get("meta", {})
+                                            d_str = m.get("date", dv.get("saved_at", "")[:10])
+                                            _, _, _, ton = calc_day_metrics(dv)
+                                            tonnage_chart.append({"Date": d_str, "Tonnage (kg)": ton})
+                                        if tonnage_chart:
+                                            st.bar_chart(pd.DataFrame(tonnage_chart).set_index("Date"))
+
+                                        focus_note = f"\nFocus especially on: {', '.join(analysis_focus)}" if analysis_focus else ""
+                                        full_notes = (coach_notes or "") + focus_note
+                                        prompt = build_ai_prompt(user_name, ai_date_from, ai_date_to, filtered_logs, filtered_snaps, full_notes)
+
+                                        with st.spinner("Analysing workouts..."):
+                                            analysis_system = """You are an expert strength and conditioning coach. Be concise and direct.
+No day-by-day exercise lists. Focus on trends, flags, and actionable recommendations. Max 500 words."""
+                                            response, usage_info = call_claude(prompt, system_prompt=analysis_system)
+
+                                        if response:
+                                            st.caption(usage_info)
+                                            st.markdown(response)
+                                        else:
+                                            st.error(usage_info)
 
 elif page == "🚀 Deploy":
     st.title("🚀 Deploy to GitHub")

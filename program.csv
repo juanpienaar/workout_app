@@ -1,0 +1,971 @@
+Program,Week,Day,Order,Exercise,Sets,Reps,Tempo,Rest,RPE,Instruction
+Hypertrophy A,1.0,1.0,1,Barbell Back Squat,4.0,8,3-1-2-0,120s,7.0,Brace core. Break at hips and knees simultaneously. Aim for parallel or below.
+Hypertrophy A,1.0,1.0,2a,Romanian Deadlift,3.0,10,3-1-2-0,0s,7.0,Hinge at hips with soft knees. Feel the stretch in hamstrings. Keep bar close to legs.
+Hypertrophy A,1.0,1.0,2b,Walking Lunges,3.0,12,2-0-2-0,90s,7.0,Each leg. Keep torso upright. Control the descent.
+Hypertrophy A,1.0,1.0,3a,Leg Press,3.0,12,3-1-1-0,0s,8.0,Feet shoulder width. Do not lock out knees at the top.
+Hypertrophy A,1.0,1.0,3b,Leg Curl,3.0,12,3-1-2-0,90s,8.0,Control the negative. Squeeze at the bottom.
+Hypertrophy A,1.0,1.0,4,Calf Raises,4.0,15,2-2-2-0,60s,8.0,Full stretch at the bottom. Pause at the top. Slow and controlled.
+Hypertrophy A,1.0,2.0,1,Barbell Bench Press,4.0,8,3-1-2-0,120s,7.0,Retract scapula. Feet flat on floor. Touch chest on each rep.
+Hypertrophy A,1.0,2.0,2a,Incline Dumbbell Press,3.0,10,3-1-2-0,0s,7.0,30 degree incline. Control the descent. Full range of motion.
+Hypertrophy A,1.0,2.0,2b,Cable Fly,3.0,12,3-1-2-0,90s,7.0,Slight bend in elbows. Squeeze at the top. Control the stretch.
+Hypertrophy A,1.0,2.0,3a,Overhead Press,3.0,10,2-1-2-0,0s,8.0,Brace core. Press straight overhead. Avoid excessive back arch.
+Hypertrophy A,1.0,2.0,3b,Lateral Raise,3.0,15,2-1-2-0,90s,8.0,Lead with elbows. Slight forward lean. Control the negative.
+Hypertrophy A,1.0,2.0,4a,Tricep Pushdown,3.0,12,2-1-2-0,0s,8.0,Keep elbows pinned to sides. Squeeze at full extension.
+Hypertrophy A,1.0,2.0,4b,Overhead Tricep Extension,3.0,12,3-1-2-0,60s,8.0,Keep elbows close to head. Full stretch at the bottom.
+Hypertrophy A,1.0,3.0,REST,Rest Day,0.0,0,,,,Active recovery. Light walking or stretching recommended. Focus on hydration and nutrition.
+Hypertrophy A,1.0,4.0,1,Barbell Row,4.0,8,2-1-3-0,120s,7.0,Hinge to 45 degrees. Pull to lower chest. Squeeze shoulder blades together.
+Hypertrophy A,1.0,4.0,2a,Lat Pulldown,3.0,10,3-1-2-0,0s,7.0,Wide grip. Pull to upper chest. Control the negative.
+Hypertrophy A,1.0,4.0,2b,Seated Cable Row,3.0,12,2-1-3-0,90s,7.0,Close grip. Pull to navel. Keep chest up.
+Hypertrophy A,1.0,4.0,3a,Face Pull,3.0,15,2-2-2-0,0s,8.0,Pull to forehead level. Externally rotate at the end. Squeeze rear delts.
+Hypertrophy A,1.0,4.0,3b,Reverse Fly,3.0,15,2-1-2-0,60s,8.0,Slight bend in elbows. Squeeze shoulder blades together at the top.
+Hypertrophy A,1.0,4.0,4a,Barbell Curl,3.0,10,3-1-2-0,0s,7.0,Keep elbows pinned. Full extension at the bottom. No swinging.
+Hypertrophy A,1.0,4.0,4b,Hammer Curl,3.0,12,2-1-2-0,60s,7.0,Neutral grip. Controlled throughout. Squeeze at the top.
+Hypertrophy A,1.0,5.0,1a,Dumbbell Bulgarian Split Squat,4.0,10,3-1-2-0,0s,8.0,Each leg. Rear foot elevated. Keep torso upright. Deep stretch at bottom.
+Hypertrophy A,1.0,5.0,1b,Hip Thrust,4.0,12,2-2-2-0,90s,8.0,Drive through heels. Squeeze glutes hard at the top. Chin tucked.
+Hypertrophy A,1.0,5.0,2a,Leg Extension,3.0,15,2-2-2-0,0s,8.0,Squeeze quads hard at the top. Control the negative.
+Hypertrophy A,1.0,5.0,2b,Seated Leg Curl,3.0,15,2-2-2-0,60s,8.0,Full range of motion. Slow eccentric.
+Hypertrophy A,1.0,5.0,3a,Single Leg Calf Raise,3.0,15,2-2-2-0,0s,8.0,Full stretch at the bottom. Hold at the top. Each leg.
+Hypertrophy A,1.0,5.0,3b,Tibialis Raise,3.0,15,2-1-2-0,60s,7.0,Lean back against wall. Pull toes up. Prehab for shin splints.
+Hypertrophy A,1.0,6.0,REST,Rest Day,0.0,0,,,,Full rest day. Foam rolling and mobility work recommended. Prioritize sleep.
+Hypertrophy A,1.0,7.0,1,Pull Up,4.0,8,2-1-3-0,120s,7.0,Full dead hang at the bottom. Chin over bar. Control the descent.
+Hypertrophy A,1.0,7.0,2a,Dumbbell Shoulder Press,3.0,10,3-1-2-0,0s,7.0,Seated or standing. Full range of motion. Brace core.
+Hypertrophy A,1.0,7.0,2b,Chest Supported Row,3.0,12,2-1-3-0,90s,7.0,Squeeze at the top. Full stretch at the bottom. No momentum.
+Hypertrophy A,1.0,7.0,3a,Dumbbell Chest Fly,3.0,12,3-1-2-0,0s,7.0,Slight bend in elbows. Deep stretch. Squeeze at the top.
+Hypertrophy A,1.0,7.0,3b,Straight Arm Pulldown,3.0,12,3-1-2-0,60s,7.0,Keep arms straight. Feel the lats. Control throughout.
+Hypertrophy A,1.0,7.0,4a,Incline Dumbbell Curl,3.0,12,3-1-2-0,0s,8.0,Incline bench. Full stretch at the bottom. Supinate at the top.
+Hypertrophy A,1.0,7.0,4b,Skull Crusher,3.0,12,3-1-2-0,0s,8.0,Lower to forehead. Keep elbows in. Full extension at top.
+Hypertrophy A,1.0,7.0,4c,Lateral Raise,3.0,15,2-1-2-0,60s,8.0,Burnout set. Light weight. Focus on the contraction.
+Functional Body Composition,1.0,1.0,W1,Bent Over Band Pull Aparts,3.0,12,1-0-1-1,0s,5.0,Pause 1sec with hands wide on each rep
+Functional Body Composition,1.0,1.0,W2,Drop Lunge to Knee Lift,3.0,10/leg,1-0-1-0,0s,5.0,1-3 inch range
+Functional Body Composition,1.0,1.0,W3,Quadruped Shoulder Taps,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,1.0,1a,Back Rack Split Squat,3.0,8-10/leg,2-1-1-0,75s,7.0,Rear foot on 4-6 inch plates
+Functional Body Composition,1.0,1.0,1b,Pronated Strict Pull Up,3.0,8-10,2-0-1-1,75s,7.0,
+Functional Body Composition,1.0,1.0,2a,Cyclist Front Squat,3.0,8-10,3-1-X-0,75s,7.0,
+Functional Body Composition,1.0,1.0,2b,Chainsaw Row,3.0,8-10/arm,2-0-X-2,75s,7.0,
+Functional Body Composition,1.0,1.0,3,Muscle Endurance AMRAP,1.0,5min,0-0-0-0,2min,8.0,2-4-6-8-10-12 Renegade Rows 50/35lbs; 5 Cal Row between each set
+Functional Body Composition,1.0,1.0,4,Muscle Endurance AMRAP,1.0,5min,0-0-0-0,2min,8.0,2-4-6-8-10-12 Strict Knees to Elbows; 5 Cal Bike between each set
+Functional Body Composition,1.0,1.0,5,Muscle Endurance AMRAP,1.0,5min,0-0-0-0,0s,8.0,2-4-6-8-10-12 Alternating DB Thrusters 50/35lbs; 30 Double Unders between each set
+Functional Body Composition,1.0,2.0,W1,Dumbbell Deadlifts,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,2.0,W2,Dumbbell Hang Power Clean,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,2.0,W3,Dumbbell Strict Press,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,2.0,W4,Yoga Push Ups,3.0,10,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,2.0,W5,Jump Rope Single Unders,3.0,50,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,2.0,1a,Segmented Clean Deadlift,3.0,6-8,3-1-3-1,75s,8.0,Use straps
+Functional Body Composition,1.0,2.0,1b,Half Kneeling Barbell Press,3.0,4-5/knee,2-0-X-2,75s,7.0,8-10 total reps per set
+Functional Body Composition,1.0,2.0,2a,Deficit Landmine Single Leg RDL,3.0,8-10/leg,3-0-1-0,75s,7.0,
+Functional Body Composition,1.0,2.0,2b,Single Arm Dumbbell Push Press,3.0,8-10/arm,3-0-X-1,75s,7.0,Explosive up; 3sec controlled lowering
+Functional Body Composition,1.0,2.0,3,For Time @ 85%,1.0,27-21-15,0-0-0-0,3min,8.0,Row Cals; 21-15-9 Strict HSPU (scale to Pike Strict HSPU)
+Functional Body Composition,1.0,2.0,4,For Time,1.0,21-15-9,0-0-0-0,0s,8.0,Bike Cals; 27-21-15 GHD Sit Ups
+Functional Body Composition,1.0,3.0,W1,Single Arm Bottoms Up KB Carry,3.0,10m/arm,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,3.0,W2,Scapular Push Ups,3.0,10,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,3.0,W3,Passive Ring Hang,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,3.0,W4,Band Pull Aparts,3.0,15,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,3.0,1a,Wide Grip Bench Press,3.0,10-12,3-1-X-0,75s,7.0,
+Functional Body Composition,1.0,3.0,1b,Pendlay Row,3.0,10-12,3-0-X-1,75s,7.0,
+Functional Body Composition,1.0,3.0,2a,Strict Bar Dips,3.0,10-12,2-0-2-0,75s,7.0,
+Functional Body Composition,1.0,3.0,2b,Supinated Grip Body Row,3.0,12-14,3-0-X-0,75s,7.0,
+Functional Body Composition,1.0,3.0,3,Consistent Effort 15min,1.0,15min,0-0-0-0,0s,7.0,20sec L Sit on Rings; 15m Quadruped Crawl Forwards/Backwards; 10 Dual KB Clean and Push Press 44/26lbs; 5 Strict C2B Pull Ups
+Functional Body Composition,1.0,4.0,W1,Banded Hip Thrust + Isometric Hold,3.0,15+20sec,0-0-0-0,30s,5.0,
+Functional Body Composition,1.0,4.0,W2,KB Loaded Jefferson Curl,3.0,8-10,0-0-0-0,30s,5.0,Light weight
+Functional Body Composition,1.0,4.0,W3,High Knees Jump Rope,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,4.0,1a,Snatch Grip Romanian Deadlift,3.0,8-10,3-1-1-0,75s,7.0,
+Functional Body Composition,1.0,4.0,1b,Suitcase Long Step Walking Lunge,3.0,14-16 steps,3-0-X-0,75s,7.0,
+Functional Body Composition,1.0,4.0,2a,Barbell Hip Thrust,3.0,8-10,2-0-X-2,75s,7.0,
+Functional Body Composition,1.0,4.0,2b,Goblet 1-1/4 Squat,3.0,8-10,2-1-1-1,75s,7.0,2sec lower; 1sec pause bottom; 1/4 squat and back down; rebound up; 1sec pause top
+Functional Body Composition,1.0,4.0,3,Repeatable Pace E5M x 4,4.0,1 set,0-0-0-0,0s,8.0,45sec DB Farmers Carry tough weight; 15/12 Cal Assault Bike; 12 Supine Toes to Bar 3sec lowering; 9 Box Jump Step Down 30/24 inch
+Functional Body Composition,1.0,5.0,W1,Yoga Push Up,3.0,8,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,5.0,W2,Prone Snow Angels,3.0,8,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,5.0,W3,Scapular Pull Ups,3.0,8,0-0-0-0,0s,5.0,
+Functional Body Composition,1.0,5.0,W4,Side Plank Rotations,3.0,8/side,0-0-0-0,0s,5.0,Move slow and deliberately
+Functional Body Composition,1.0,5.0,1a,Tall Kneeling Filly Press,3.0,8-10/arm,2-1-1-1,75s,7.0,
+Functional Body Composition,1.0,5.0,1b,Close Grip Parallette Tricep Push Up,3.0,8-10,3-0-1-1,75s,7.0,
+Functional Body Composition,1.0,5.0,1c,Incline Bench Dumbbell Bicep Curl,3.0,8-10,4-0-X-1,75s,7.0,
+Functional Body Composition,1.0,5.0,2,Gymnastics Intervals,3.0,1 set,0-0-0-0,2-3min,8.0,10 Kipping Toes to Bar; 20 Anchored Feet Sit Ups; Assault Bike 750/650m @ 90%
+Functional Body Composition,1.0,5.0,3,Not For Time,3.0,1 set,0-0-0-0,0s,6.0,20 Banded Tricep Push Downs; 20 Banded Bicep Curls; 20 Banded Face Pulls
+Functional Body Composition,1.0,6.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Easy Active Recovery
+Functional Body Composition,1.0,7.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Full Rest Day
+Functional Body Composition,2.0,1.0,W1,Skater Band Walk,1.0,10m,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,1.0,W2,Theraband Goblet Squats,1.0,10,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,1.0,W3,Scap Pull Up,1.0,10,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,1.0,1a,Front Rack Drop Lunge,3.0,16-20 alt,3-0-X-0,75s,7.0,
+Functional Body Composition,2.0,1.0,1b,Supinated Strict Pull Up,3.0,8-10,2-0-1-1,75s,7.0,
+Functional Body Composition,2.0,1.0,2a,Dual KB Rack Squat,3.0,8-10,2-1-1-1,75s,7.0,
+Functional Body Composition,2.0,1.0,2b,Incline Bench DB Prone Row,3.0,8-12,3-0-X-1,75s,7.0,
+Functional Body Composition,2.0,1.0,3,Muscle Endurance AMRAP,1.0,7min,0-0-0-0,3min,8.0,5 Lunges/leg; 7 Box Jump Step Down; 9 Ring Rows
+Functional Body Composition,2.0,1.0,4,Muscle Endurance AMRAP,1.0,7min,0-0-0-0,0s,8.0,5 Burpees; 7 Toes to Rings; 9 Air Squats
+Functional Body Composition,2.0,2.0,W1,Dumbbell RDL,3.0,5,3-0-3-0,0s,5.0,
+Functional Body Composition,2.0,2.0,W2,Single Arm Cuban Press,3.0,5/arm,0-0-0-0,0s,5.0,Slow
+Functional Body Composition,2.0,2.0,W3,Burpee High Jump,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,2.0,W4,Row Acceleration,3.0,15sec,0-0-0-0,0s,5.0,Increase pace every 5sec
+Functional Body Composition,2.0,2.0,1a,Segmented Snatch Grip Deadlift - 3 Pauses,3.0,6-8,3-1-3-1,75s,8.0,Use lifting straps
+Functional Body Composition,2.0,2.0,1b,Barbell Z Press,3.0,8-10,3-0-2-1,75s,7.0,
+Functional Body Composition,2.0,2.0,2a,Split Stance Dumbbell Romanian Deadlift,3.0,6-8/leg,3-1-1-0,75s,7.0,
+Functional Body Composition,2.0,2.0,2b,Seated Alternating Dumbbell Arnold Press,3.0,8-10/arm,2-1-1-1,75s,7.0,
+Functional Body Composition,2.0,2.0,3,Conditioning AMRAP,1.0,5min,0-0-0-0,2min,8.0,1-2-3-4-5-6 DB Bench Press 65/45lbs; 5 Cal Row between each set
+Functional Body Composition,2.0,2.0,4,Conditioning AMRAP,1.0,5min,0-0-0-0,2min,8.0,1-2-3-4-5-6 Wall Walks; 20 Double Unders between each set
+Functional Body Composition,2.0,2.0,5,Conditioning AMRAP,1.0,5min,0-0-0-0,0s,8.0,1-2-3-4-5-6 Strict Toes to Bar; 5 Cal Assault Bike between each set
+Functional Body Composition,2.0,3.0,W1,Single Arm Turkish Sit Ups R,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,3.0,W2,Turkish Get Up R,3.0,1,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,3.0,W3,Single Arm KB Overhead Carry R,3.0,50ft,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,3.0,W4,Single Arm Turkish Sit Ups L,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,3.0,W5,Turkish Get Up L,3.0,1,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,3.0,W6,Single Arm KB Overhead Carry L,3.0,50ft,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,3.0,W7,Strict Pull Ups,3.0,3-5,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,3.0,1a,Incline Close Grip Bench Press,3.0,10-12,3-1-X-0,75s,7.0,
+Functional Body Composition,2.0,3.0,1b,Single Arm DB Tripod Row,3.0,8-10/arm,2-0-X-2,75s,7.0,
+Functional Body Composition,2.0,3.0,2a,Single Arm Dumbbell Bench Press,3.0,8-10/arm,3-1-X-0,75s,7.0,
+Functional Body Composition,2.0,3.0,2b,Lean Away Strict Ring Pull Up,3.0,8-10,4-0-X-0,75s,7.0,
+Functional Body Composition,2.0,3.0,3,Not For Time,4.0,1 round,0-0-0-0,0s,7.0,20 Elbow to Tall Plank; 30sec KB Farmers Walk 70/53; 10 Alt KB Gorilla Rows 70/53; 10 Hand Release Push Ups
+Functional Body Composition,2.0,4.0,W1,Frog Pump + Isometric Contraction,3.0,20+20sec,0-0-0-0,30s,5.0,
+Functional Body Composition,2.0,4.0,W2,Goblet Curtsy Step Down,3.0,8-10/leg,0-0-0-0,0s,5.0,Box height below knee
+Functional Body Composition,2.0,4.0,1a,Frog Stance Deadlift,3.0,10-12,3-1-X-1,75s,7.0,
+Functional Body Composition,2.0,4.0,1b,KB Rack Deficit Split Squat,3.0,8-10/leg,2-1-1-0,75s,7.0,
+Functional Body Composition,2.0,4.0,2a,GHD Hip Extension,3.0,8-10,3-0-2-1,75s,7.0,
+Functional Body Composition,2.0,4.0,2b,Goblet Cossack Squat,3.0,16-20 alt,3-0-X-0,75s,7.0,
+Functional Body Composition,2.0,4.0,3,Repeatable Pace E10M x 2,2.0,1 set,0-0-0-0,0s,8.0,50 Double Unders; 500m Assault Bike; 40 Air Squats; 20 Alt DB Power Snatch 50/35lbs; 10 Burpee Box Jump Over 24/20 inch
+Functional Body Composition,2.0,5.0,W1,Tall Plank Theraband Lateral Walk,3.0,20ft/side,0-0-0-0,0s,5.0,
+Functional Body Composition,2.0,5.0,W2,Single Arm Trap 3 Raise w/ DB Isometric,3.0,10/arm,0-0-0-0,0s,5.0,Light slow
+Functional Body Composition,2.0,5.0,W3,Scapular Ring Rows,3.0,10,0-0-0-0,0s,5.0,Pause 1sec at top
+Functional Body Composition,2.0,5.0,1a,Farmers Press,3.0,8-10/arm,2-0-X-1,75s,7.0,
+Functional Body Composition,2.0,5.0,1b,Decline Narrow Grip Bench Press,3.0,10-12,2-0-2-0,75s,7.0,
+Functional Body Composition,2.0,5.0,1c,Alternating Dumbbell Curls,3.0,8-10/arm,3-0-X-1,75s,7.0,
+Functional Body Composition,2.0,5.0,2,Interval Weight Training,3.0,1 set,0-0-0-0,2-3min,8.0,10 Renegade Rows 50/35lbs; Row 300/275m @ 90%
+Functional Body Composition,2.0,5.0,3,Not For Time,3.0,1 set,0-0-0-0,0s,6.0,10-12 DB Upright Row @ 2121; 10-12 Ring Body Saw @ 3010; 10-12 Lying DB Tricep Extensions @ 30X1
+Functional Body Composition,2.0,6.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Easy Active Recovery
+Functional Body Composition,2.0,7.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Full Rest Day
+Functional Body Composition,3.0,1.0,W1,Standing Band Pull Aparts,1.0,12,1-0-1-0,0s,5.0,Pause 1sec with hands wide on each rep
+Functional Body Composition,3.0,1.0,W2,Russian Step Up,1.0,10/leg,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,1.0,W3,Tall Plank Shoulder Taps,1.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,1.0,1a,Back Rack Split Squat,3.0,8-10/leg,2-1-1-0,60s,7.0,Rear foot on 4-6 inch plates
+Functional Body Composition,3.0,1.0,1b,Pronated Strict Pull Up,3.0,8-10,2-0-1-1,60s,7.0,
+Functional Body Composition,3.0,1.0,2a,Cyclist Front Squat,3.0,8-10,3-1-X-0,60s,7.0,
+Functional Body Composition,3.0,1.0,2b,Chainsaw Row,3.0,8-10/arm,2-0-X-2,60s,7.0,
+Functional Body Composition,3.0,1.0,3,Muscle Endurance AMRAP,1.0,5min,0-0-0-0,2min,8.0,2-4-6-8-10-12 Alt KB Gorilla Rows 70/53lbs; 5 Cal Bike between each round
+Functional Body Composition,3.0,1.0,4,Muscle Endurance AMRAP,1.0,5min,0-0-0-0,2min,8.0,2-4-6-8-10-12 Kipping Toes to Rings; 5 Burpees between each round
+Functional Body Composition,3.0,1.0,5,Muscle Endurance AMRAP,1.0,5min,0-0-0-0,0s,8.0,2-4-6-8-10-12 Dual KB Hang Squat Cleans 53/35; 5 Cal Row between each round
+Functional Body Composition,3.0,2.0,W1,Barbell Deadlifts,3.0,7,0-0-0-0,0s,5.0,Very light or empty bar
+Functional Body Composition,3.0,2.0,W2,Barbell Hang Power Clean,3.0,7,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,2.0,W3,Barbell Strict Press,3.0,7,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,2.0,W4,Push Ups,3.0,10,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,2.0,W5,Jump Jacks,3.0,20,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,2.0,1a,Segmented Clean Deadlift,3.0,6-8,3-1-3-1,60s,8.0,Use straps
+Functional Body Composition,3.0,2.0,1b,Half Kneeling Barbell Press,3.0,4-5/knee,2-0-X-2,60s,7.0,8-10 total reps per set
+Functional Body Composition,3.0,2.0,2a,Deficit Landmine Single Leg RDL,3.0,8-10/leg,3-0-1-0,60s,7.0,
+Functional Body Composition,3.0,2.0,2b,Single Arm Dumbbell Push Press,3.0,8-10/arm,3-0-X-1,60s,7.0,Explosive up; 3sec controlled lowering
+Functional Body Composition,3.0,2.0,3,For Time @ 85%,1.0,15-21-27,0-0-0-0,3min,8.0,Bike Cals; 27-21-15 Strict Bar Dips (scale to Hand Release Push Ups)
+Functional Body Composition,3.0,2.0,4,For Time,1.0,21-15-9,0-0-0-0,0s,8.0,Row Cals; 40-30-20 Anchored Feet Sit Ups
+Functional Body Composition,3.0,3.0,W1,Dual Bottoms Up KB Rack Carry,3.0,20m,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,3.0,W2,Scapular Push Ups on Elbows,3.0,10,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,3.0,W3,Active Bar Hang,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,3.0,W4,Banded Face Pull,3.0,12,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,3.0,1a,Wide Grip Bench Press,3.0,10-12,3-1-X-0,60s,7.0,
+Functional Body Composition,3.0,3.0,1b,Pendlay Row,3.0,10-12,3-0-X-1,60s,7.0,
+Functional Body Composition,3.0,3.0,2a,Strict Bar Dips,3.0,10-12,2-0-2-0,60s,7.0,
+Functional Body Composition,3.0,3.0,2b,Body Row,3.0,12-14,3-0-X-0,60s,7.0,
+Functional Body Composition,3.0,3.0,3,Consistent Effort 15min,1.0,15min,0-0-0-0,0s,7.0,30sec Bent Hollow Hold; 3 Wall Walks; 6 Strict Pull Ups; 9 Ring Push Ups; 30sec Dual KB Rack Carry
+Functional Body Composition,3.0,4.0,W1,Bodyweight Hip Thrust + Single Leg Isometric,3.0,20+10sec/leg,0-0-0-0,30s,5.0,
+Functional Body Composition,3.0,4.0,W2,GHD Back Extensions,3.0,10,0-0-0-0,30s,5.0,
+Functional Body Composition,3.0,4.0,W3,Hollow Body Hold,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,4.0,1a,Snatch Grip Romanian Deadlift,3.0,8-10,3-1-1-0,60s,7.0,
+Functional Body Composition,3.0,4.0,1b,Suitcase Long Step Walking Lunge,3.0,14-16 steps,3-0-X-0,60s,7.0,
+Functional Body Composition,3.0,4.0,2a,Barbell Hip Thrust,3.0,8-10,2-0-X-2,60s,7.0,
+Functional Body Composition,3.0,4.0,2b,Goblet 1-1/4 Squat,3.0,8-10,2-1-1-1,60s,7.0,2sec lower; 1sec pause bottom; 1/4 squat and back down; rebound up; 1sec pause top
+Functional Body Composition,3.0,4.0,3,Consistent Pace E5M x 4,4.0,1 set,0-0-0-0,0s,8.0,30sec Side Plank; 18/15 Cal Row; 12 KBS 70/53lbs; 6 Burpee Box Jumps 24/20 inch; 30sec Side Plank opposite side
+Functional Body Composition,3.0,5.0,W1,Yoga Push Up,3.0,12,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,5.0,W2,Scapular Ring Row,3.0,12,0-0-0-0,0s,5.0,
+Functional Body Composition,3.0,5.0,W3,Dumbbell Side Plank Rotations,3.0,8-10/side,0-0-0-0,0s,5.0,Move slow and deliberately
+Functional Body Composition,3.0,5.0,1a,Tall Kneeling Filly Press,3.0,8-10/arm,2-1-1-1,60s,7.0,
+Functional Body Composition,3.0,5.0,1b,Close Grip Parallette Tricep Push Up,3.0,8-10,3-0-1-1,60s,7.0,
+Functional Body Composition,3.0,5.0,1c,Incline Bench Dumbbell Bicep Curl,3.0,8-10,4-0-X-1,60s,7.0,
+Functional Body Composition,3.0,5.0,2,Gymnastics Intervals,3.0,1 set,0-0-0-0,2-3min,8.0,Row 200/150m @ 85%; 12-15 Toes to Rings unbroken; 15-18 Tuck Ups; Row 200/150m @ 95%
+Functional Body Composition,3.0,5.0,3,For Quality,3.0,1 set,0-0-0-0,0s,6.0,20 Banded Push Ups; 10 DB Preacher Curl/arm; 20 Banded Upright Rows
+Functional Body Composition,3.0,6.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Easy Active Recovery
+Functional Body Composition,3.0,7.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Full Rest Day
+Functional Body Composition,4.0,1.0,W1,Monster Band Walk,3.0,10m fwd/bwd,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,1.0,W2,Banded Goblet Squats,3.0,12,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,1.0,W3,Supine Band Lat Pull Over,3.0,12,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,1.0,1a,Front Rack Drop Lunge,3.0,16-20 alt,3-0-X-0,60s,7.0,
+Functional Body Composition,4.0,1.0,1b,Supinated Strict Pull Up,3.0,8-10,2-0-1-1,60s,7.0,
+Functional Body Composition,4.0,1.0,2a,Dual KB Rack Squat,3.0,8-10,2-1-1-1,60s,7.0,
+Functional Body Composition,4.0,1.0,2b,Incline Bench Prone Row,3.0,8-12,3-0-X-1,60s,7.0,
+Functional Body Composition,4.0,1.0,3,Muscle Endurance AMRAP,1.0,7min,0-0-0-0,3min,8.0,15 Double Unders; 10 Walking Lunges; 5 Renegade Rows 50/35lbs
+Functional Body Composition,4.0,1.0,4,Muscle Endurance AMRAP,1.0,7min,0-0-0-0,0s,8.0,4 Burpee Pull Ups; 8 Wall Balls; 12 Sit Ups
+Functional Body Composition,4.0,2.0,W1,Split Stance Dumbbell RDL,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,2.0,W2,Dual DB Bent Over Row to External Rotation,3.0,10,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,2.0,W3,Broad Jumps,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,2.0,W4,Bike Acceleration,3.0,15sec,0-0-0-0,0s,5.0,Increase pace every 5sec
+Functional Body Composition,4.0,2.0,1a,Segmented Snatch Grip Deadlift - 3 Pauses,3.0,6-8,3-1-3-1,60s,8.0,Use lifting straps
+Functional Body Composition,4.0,2.0,1b,Barbell Z Press,3.0,8-10,3-0-2-1,60s,7.0,
+Functional Body Composition,4.0,2.0,2a,Split Stance Dumbbell Romanian Deadlift,3.0,6-8/leg,3-1-1-0,60s,7.0,
+Functional Body Composition,4.0,2.0,2b,Seated Alternating Dumbbell Arnold Press,3.0,8-10/arm,2-1-1-1,60s,7.0,
+Functional Body Composition,4.0,2.0,3,Conditioning AMRAP,1.0,5min,0-0-0-0,2min,8.0,1-2-3-4-5-6 Single Arm Incline DB Bench Press 60/40lbs R then L; 1 Turkish Get Up/arm between each set 60/40lbs
+Functional Body Composition,4.0,2.0,4,Conditioning AMRAP,1.0,5min,0-0-0-0,2min,8.0,1-2-3-4-5-6 Wtd Strict Bar Dips 25/10lb DB between legs; 5 Cal Row between each set
+Functional Body Composition,4.0,2.0,5,Conditioning AMRAP,1.0,5min,0-0-0-0,0s,8.0,1-2-3-4-5-6 L-Sit Lift Overs (tap feet each side = 1 rep); 5 Cal Bike between each set
+Functional Body Composition,4.0,3.0,W1,Bottom Up Single Arm KB Press R,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,3.0,W2,Bottom up KB OH Carry R,3.0,20m,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,3.0,W3,Bottom Up Single Arm KB Press L,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,3.0,W4,Bottom up KB OH Carry L,3.0,20m,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,3.0,W5,Single Arm Ring Row,3.0,8/arm,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,3.0,1a,Incline Close Grip Bench Press,3.0,10-12,3-1-X-0,60s,7.0,
+Functional Body Composition,4.0,3.0,1b,Single Arm DB Tripod Row,3.0,8-10/arm,2-0-X-2,60s,7.0,
+Functional Body Composition,4.0,3.0,2a,Single Arm Dumbbell Bench Press,3.0,8-10/arm,3-1-X-0,60s,7.0,
+Functional Body Composition,4.0,3.0,2b,Lean Away Strict Ring Pull Up,3.0,8-10,4-0-X-0,60s,7.0,
+Functional Body Composition,4.0,3.0,3,Not For Time,5.0,1 round,0-0-0-0,0s,7.0,20sec Single Arm Plank R; 20sec Single Arm Plank L; 12 Body Rows; 12 Diamond Push Ups
+Functional Body Composition,4.0,4.0,W1,Single Leg Glute Bridge + Isometric R,3.0,10+15sec,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,4.0,W2,Single Leg Glute Bridge + Isometric L,3.0,10+15sec,0-0-0-0,30s,5.0,
+Functional Body Composition,4.0,4.0,W3,Bodyweight Drop Lunge to Knee Lift,3.0,8/side,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,4.0,1a,Frog Stance Deadlift,3.0,10-12,3-1-X-1,60s,7.0,
+Functional Body Composition,4.0,4.0,1b,KB Rack Deficit Split Squat,3.0,8-10/leg,2-1-1-0,60s,7.0,
+Functional Body Composition,4.0,4.0,2a,GHD Hip Extension,3.0,8-10,3-0-2-1,60s,7.0,
+Functional Body Composition,4.0,4.0,2b,Goblet Cossack Squat,3.0,16-20 alt,3-0-X-0,60s,7.0,
+Functional Body Composition,4.0,4.0,3,Consistent Pace E10M x 2,2.0,1 set,0-0-0-0,0s,8.0,250/225m Row; 12 DB Front Squats 50/30lbs; 10 Devils Press 50/30lbs; 12 DB Front Squats 50/30lbs; 250/225m Row
+Functional Body Composition,4.0,5.0,W1,Alternating Tall Plank Shoulder Taps,3.0,20,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,5.0,W2,Bent Over Reverse DB Fly,3.0,12,0-0-0-0,0s,5.0,Light weight
+Functional Body Composition,4.0,5.0,W3,Ring Row Hold,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,4.0,5.0,1a,Farmers Press,3.0,8-10/arm,2-0-X-1,60s,7.0,
+Functional Body Composition,4.0,5.0,1b,Decline Narrow Grip Bench Press,3.0,10-12,2-0-2-0,60s,7.0,
+Functional Body Composition,4.0,5.0,1c,Alternating Dumbbell Curls,3.0,8-10/arm,3-0-X-1,60s,7.0,
+Functional Body Composition,4.0,5.0,2,Interval Weight Training,3.0,1 set,0-0-0-0,2-3min,8.0,Assault Bike 14/12 Cals; 10 Alt KB Gorilla Rows 70/53; 10 Dual KB Sumo Deadlifts 70/53; Assault Bike 14/12 Cals
+Functional Body Composition,4.0,5.0,3,Not For Time,3.0,1 set,0-0-0-0,0s,6.0,10/arm Single Arm DB Upright Row 2010; 10-12 Banded Reverse Crunch 30X0; 10/arm Single Arm DB Tricep Kickback 20X0
+Functional Body Composition,4.0,6.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Easy Active Recovery
+Functional Body Composition,4.0,7.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Full Rest Day
+Functional Body Composition,5.0,1.0,W1,Half Kneeling Band Pull Aparts,3.0,8/knee,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,1.0,W2,Lateral Box Step Over,3.0,12,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,1.0,W3,Quadruped Shoulder Taps,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,1.0,1a,Back Rack Split Squat,4.0,8-10/leg,2-1-1-0,60s,8.0,Rear foot on 4-6 inch plates
+Functional Body Composition,5.0,1.0,1b,Pronated Strict Pull Up,4.0,8-10,2-0-1-1,60s,8.0,
+Functional Body Composition,5.0,1.0,2a,Cyclist Front Squat,4.0,8-10,3-1-X-0,60s,8.0,
+Functional Body Composition,5.0,1.0,2b,Chainsaw Row,4.0,8-10/arm,2-0-X-2,60s,8.0,
+Functional Body Composition,5.0,1.0,3,Pre-Fatigue Muscle Endurance,3.0,3min AMRAP,0-0-0-0,2min,8.0,Row 20/17 cals then max rounds: 2 Alt KB Gorilla Rows 53/35; 2 Dual KB Hang Squat Cleans 53/35; 2 Alt KB Thrusters 53/35
+Functional Body Composition,5.0,2.0,W1,Dumbbell Deadlifts,3.0,7,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,2.0,W2,Dumbbell Hang Power Cleans,3.0,7,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,2.0,W3,Dumbbell Push Press,3.0,7,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,2.0,W4,Run Acceleration,3.0,100m,0-0-0-0,0s,5.0,Get quicker each 25m; no full sprints
+Functional Body Composition,5.0,2.0,1a,Segmented Clean Deadlift,4.0,6-8,3-1-3-1,60s,8.0,Use straps
+Functional Body Composition,5.0,2.0,1b,Half Kneeling Barbell Press,4.0,4-5/knee,2-0-X-2,60s,8.0,8-10 total reps per set
+Functional Body Composition,5.0,2.0,2a,Deficit Landmine Single Leg RDL,4.0,8-10/leg,3-0-1-0,60s,8.0,
+Functional Body Composition,5.0,2.0,2b,Single Arm Dumbbell Push Press,4.0,8-10/arm,3-0-X-1,60s,8.0,Explosive up; 3sec controlled lowering
+Functional Body Composition,5.0,2.0,3,For Time @ 85%,1.0,10-9-8-7-6-5-4-3-2-1,0-0-0-0,2min,8.0,Toes to Rings; 100m Row between sets (9 sets)
+Functional Body Composition,5.0,2.0,4,For Time,1.0,10-9-8-7-6-5-4-3-2-1,0-0-0-0,0s,8.0,Tuck Ups; 100m Run between sets (9 sets)
+Functional Body Composition,5.0,3.0,W1,Mixed KB Rack Overhead Carry,1.0,20m/arm,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,3.0,W2,Scapular Push Ups on Rings,1.0,10,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,3.0,W3,Single Arm Passive Ring Hang,1.0,15sec/arm,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,3.0,W4,Ring Face Pull,1.0,10,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,3.0,1a,Wide Grip Bench Press,4.0,10-12,3-1-X-0,60s,8.0,
+Functional Body Composition,5.0,3.0,1b,Pendlay Row,4.0,10-12,3-0-X-1,60s,8.0,
+Functional Body Composition,5.0,3.0,2a,Strict Bar Dips,4.0,10-12,2-0-2-0,60s,8.0,
+Functional Body Composition,5.0,3.0,2b,Body Row,4.0,12-14,3-0-X-0,60s,8.0,
+Functional Body Composition,5.0,3.0,3,Continuous Pace 10min,1.0,10min,0-0-0-0,0s,7.0,20m Single Arm Farmers Walk R heavy; 5 Strict Pull Ups; 20m Single Arm Farmers Walk L heavy; 5 Strict Bar Dips; 10 Leg Tuck Ups holding dip support
+Functional Body Composition,5.0,4.0,W1,Single Leg BW Hip Thrust + Isometric R,3.0,10+10sec,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,4.0,W2,Single Leg BW Hip Thrust + Isometric L,3.0,10+10sec,0-0-0-0,30s,5.0,
+Functional Body Composition,5.0,4.0,W3,Single Leg Sorenson R,3.0,15sec,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,4.0,W4,Single Leg Sorenson L,3.0,15sec,0-0-0-0,30s,5.0,
+Functional Body Composition,5.0,4.0,W5,Star Plank R,3.0,15sec,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,4.0,W6,Star Plank L,3.0,15sec,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,4.0,1a,Snatch Grip Romanian Deadlift,4.0,8-10,3-1-1-0,60s,8.0,
+Functional Body Composition,5.0,4.0,1b,Suitcase Long Step Walking Lunge,4.0,14-16 steps,3-0-X-0,60s,8.0,
+Functional Body Composition,5.0,4.0,2a,Barbell Hip Thrust,4.0,8-10,2-0-X-2,60s,8.0,
+Functional Body Composition,5.0,4.0,2b,Goblet 1-1/4 Squat,4.0,8-10,2-1-1-1,60s,8.0,2sec lower; 1sec pause bottom; 1/4 squat and back down; rebound up; 1sec pause top
+Functional Body Composition,5.0,4.0,3,EMOM x 12min,12.0,1 round,0-0-0-0,0s,8.0,1st: 15 Russian KBS 70/53lbs; 2nd: 6-8 DB Burpee Box Step Ups 50/35lbs knee height; 3rd: 30sec Russian Twist 20/14lbs Med Ball
+Functional Body Composition,5.0,5.0,W1,Down Dog Shoulder Taps,3.0,20,0-0-0-0,0s,5.0,
+Functional Body Composition,5.0,5.0,W2,Archer Ring Row Switch Holds,3.0,12,0-0-0-0,0s,5.0,2sec/arm
+Functional Body Composition,5.0,5.0,W3,Side Plank Powell Raise,3.0,10/arm,0-0-0-0,0s,5.0,Move slow and deliberately
+Functional Body Composition,5.0,5.0,1a,Tall Kneeling Filly Press,4.0,8-10/arm,2-1-1-1,60s,8.0,
+Functional Body Composition,5.0,5.0,1b,Close Grip Parallette Tricep Push Up,4.0,8-10,3-0-1-1,60s,8.0,
+Functional Body Composition,5.0,5.0,1c,Incline Bench Dumbbell Bicep Curl,4.0,8-10,4-0-X-1,60s,8.0,
+Functional Body Composition,5.0,5.0,2,Interval Gymnastics,3.0,1 set,0-0-0-0,2-3min,8.0,Row 125/100m; 10 GHD Sit Ups; Row 125/100m; 10 Sit Ups; Row 125/100m
+Functional Body Composition,5.0,5.0,3,For Quality,3.0,1 set,0-0-0-0,0s,6.0,15 Single Arm Banded Tricep Push Down R; 15 Single Arm Banded Tricep Push Down L; 30sec rest; 15 DB Shoulder Lateral Raise; 15 DB Shoulder Front Raise; 30sec rest; 10 DB Zottman Curls
+Functional Body Composition,5.0,6.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Easy Active Recovery
+Functional Body Composition,5.0,7.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Full Rest Day
+Functional Body Composition,6.0,1.0,W1,Lateral Banded Walk Over,3.0,20,0-0-0-0,0s,5.0,Low plate
+Functional Body Composition,6.0,1.0,W2,Alternating Goblet Curtsy Squats,3.0,12,2-0-X-0,0s,5.0,
+Functional Body Composition,6.0,1.0,W3,Plank DB Row,3.0,8/arm,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,1.0,1a,Front Rack Drop Lunge,4.0,16-20 alt,3-0-X-0,60s,8.0,
+Functional Body Composition,6.0,1.0,1b,Supinated Strict Pull Up,4.0,8-10,2-0-1-1,60s,8.0,
+Functional Body Composition,6.0,1.0,2a,Dual KB Rack Squat,4.0,8-10,2-1-1-1,60s,8.0,
+Functional Body Composition,6.0,1.0,2b,Incline Bench Prone Row,4.0,8-12,3-0-X-1,60s,8.0,
+Functional Body Composition,6.0,1.0,3,Muscle Endurance 10 Sets,10.0,1 round,0-0-0-0,30s,8.0,2 Burpee Pull Up; 4 Air Squats; 6 Jump Lunges; 20 Double Unders; rest 30sec after sets 2/4/6/8; optional weight vest
+Functional Body Composition,6.0,2.0,W1,Death March,3.0,10 steps,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,2.0,W2,Dual Dumbbell Push Press,3.0,8,2-0-X-0,0s,5.0,
+Functional Body Composition,6.0,2.0,W3,Tall Box Jumps,3.0,6,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,2.0,W4,Bike Acceleration,3.0,15sec,0-0-0-0,0s,5.0,Increase pace every 5sec
+Functional Body Composition,6.0,2.0,1a,Segmented Snatch Grip Deadlift - 3 Pauses,4.0,6-8,3-1-3-1,60s,8.0,Use lifting straps
+Functional Body Composition,6.0,2.0,1b,Barbell Z Press,4.0,8-10,3-0-2-1,60s,8.0,
+Functional Body Composition,6.0,2.0,2a,Split Stance Dumbbell Romanian Deadlift,4.0,6-8/leg,3-1-1-0,60s,8.0,
+Functional Body Composition,6.0,2.0,2b,Seated Alternating Dumbbell Arnold Press,4.0,8-10/arm,2-1-1-1,60s,8.0,
+Functional Body Composition,6.0,2.0,3,Conditioning 3min AMRAP,1.0,3min,0-0-0-0,2min,9.0,High effort: 10/8 Row Cals; 10 Close Grip Bench Press 135/95lbs
+Functional Body Composition,6.0,2.0,4,Not For Time,1.0,20,0-0-0-0,2min,6.0,Alternating Turkish Get Ups 53/35; Quality Position Focused
+Functional Body Composition,6.0,2.0,5,Conditioning 3min AMRAP,1.0,3min,0-0-0-0,0s,9.0,High effort: 10/8 Bike Cals; 10 Toes to Rings
+Functional Body Composition,6.0,3.0,W1,Bottom Up Single Arm KB Press R,1.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,3.0,W2,Bottom up KB OH Carry R,1.0,20m,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,3.0,W3,Bottom Up Single Arm KB Press L,1.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,3.0,W4,Bottom up KB OH Carry L,1.0,20m,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,3.0,W5,Single Arm Ring Row,1.0,8/arm,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,3.0,1a,Incline Close Grip Bench Press,4.0,10-12,3-1-X-0,60s,8.0,
+Functional Body Composition,6.0,3.0,1b,Single Arm DB Tripod Row,4.0,8-10/arm,2-0-X-2,60s,8.0,
+Functional Body Composition,6.0,3.0,2a,Single Arm Dumbbell Bench Press,4.0,8-10/arm,3-1-X-0,60s,8.0,
+Functional Body Composition,6.0,3.0,2b,Lean Away Strict Ring Pull Up,4.0,8-10,4-0-X-0,60s,8.0,
+Functional Body Composition,6.0,3.0,3,For Quality,4.0,1 set,0-0-0-0,0s,7.0,20sec Adduction Bias Side Plank R; 20sec Adduction Bias Side Plank L; 8 Archer Ring Row R; 8 Archer Ring Row L; 8 Roll Out Push Ups R; 8 Roll Out Push Ups L
+Functional Body Composition,6.0,4.0,W1,Alternating Rower Hamstring Curls,3.0,12,0-0-0-0,30s,5.0,2 legs up; 1 leg down eccentric
+Functional Body Composition,6.0,4.0,W2,Plate Loaded Lateral Box Step Down,3.0,10/leg,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,4.0,1a,Frog Stance Deadlift,4.0,10-12,3-1-X-1,60s,8.0,
+Functional Body Composition,6.0,4.0,1b,KB Rack Deficit Split Squat,4.0,8-10/leg,2-1-1-0,60s,8.0,
+Functional Body Composition,6.0,4.0,2a,GHD Hip Extension,4.0,8-10,3-0-2-1,60s,8.0,
+Functional Body Composition,6.0,4.0,2b,Goblet Cossack Squat,4.0,16-20 alt,3-0-X-0,60s,8.0,
+Functional Body Composition,6.0,4.0,3,Conditioning E2M x 6,6.0,1 set,0-0-0-0,0s,8.0,1st: 12/10 Cal Row + 6-8 Devils Press 50/35lbs; 2nd: 12 DB Thruster 50/35lbs + 10-12 Box Jump Step Down 24/20 inch; aim for 60-75sec completion
+Functional Body Composition,6.0,5.0,W1,Alternating Quadruped Limb Lifts,3.0,20,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,5.0,W2,Prone Y on Bench,3.0,12,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,5.0,W3,Banded Plank,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,6.0,5.0,1a,Farmers Press,4.0,8-10/arm,2-0-X-1,60s,8.0,
+Functional Body Composition,6.0,5.0,1b,Decline Narrow Grip Bench Press,4.0,10-12,2-0-2-0,60s,8.0,
+Functional Body Composition,6.0,5.0,1c,Alternating Dumbbell Curls,4.0,8-10/arm,3-0-X-1,60s,8.0,
+Functional Body Composition,6.0,5.0,2,Interval Weight Training,3.0,1 set,0-0-0-0,2-3min,8.0,Assault Bike 9/7 Cals; 7 Renegade Rows 50/35lbs; Assault Bike 9/7 Cals; 7 Single Arm DB Power Clean and Jerk 50/35lbs R; 7 Single Arm DB Power Clean and Jerk 50/35lbs L; Assault Bike 9/7 Cals
+Functional Body Composition,6.0,5.0,3,Not For Time,3.0,1 set,0-0-0-0,0s,7.0,4-6 Dead Hang to Inverted on Rings (hold top 3sec; lower 3sec); 8-10 Ring Bicep Curls 3030; 8-10 Parallette Tricep Push Ups 3030
+Functional Body Composition,6.0,6.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Easy Active Recovery
+Functional Body Composition,6.0,7.0,REST,Rest Day,0.0,0,0-0-0-0,0s,0.0,Full Rest Day
+Functional Body Composition,7.0,1.0,W1,Tall Kneeling Band Pull Aparts,3.0,12,1-0-1-0,0s,5.0,Hold 1sec with arms wide
+Functional Body Composition,7.0,1.0,W2,Lateral Box Step Downs,3.0,6/leg,3-0-0-0,0s,5.0,3sec lowering
+Functional Body Composition,7.0,1.0,W3,Reverse Quadruped Crawl,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,1.0,1a,Back Rack Split Squat,4.0,8-10/leg,2-1-1-0,45s,8.0,Rear foot on 4-6 inch plates
+Functional Body Composition,7.0,1.0,1b,Pronated Strict Pull Up,4.0,8-10,2-0-1-1,45s,8.0,
+Functional Body Composition,7.0,1.0,2a,Cyclist Front Squat,4.0,8-10,3-1-X-0,45s,8.0,
+Functional Body Composition,7.0,1.0,2b,Chainsaw Row,4.0,8-10/arm,2-0-X-2,45s,8.0,
+Functional Body Composition,7.0,1.0,3,Pre-Fatigue Muscle Endurance,3.0,3min AMRAP,0-0-0-0,2min,8.0,Assault Bike 20/17 cals then max rounds: 2 KB Split Clean R 53/35lbs; 2 KB Single Arm Rack Lunge R; 2 KB Single Arm Thruster R; 2 KB Split Clean L; 2 KB Single Arm Rack Lunge L; 2 KB Single Arm Thruster L
+Functional Body Composition,7.0,2.0,W1,Single Arm Suitcase KB Deadlifts R,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,2.0,W2,Single Arm KB Cleans R,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,2.0,W3,Single Arm KB Push Press R,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,2.0,W4,Single Arm KB OH Carry R,3.0,20m,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,2.0,W5,Single Arm Suitcase KB Deadlifts L,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,2.0,W6,Single Arm KB Cleans L,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,2.0,W7,Single Arm KB Push Press L,3.0,5,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,2.0,W8,Single Arm KB OH Carry L,3.0,20m,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,2.0,1a,Segmented Clean Deadlift,4.0,6-8,3-1-3-1,45s,8.0,Use straps
+Functional Body Composition,7.0,2.0,1b,Half Kneeling Barbell Press,4.0,4-5/knee,2-0-X-2,45s,8.0,8-10 total reps per set
+Functional Body Composition,7.0,2.0,2a,Deficit Landmine Single Leg RDL,4.0,8-10/leg,3-0-1-0,45s,8.0,
+Functional Body Composition,7.0,2.0,2b,Single Arm Dumbbell Push Press,4.0,8-10/arm,3-0-X-1,45s,8.0,Explosive up; 3sec controlled lowering
+Functional Body Composition,7.0,2.0,3,For Time @ 85%,1.0,4-6-8-10-12-14-16,0-0-0-0,2min,8.0,L-Sit Lift Overs; 30 Double Unders between sets
+Functional Body Composition,7.0,2.0,4,For Time,1.0,2-4-6-8-10-12-14,0-0-0-0,0s,8.0,Toes to Rings; 6/5 Cals Assault Bike between sets
+Functional Body Composition,7.0,3.0,W1,Dual Bottom Up KB Rack Carry,3.0,30sec,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,3.0,W2,Single Arm Scap Push Up,3.0,8/arm,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,3.0,W3,Single Arm Wtd Bar Hang,3.0,10sec/arm,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,3.0,W4,Dual Kettlebell Shrug,3.0,12,0-0-0-0,0s,5.0,Pause 1sec at top
+Functional Body Composition,7.0,3.0,1a,Wide Grip Bench Press,4.0,10-12,3-1-X-0,45s,8.0,
+Functional Body Composition,7.0,3.0,1b,Pendlay Row,4.0,10-12,3-0-X-1,45s,8.0,
+Functional Body Composition,7.0,3.0,2a,Strict Bar Dips,4.0,10-12,2-0-2-0,45s,8.0,
+Functional Body Composition,7.0,3.0,2b,Body Row,4.0,12-14,3-0-X-0,45s,8.0,
+Functional Body Composition,7.0,3.0,3,Continuous Pace 12min,1.0,12min,0-0-0-0,0s,7.0,6 Dual KB Clean 53/35; 20m Dual KB Rack Carry; 6 Alt Single Arm Bias Pull Ups 3/arm; 6 Dual KB Push Press 53/35; 20m Dual KB Rack Carry; 6 Strict Ring Dips
+Functional Body Composition,7.0,4.0,W1,Banded Hip Thrusts w/ Alt Single Leg Eccentric,3.0,20,3-1-X-0,30s,5.0,
+Functional Body Composition,7.0,4.0,W2,Good Morning Hold,3.0,30sec,0-0-0-0,30s,5.0,
+Functional Body Composition,7.0,4.0,W3,KB Star Plank R,3.0,15sec,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,4.0,W4,KB Star Plank L,3.0,15sec,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,4.0,1a,Snatch Grip Romanian Deadlift,4.0,8-10,3-1-1-0,45s,8.0,
+Functional Body Composition,7.0,4.0,1b,Suitcase Long Step Walking Lunge,4.0,14-16 steps,3-0-X-0,45s,8.0,
+Functional Body Composition,7.0,4.0,2a,Barbell Hip Thrust,4.0,8-10,2-0-X-2,45s,8.0,
+Functional Body Composition,7.0,4.0,2b,Goblet 1-1/4 Squat,4.0,8-10,2-1-1-1,45s,8.0,2sec lower; 1sec pause bottom; 1/4 squat and back down; rebound up; 1sec pause top
+Functional Body Composition,7.0,4.0,3,EMOM x 12min,12.0,1 round,0-0-0-0,0s,8.0,1st: 12 Dual Russian KBS 53/35lbs; 2nd: 8-10 Alt KB Rack Reverse Lunge to Step Up 20/16 inch 53/35lbs; 3rd: 20-30sec Dual KB Hollow Flutter Kicks
+Functional Body Composition,7.0,5.0,W1,Side Plank Rotations,3.0,12/side,0-0-0-0,0s,5.0,
+Functional Body Composition,7.0,5.0,W2,Bent Over Alternating DB Row,3.0,12,0-0-0-0,0s,5.0,Hold 1sec at top each
+JackProgram,1.0,1.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,6.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,1.0,1.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,6.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,1.0,1.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,6.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,1.0,1.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,6.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,1.0,1.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,6.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,1.0,2.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,1.0,2.0,2.0,Air Bike Sprints,3.0,20 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 3 sets x 20 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,1.0,3.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,6.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,1.0,3.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,6.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,1.0,3.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,6.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,1.0,3.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,6.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,1.0,3.0,5.0,Plank Hold,3.0,45s,,60s,6.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,1.0,4.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,1.0,4.0,2.0,Steady Tempo Treadmill Run,1.0,20 min,,,6.0,"Continuous steady effort for 20 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,1.0,5.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,6.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,1.0,5.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,6.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,1.0,5.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,6.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,1.0,5.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,6.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,1.0,5.0,5.0,Farmer Carry,3.0,40m,,90s,6.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,1.0,6.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,1.0,6.0,2.0,Rowing Machine,3.0,2000m,,240s,8.0,3 x 2000m at 2:00 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,1.0,7.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,2.0,8.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,6.5,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,2.0,8.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,6.5,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,2.0,8.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,6.5,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,2.0,8.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,6.5,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,2.0,8.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,6.5,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,2.0,9.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,2.0,9.0,2.0,Self-Powered Treadmill Sprints,3.0,22 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 3 sets x 22 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,2.0,10.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,6.5,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,2.0,10.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,6.5,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,2.0,10.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,6.5,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,2.0,10.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,6.5,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,2.0,10.0,5.0,Plank Hold,3.0,45s,,60s,6.5,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,2.0,11.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,2.0,11.0,2.0,Steady Tempo Bike,1.0,23 min,,,6.0,"Continuous steady effort for 23 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,2.0,12.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,6.5,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,2.0,12.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,6.5,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,2.0,12.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,6.5,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,2.0,12.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,6.5,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,2.0,12.0,5.0,Farmer Carry,3.0,40m,,90s,6.5,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,2.0,13.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,2.0,13.0,2.0,Rowing Machine,3.0,2000m,,240s,8.0,3 x 2000m at 1:59 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,2.0,14.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,3.0,15.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,7.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,3.0,15.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,7.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,3.0,15.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,7.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,3.0,15.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,7.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,3.0,15.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,7.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,3.0,16.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,3.0,16.0,2.0,Air Bike Sprints,4.0,22 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 4 sets x 22 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,3.0,17.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,7.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,3.0,17.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,7.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,3.0,17.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,7.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,3.0,17.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,7.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,3.0,17.0,5.0,Plank Hold,3.0,45s,,60s,7.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,3.0,18.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,3.0,18.0,2.0,Steady Tempo Treadmill Run,1.0,26 min,,,6.0,"Continuous steady effort for 26 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,3.0,19.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,7.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,3.0,19.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,7.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,3.0,19.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,7.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,3.0,19.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,7.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,3.0,19.0,5.0,Farmer Carry,3.0,40m,,90s,7.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,3.0,20.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,3.0,20.0,2.0,Rowing Machine,4.0,2000m,,240s,8.0,4 x 2000m at 1:58 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,3.0,21.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,4.0,22.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,7.5,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,4.0,22.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,7.5,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,4.0,22.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,7.5,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,4.0,22.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,7.5,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,4.0,22.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,7.5,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,4.0,23.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,4.0,23.0,2.0,Self-Powered Treadmill Sprints,4.0,24 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 4 sets x 24 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,4.0,24.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,7.5,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,4.0,24.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,7.5,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,4.0,24.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,7.5,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,4.0,24.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,7.5,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,4.0,24.0,5.0,Plank Hold,3.0,45s,,60s,7.5,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,4.0,25.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,4.0,25.0,2.0,Steady Tempo Bike,1.0,29 min,,,7.0,"Continuous steady effort for 29 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,4.0,26.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,7.5,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,4.0,26.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,7.5,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,4.0,26.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,7.5,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,4.0,26.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,7.5,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,4.0,26.0,5.0,Farmer Carry,3.0,40m,,90s,7.5,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,4.0,27.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,4.0,27.0,2.0,Rowing Machine,4.0,2000m,,240s,8.0,4 x 2000m at 1:57 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,4.0,28.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,5.0,29.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,8.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,5.0,29.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,8.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,5.0,29.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,8.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,5.0,29.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,8.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,5.0,29.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,8.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,5.0,30.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,5.0,30.0,2.0,Air Bike Sprints,5.0,24 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 5 sets x 24 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,5.0,31.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,8.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,5.0,31.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,8.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,5.0,31.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,8.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,5.0,31.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,8.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,5.0,31.0,5.0,Plank Hold,3.0,45s,,60s,8.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,5.0,32.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,5.0,32.0,2.0,Steady Tempo Treadmill Run,1.0,32 min,,,7.0,"Continuous steady effort for 32 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,5.0,33.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,8.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,5.0,33.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,8.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,5.0,33.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,8.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,5.0,33.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,8.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,5.0,33.0,5.0,Farmer Carry,3.0,40m,,90s,8.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,5.0,34.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,5.0,34.0,2.0,Rowing Machine,5.0,2000m,,240s,8.0,5 x 2000m at 1:57 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,5.0,35.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,6.0,36.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,8.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,6.0,36.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,8.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,6.0,36.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,8.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,6.0,36.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,8.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,6.0,36.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,8.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,6.0,37.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,6.0,37.0,2.0,Self-Powered Treadmill Sprints,5.0,25 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 5 sets x 25 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,6.0,38.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,8.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,6.0,38.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,8.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,6.0,38.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,8.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,6.0,38.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,8.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,6.0,38.0,5.0,Plank Hold,3.0,45s,,60s,8.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,6.0,39.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,6.0,39.0,2.0,Steady Tempo Bike,1.0,35 min,,,7.0,"Continuous steady effort for 35 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,6.0,40.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,8.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,6.0,40.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,8.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,6.0,40.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,8.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,6.0,40.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,8.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,6.0,40.0,5.0,Farmer Carry,3.0,40m,,90s,8.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,6.0,41.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,6.0,41.0,2.0,Rowing Machine,5.0,2000m,,240s,8.0,5 x 2000m at 1:55 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,6.0,42.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,7.0,43.0,1.0,Leg Press,3.0,10.0,3-1-1-0,120s,5.0,70% of working weight. Focus on perfect form and control.
+JackProgram,7.0,43.0,2.0,Dumbbell Bench Press,3.0,8.0,3-1-1-0,90s,5.0,"70% of working weight. Slow tempo, technique focus."
+JackProgram,7.0,43.0,3.0,Cable Chest Fly,2.0,12.0,3-1-1-0,60s,5.0,"Light weight, focus on mind-muscle connection."
+JackProgram,7.0,43.0,4.0,Plank Hold,2.0,30s,,60s,5.0,Easy hold. Focus on breathing and bracing.
+JackProgram,7.0,44.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,7.0,44.0,2.0,Air Bike or Self-Powered Treadmill Sprints,2.0,15 kcal,,180s,7.0,"DELOAD: Half volume, no all-out effort. 70% intensity. Focus on form and breathing."
+JackProgram,7.0,45.0,1.0,Romanian Deadlift,3.0,8.0,3-1-1-0,120s,5.0,70% of working weight. Perfect hip hinge pattern.
+JackProgram,7.0,45.0,2.0,Lat Pulldown,3.0,10.0,3-1-1-0,90s,5.0,"70% of working weight. Full range of motion, slow negative."
+JackProgram,7.0,45.0,3.0,Cable Face Pulls,2.0,15.0,2-2-1-0,60s,5.0,Light. Shoulder health and mobility focus.
+JackProgram,7.0,45.0,4.0,Dead Hang,2.0,30s,,60s,5.0,"Relax shoulders, decompress spine. Grip work."
+JackProgram,7.0,46.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,7.0,46.0,2.0,Easy Tempo Run or Bike,1.0,15 min,,,5.0,"DELOAD: Easy continuous effort. 50% of normal volume. Keep heart rate low, focus on breathing rhythm."
+JackProgram,7.0,47.0,1.0,Goblet Squat,3.0,10.0,3-1-1-0,90s,5.0,"70% of working weight. Deep squat, focus on mobility."
+JackProgram,7.0,47.0,2.0,Incline Dumbbell Press,2.0,10.0,3-1-1-0,90s,5.0,Light. Technique and range of motion focus.
+JackProgram,7.0,47.0,3.0,Walking Lunges,2.0,10/leg,2-0-1-0,90s,5.0,Bodyweight or very light. Balance and stability focus.
+JackProgram,7.0,47.0,4.0,Farmer Carry,2.0,30m,,90s,5.0,Moderate weight. Posture focus.
+JackProgram,7.0,48.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,7.0,48.0,2.0,Rowing Machine,2.0,2000m,,300s,5.0,DELOAD: 2 x 2000m at easy pace (2:05+ per 500m). Rest 5 min. Focus on technique and breathing.
+JackProgram,7.0,49.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,8.0,50.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,6.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,8.0,50.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,6.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,8.0,50.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,6.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,8.0,50.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,6.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,8.0,50.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,6.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,8.0,51.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,8.0,51.0,2.0,Self-Powered Treadmill Sprints,3.0,20 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 3 sets x 20 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,8.0,52.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,6.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,8.0,52.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,6.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,8.0,52.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,6.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,8.0,52.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,6.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,8.0,52.0,5.0,Plank Hold,3.0,45s,,60s,6.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,8.0,53.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,8.0,53.0,2.0,Steady Tempo Bike,1.0,20 min,,,6.0,"Continuous steady effort for 20 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,8.0,54.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,6.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,8.0,54.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,6.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,8.0,54.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,6.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,8.0,54.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,6.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,8.0,54.0,5.0,Farmer Carry,3.0,40m,,90s,6.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,8.0,55.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,8.0,55.0,2.0,Rowing Machine,3.0,2000m,,240s,8.0,3 x 2000m at 2:00 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,8.0,56.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,9.0,57.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,6.5,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,9.0,57.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,6.5,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,9.0,57.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,6.5,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,9.0,57.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,6.5,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,9.0,57.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,6.5,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,9.0,58.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,9.0,58.0,2.0,Air Bike Sprints,3.0,22 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 3 sets x 22 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,9.0,59.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,6.5,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,9.0,59.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,6.5,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,9.0,59.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,6.5,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,9.0,59.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,6.5,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,9.0,59.0,5.0,Plank Hold,3.0,45s,,60s,6.5,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,9.0,60.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,9.0,60.0,2.0,Steady Tempo Treadmill Run,1.0,23 min,,,6.0,"Continuous steady effort for 23 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,9.0,61.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,6.5,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,9.0,61.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,6.5,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,9.0,61.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,6.5,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,9.0,61.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,6.5,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,9.0,61.0,5.0,Farmer Carry,3.0,40m,,90s,6.5,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,9.0,62.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,9.0,62.0,2.0,Rowing Machine,3.0,2000m,,240s,8.0,3 x 2000m at 1:59 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,9.0,63.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,10.0,64.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,7.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,10.0,64.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,7.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,10.0,64.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,7.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,10.0,64.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,7.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,10.0,64.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,7.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,10.0,65.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,10.0,65.0,2.0,Self-Powered Treadmill Sprints,4.0,22 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 4 sets x 22 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,10.0,66.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,7.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,10.0,66.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,7.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,10.0,66.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,7.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,10.0,66.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,7.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,10.0,66.0,5.0,Plank Hold,3.0,45s,,60s,7.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,10.0,67.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,10.0,67.0,2.0,Steady Tempo Bike,1.0,26 min,,,6.0,"Continuous steady effort for 26 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,10.0,68.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,7.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,10.0,68.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,7.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,10.0,68.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,7.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,10.0,68.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,7.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,10.0,68.0,5.0,Farmer Carry,3.0,40m,,90s,7.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,10.0,69.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,10.0,69.0,2.0,Rowing Machine,4.0,2000m,,240s,8.0,4 x 2000m at 1:58 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,10.0,70.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,11.0,71.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,7.5,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,11.0,71.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,7.5,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,11.0,71.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,7.5,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,11.0,71.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,7.5,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,11.0,71.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,7.5,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,11.0,72.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,11.0,72.0,2.0,Air Bike Sprints,4.0,24 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 4 sets x 24 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,11.0,73.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,7.5,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,11.0,73.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,7.5,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,11.0,73.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,7.5,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,11.0,73.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,7.5,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,11.0,73.0,5.0,Plank Hold,3.0,45s,,60s,7.5,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,11.0,74.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,11.0,74.0,2.0,Steady Tempo Treadmill Run,1.0,29 min,,,7.0,"Continuous steady effort for 29 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,11.0,75.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,7.5,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,11.0,75.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,7.5,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,11.0,75.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,7.5,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,11.0,75.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,7.5,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,11.0,75.0,5.0,Farmer Carry,3.0,40m,,90s,7.5,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,11.0,76.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,11.0,76.0,2.0,Rowing Machine,4.0,2000m,,240s,8.0,4 x 2000m at 1:57 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,11.0,77.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,12.0,78.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,8.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,12.0,78.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,8.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,12.0,78.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,8.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,12.0,78.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,8.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,12.0,78.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,8.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,12.0,79.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,12.0,79.0,2.0,Self-Powered Treadmill Sprints,5.0,24 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 5 sets x 24 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,12.0,80.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,8.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,12.0,80.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,8.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,12.0,80.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,8.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,12.0,80.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,8.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,12.0,80.0,5.0,Plank Hold,3.0,45s,,60s,8.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,12.0,81.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,12.0,81.0,2.0,Steady Tempo Bike,1.0,32 min,,,7.0,"Continuous steady effort for 32 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,12.0,82.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,8.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,12.0,82.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,8.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,12.0,82.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,8.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,12.0,82.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,8.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,12.0,82.0,5.0,Farmer Carry,3.0,40m,,90s,8.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,12.0,83.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,12.0,83.0,2.0,Rowing Machine,5.0,2000m,,240s,8.0,5 x 2000m at 1:57 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,12.0,84.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,13.0,85.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,8.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,13.0,85.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,8.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,13.0,85.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,8.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,13.0,85.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,8.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,13.0,85.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,8.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,13.0,86.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,13.0,86.0,2.0,Air Bike Sprints,5.0,25 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 5 sets x 25 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,13.0,87.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,8.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,13.0,87.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,8.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,13.0,87.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,8.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,13.0,87.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,8.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,13.0,87.0,5.0,Plank Hold,3.0,45s,,60s,8.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,13.0,88.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,13.0,88.0,2.0,Steady Tempo Treadmill Run,1.0,35 min,,,7.0,"Continuous steady effort for 35 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,13.0,89.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,8.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,13.0,89.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,8.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,13.0,89.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,8.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,13.0,89.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,8.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,13.0,89.0,5.0,Farmer Carry,3.0,40m,,90s,8.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,13.0,90.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,13.0,90.0,2.0,Rowing Machine,5.0,2000m,,240s,8.0,5 x 2000m at 1:55 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,13.0,91.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,14.0,92.0,1.0,Leg Press,3.0,10.0,3-1-1-0,120s,5.0,70% of working weight. Focus on perfect form and control.
+JackProgram,14.0,92.0,2.0,Dumbbell Bench Press,3.0,8.0,3-1-1-0,90s,5.0,"70% of working weight. Slow tempo, technique focus."
+JackProgram,14.0,92.0,3.0,Cable Chest Fly,2.0,12.0,3-1-1-0,60s,5.0,"Light weight, focus on mind-muscle connection."
+JackProgram,14.0,92.0,4.0,Plank Hold,2.0,30s,,60s,5.0,Easy hold. Focus on breathing and bracing.
+JackProgram,14.0,93.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,14.0,93.0,2.0,Air Bike or Self-Powered Treadmill Sprints,2.0,15 kcal,,180s,7.0,"DELOAD: Half volume, no all-out effort. 70% intensity. Focus on form and breathing."
+JackProgram,14.0,94.0,1.0,Romanian Deadlift,3.0,8.0,3-1-1-0,120s,5.0,70% of working weight. Perfect hip hinge pattern.
+JackProgram,14.0,94.0,2.0,Lat Pulldown,3.0,10.0,3-1-1-0,90s,5.0,"70% of working weight. Full range of motion, slow negative."
+JackProgram,14.0,94.0,3.0,Cable Face Pulls,2.0,15.0,2-2-1-0,60s,5.0,Light. Shoulder health and mobility focus.
+JackProgram,14.0,94.0,4.0,Dead Hang,2.0,30s,,60s,5.0,"Relax shoulders, decompress spine. Grip work."
+JackProgram,14.0,95.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,14.0,95.0,2.0,Easy Tempo Run or Bike,1.0,15 min,,,5.0,"DELOAD: Easy continuous effort. 50% of normal volume. Keep heart rate low, focus on breathing rhythm."
+JackProgram,14.0,96.0,1.0,Goblet Squat,3.0,10.0,3-1-1-0,90s,5.0,"70% of working weight. Deep squat, focus on mobility."
+JackProgram,14.0,96.0,2.0,Incline Dumbbell Press,2.0,10.0,3-1-1-0,90s,5.0,Light. Technique and range of motion focus.
+JackProgram,14.0,96.0,3.0,Walking Lunges,2.0,10/leg,2-0-1-0,90s,5.0,Bodyweight or very light. Balance and stability focus.
+JackProgram,14.0,96.0,4.0,Farmer Carry,2.0,30m,,90s,5.0,Moderate weight. Posture focus.
+JackProgram,14.0,97.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,14.0,97.0,2.0,Rowing Machine,2.0,2000m,,300s,5.0,DELOAD: 2 x 2000m at easy pace (2:05+ per 500m). Rest 5 min. Focus on technique and breathing.
+JackProgram,14.0,98.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,15.0,99.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,6.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,15.0,99.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,6.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,15.0,99.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,6.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,15.0,99.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,6.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,15.0,99.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,6.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,15.0,100.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,15.0,100.0,2.0,Air Bike Sprints,3.0,20 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 3 sets x 20 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,15.0,101.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,6.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,15.0,101.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,6.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,15.0,101.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,6.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,15.0,101.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,6.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,15.0,101.0,5.0,Plank Hold,3.0,45s,,60s,6.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,15.0,102.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,15.0,102.0,2.0,Steady Tempo Treadmill Run,1.0,20 min,,,6.0,"Continuous steady effort for 20 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,15.0,103.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,6.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,15.0,103.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,6.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,15.0,103.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,6.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,15.0,103.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,6.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,15.0,103.0,5.0,Farmer Carry,3.0,40m,,90s,6.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,15.0,104.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,15.0,104.0,2.0,Rowing Machine,3.0,2000m,,240s,8.0,3 x 2000m at 2:00 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,15.0,105.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,16.0,106.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,6.5,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,16.0,106.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,6.5,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,16.0,106.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,6.5,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,16.0,106.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,6.5,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,16.0,106.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,6.5,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,16.0,107.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,16.0,107.0,2.0,Self-Powered Treadmill Sprints,3.0,22 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 3 sets x 22 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,16.0,108.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,6.5,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,16.0,108.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,6.5,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,16.0,108.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,6.5,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,16.0,108.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,6.5,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,16.0,108.0,5.0,Plank Hold,3.0,45s,,60s,6.5,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,16.0,109.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,16.0,109.0,2.0,Steady Tempo Bike,1.0,23 min,,,6.0,"Continuous steady effort for 23 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,16.0,110.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,6.5,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,16.0,110.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,6.5,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,16.0,110.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,6.5,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,16.0,110.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,6.5,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,16.0,110.0,5.0,Farmer Carry,3.0,40m,,90s,6.5,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,16.0,111.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,16.0,111.0,2.0,Rowing Machine,3.0,2000m,,240s,8.0,3 x 2000m at 1:59 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,16.0,112.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,17.0,113.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,7.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,17.0,113.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,7.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,17.0,113.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,7.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,17.0,113.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,7.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,17.0,113.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,7.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,17.0,114.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,17.0,114.0,2.0,Air Bike Sprints,4.0,22 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 4 sets x 22 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,17.0,115.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,7.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,17.0,115.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,7.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,17.0,115.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,7.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,17.0,115.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,7.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,17.0,115.0,5.0,Plank Hold,3.0,45s,,60s,7.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,17.0,116.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,17.0,116.0,2.0,Steady Tempo Treadmill Run,1.0,26 min,,,6.0,"Continuous steady effort for 26 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,17.0,117.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,7.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,17.0,117.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,7.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,17.0,117.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,7.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,17.0,117.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,7.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,17.0,117.0,5.0,Farmer Carry,3.0,40m,,90s,7.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,17.0,118.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,17.0,118.0,2.0,Rowing Machine,4.0,2000m,,240s,8.0,4 x 2000m at 1:58 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,17.0,119.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,18.0,120.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,7.5,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,18.0,120.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,7.5,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,18.0,120.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,7.5,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,18.0,120.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,7.5,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,18.0,120.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,7.5,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,18.0,121.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,18.0,121.0,2.0,Self-Powered Treadmill Sprints,4.0,24 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 4 sets x 24 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,18.0,122.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,7.5,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,18.0,122.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,7.5,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,18.0,122.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,7.5,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,18.0,122.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,7.5,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,18.0,122.0,5.0,Plank Hold,3.0,45s,,60s,7.5,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,18.0,123.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,18.0,123.0,2.0,Steady Tempo Bike,1.0,29 min,,,7.0,"Continuous steady effort for 29 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,18.0,124.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,7.5,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,18.0,124.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,7.5,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,18.0,124.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,7.5,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,18.0,124.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,7.5,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,18.0,124.0,5.0,Farmer Carry,3.0,40m,,90s,7.5,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,18.0,125.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,18.0,125.0,2.0,Rowing Machine,4.0,2000m,,240s,8.0,4 x 2000m at 1:57 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,18.0,126.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,19.0,127.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,8.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,19.0,127.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,8.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,19.0,127.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,8.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,19.0,127.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,8.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,19.0,127.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,8.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,19.0,128.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,19.0,128.0,2.0,Air Bike Sprints,5.0,24 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 5 sets x 24 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,19.0,129.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,8.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,19.0,129.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,8.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,19.0,129.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,8.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,19.0,129.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,8.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,19.0,129.0,5.0,Plank Hold,3.0,45s,,60s,8.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,19.0,130.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,19.0,130.0,2.0,Steady Tempo Treadmill Run,1.0,32 min,,,7.0,"Continuous steady effort for 32 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,19.0,131.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,8.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,19.0,131.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,8.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,19.0,131.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,8.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,19.0,131.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,8.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,19.0,131.0,5.0,Farmer Carry,3.0,40m,,90s,8.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,19.0,132.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,19.0,132.0,2.0,Rowing Machine,5.0,2000m,,240s,8.0,5 x 2000m at 1:57 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,19.0,133.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,20.0,134.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,8.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,20.0,134.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,8.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,20.0,134.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,8.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,20.0,134.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,8.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,20.0,134.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,8.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,20.0,135.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,20.0,135.0,2.0,Self-Powered Treadmill Sprints,5.0,25 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 5 sets x 25 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,20.0,136.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,8.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,20.0,136.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,8.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,20.0,136.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,8.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,20.0,136.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,8.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,20.0,136.0,5.0,Plank Hold,3.0,45s,,60s,8.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,20.0,137.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,20.0,137.0,2.0,Steady Tempo Bike,1.0,35 min,,,7.0,"Continuous steady effort for 35 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,20.0,138.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,8.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,20.0,138.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,8.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,20.0,138.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,8.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,20.0,138.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,8.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,20.0,138.0,5.0,Farmer Carry,3.0,40m,,90s,8.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,20.0,139.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,20.0,139.0,2.0,Rowing Machine,5.0,2000m,,240s,8.0,5 x 2000m at 1:55 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,20.0,140.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,21.0,141.0,1.0,Leg Press,3.0,10.0,3-1-1-0,120s,5.0,70% of working weight. Focus on perfect form and control.
+JackProgram,21.0,141.0,2.0,Dumbbell Bench Press,3.0,8.0,3-1-1-0,90s,5.0,"70% of working weight. Slow tempo, technique focus."
+JackProgram,21.0,141.0,3.0,Cable Chest Fly,2.0,12.0,3-1-1-0,60s,5.0,"Light weight, focus on mind-muscle connection."
+JackProgram,21.0,141.0,4.0,Plank Hold,2.0,30s,,60s,5.0,Easy hold. Focus on breathing and bracing.
+JackProgram,21.0,142.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,21.0,142.0,2.0,Air Bike or Self-Powered Treadmill Sprints,2.0,15 kcal,,180s,7.0,"DELOAD: Half volume, no all-out effort. 70% intensity. Focus on form and breathing."
+JackProgram,21.0,143.0,1.0,Romanian Deadlift,3.0,8.0,3-1-1-0,120s,5.0,70% of working weight. Perfect hip hinge pattern.
+JackProgram,21.0,143.0,2.0,Lat Pulldown,3.0,10.0,3-1-1-0,90s,5.0,"70% of working weight. Full range of motion, slow negative."
+JackProgram,21.0,143.0,3.0,Cable Face Pulls,2.0,15.0,2-2-1-0,60s,5.0,Light. Shoulder health and mobility focus.
+JackProgram,21.0,143.0,4.0,Dead Hang,2.0,30s,,60s,5.0,"Relax shoulders, decompress spine. Grip work."
+JackProgram,21.0,144.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,21.0,144.0,2.0,Easy Tempo Run or Bike,1.0,15 min,,,5.0,"DELOAD: Easy continuous effort. 50% of normal volume. Keep heart rate low, focus on breathing rhythm."
+JackProgram,21.0,145.0,1.0,Goblet Squat,3.0,10.0,3-1-1-0,90s,5.0,"70% of working weight. Deep squat, focus on mobility."
+JackProgram,21.0,145.0,2.0,Incline Dumbbell Press,2.0,10.0,3-1-1-0,90s,5.0,Light. Technique and range of motion focus.
+JackProgram,21.0,145.0,3.0,Walking Lunges,2.0,10/leg,2-0-1-0,90s,5.0,Bodyweight or very light. Balance and stability focus.
+JackProgram,21.0,145.0,4.0,Farmer Carry,2.0,30m,,90s,5.0,Moderate weight. Posture focus.
+JackProgram,21.0,146.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,21.0,146.0,2.0,Rowing Machine,2.0,2000m,,300s,5.0,DELOAD: 2 x 2000m at easy pace (2:05+ per 500m). Rest 5 min. Focus on technique and breathing.
+JackProgram,21.0,147.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,22.0,148.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,6.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,22.0,148.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,6.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,22.0,148.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,6.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,22.0,148.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,6.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,22.0,148.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,6.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,22.0,149.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,22.0,149.0,2.0,Self-Powered Treadmill Sprints,3.0,20 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 3 sets x 20 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,22.0,150.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,6.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,22.0,150.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,6.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,22.0,150.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,6.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,22.0,150.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,6.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,22.0,150.0,5.0,Plank Hold,3.0,45s,,60s,6.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,22.0,151.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,22.0,151.0,2.0,Steady Tempo Bike,1.0,20 min,,,6.0,"Continuous steady effort for 20 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,22.0,152.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,6.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,22.0,152.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,6.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,22.0,152.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,6.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,22.0,152.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,6.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,22.0,152.0,5.0,Farmer Carry,3.0,40m,,90s,6.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,22.0,153.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,22.0,153.0,2.0,Rowing Machine,3.0,2000m,,240s,8.0,3 x 2000m at 2:00 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,22.0,154.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,23.0,155.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,6.5,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,23.0,155.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,6.5,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,23.0,155.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,6.5,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,23.0,155.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,6.5,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,23.0,155.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,6.5,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,23.0,156.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,23.0,156.0,2.0,Air Bike Sprints,3.0,22 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 3 sets x 22 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,23.0,157.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,6.5,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,23.0,157.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,6.5,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,23.0,157.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,6.5,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,23.0,157.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,6.5,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,23.0,157.0,5.0,Plank Hold,3.0,45s,,60s,6.5,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,23.0,158.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,23.0,158.0,2.0,Steady Tempo Treadmill Run,1.0,23 min,,,6.0,"Continuous steady effort for 23 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,23.0,159.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,6.5,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,23.0,159.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,6.5,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,23.0,159.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,6.5,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,23.0,159.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,6.5,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,23.0,159.0,5.0,Farmer Carry,3.0,40m,,90s,6.5,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,23.0,160.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,23.0,160.0,2.0,Rowing Machine,3.0,2000m,,240s,8.0,3 x 2000m at 1:59 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,23.0,161.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,24.0,162.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,7.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,24.0,162.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,7.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,24.0,162.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,7.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,24.0,162.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,7.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,24.0,162.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,7.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,24.0,163.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,24.0,163.0,2.0,Self-Powered Treadmill Sprints,4.0,22 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 4 sets x 22 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,24.0,164.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,7.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,24.0,164.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,7.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,24.0,164.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,7.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,24.0,164.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,7.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,24.0,164.0,5.0,Plank Hold,3.0,45s,,60s,7.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,24.0,165.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,24.0,165.0,2.0,Steady Tempo Bike,1.0,26 min,,,6.0,"Continuous steady effort for 26 minutes at RPE 6. Consistent pace, no stopping. Build aerobic base."
+JackProgram,24.0,166.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,7.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,24.0,166.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,7.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,24.0,166.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,7.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,24.0,166.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,7.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,24.0,166.0,5.0,Farmer Carry,3.0,40m,,90s,7.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,24.0,167.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,24.0,167.0,2.0,Rowing Machine,4.0,2000m,,240s,8.0,4 x 2000m at 1:58 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,24.0,168.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,25.0,169.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,7.5,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,25.0,169.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,7.5,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,25.0,169.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,7.5,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,25.0,169.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,7.5,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,25.0,169.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,7.5,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,25.0,170.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,25.0,170.0,2.0,Air Bike Sprints,4.0,24 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 4 sets x 24 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,25.0,171.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,7.5,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,25.0,171.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,7.5,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,25.0,171.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,7.5,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,25.0,171.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,7.5,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,25.0,171.0,5.0,Plank Hold,3.0,45s,,60s,7.5,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,25.0,172.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,25.0,172.0,2.0,Steady Tempo Treadmill Run,1.0,29 min,,,7.0,"Continuous steady effort for 29 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,25.0,173.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,7.5,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,25.0,173.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,7.5,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,25.0,173.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,7.5,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,25.0,173.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,7.5,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,25.0,173.0,5.0,Farmer Carry,3.0,40m,,90s,7.5,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,25.0,174.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,25.0,174.0,2.0,Rowing Machine,4.0,2000m,,240s,8.0,4 x 2000m at 1:57 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,25.0,175.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,26.0,176.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,8.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,26.0,176.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,8.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,26.0,176.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,8.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,26.0,176.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,8.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,26.0,176.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,8.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,26.0,177.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,26.0,177.0,2.0,Self-Powered Treadmill Sprints,5.0,24 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 5 sets x 24 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,26.0,178.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,8.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,26.0,178.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,8.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,26.0,178.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,8.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,26.0,178.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,8.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,26.0,178.0,5.0,Plank Hold,3.0,45s,,60s,8.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,26.0,179.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,26.0,179.0,2.0,Steady Tempo Bike,1.0,32 min,,,7.0,"Continuous steady effort for 32 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,26.0,180.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,8.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,26.0,180.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,8.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,26.0,180.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,8.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,26.0,180.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,8.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,26.0,180.0,5.0,Farmer Carry,3.0,40m,,90s,8.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,26.0,181.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,26.0,181.0,2.0,Rowing Machine,5.0,2000m,,240s,8.0,5 x 2000m at 1:57 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,26.0,182.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,27.0,183.0,1.0,Leg Press,4.0,10-12,3-1-1-0,120s,8.0,"Knees track over toes, full depth, no bouncing at the bottom. 2 ramp-up sets first."
+JackProgram,27.0,183.0,2.0,Dumbbell Bench Press,4.0,8-10,3-1-1-0,90s,8.0,Pin shoulder blades back and down. Slow controlled descent to chest level.
+JackProgram,27.0,183.0,3.0,Smith Machine Split Squat,3.0,10/leg,3-1-1-0,90s,8.0,"Upright torso, front knee stable over ankle. Alternate legs each set."
+JackProgram,27.0,183.0,4.0,Cable Chest Fly,3.0,12-15,3-1-1-0,60s,8.0,"Squeeze chest at the top, slight bend in elbows. Don't let shoulders roll forward."
+JackProgram,27.0,183.0,5.0,Hanging Knee Raise,3.0,12-15,2-1-1-0,60s,8.0,"Control the swing. Curl pelvis up, don't just lift knees. Slow negative."
+JackProgram,27.0,184.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,27.0,184.0,2.0,Air Bike Sprints,5.0,25 kcal ALL OUT,,240s,10.0,ALL OUT sprints. 5 sets x 25 kcal. Rest 3-5 min between sets. This is maximum effort.
+JackProgram,27.0,185.0,1.0,Romanian Deadlift,4.0,8.0,3-1-1-0,120s,8.0,"Hips back, neutral spine, feel hamstring stretch. Bar stays close to legs. 2 ramp-up sets first."
+JackProgram,27.0,185.0,2.0,Lat Pulldown,4.0,10.0,3-1-1-0,90s,8.0,"Pull elbows to ribs, chest tall. Full stretch at the top, squeeze at the bottom."
+JackProgram,27.0,185.0,3.0,Seated Row Machine,3.0,12.0,3-1-1-0,90s,8.0,"Chest against pad, pull to lower chest. Squeeze shoulder blades together."
+JackProgram,27.0,185.0,4.0,Cable Face Pulls,3.0,15.0,2-2-1-0,60s,8.0,"Pull to forehead level, externally rotate at the end. Shoulder health focus."
+JackProgram,27.0,185.0,5.0,Plank Hold,3.0,45s,,60s,8.0,"Brace core tight, neutral spine. Squeeze glutes. Don't let hips sag or pike."
+JackProgram,27.0,186.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,27.0,186.0,2.0,Steady Tempo Treadmill Run,1.0,35 min,,,7.0,"Continuous steady effort for 35 minutes at RPE 7. Consistent pace, no stopping. Build aerobic base."
+JackProgram,27.0,187.0,1.0,Goblet Squat,4.0,12.0,3-1-1-0,90s,8.0,"Hold dumbbell at chest. Sit between knees, upright torso. Full depth."
+JackProgram,27.0,187.0,2.0,Incline Dumbbell Press,3.0,10.0,3-1-1-0,90s,8.0,"30-degree incline. Control the descent, full range of motion. Shoulder blades pinned."
+JackProgram,27.0,187.0,3.0,Cable Row,3.0,12.0,3-1-1-0,90s,8.0,"Pull to navel, chest up. Squeeze at the back, controlled release."
+JackProgram,27.0,187.0,4.0,Walking Lunges,3.0,12/leg,2-0-1-0,90s,8.0,"Long stride, upright torso. Control the descent, drive through front heel."
+JackProgram,27.0,187.0,5.0,Farmer Carry,3.0,40m,,90s,8.0,"Heavy but stable posture. Shoulders back and down, tight core, don't lean."
+JackProgram,27.0,188.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,27.0,188.0,2.0,Rowing Machine,5.0,2000m,,240s,8.0,5 x 2000m at 1:55 per 500m pace. Rest 4 min between sets. Maintain consistent split. This is the engine-builder.
+JackProgram,27.0,189.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."
+JackProgram,28.0,190.0,1.0,Leg Press,3.0,10.0,3-1-1-0,120s,5.0,70% of working weight. Focus on perfect form and control.
+JackProgram,28.0,190.0,2.0,Dumbbell Bench Press,3.0,8.0,3-1-1-0,90s,5.0,"70% of working weight. Slow tempo, technique focus."
+JackProgram,28.0,190.0,3.0,Cable Chest Fly,2.0,12.0,3-1-1-0,60s,5.0,"Light weight, focus on mind-muscle connection."
+JackProgram,28.0,190.0,4.0,Plank Hold,2.0,30s,,60s,5.0,Easy hold. Focus on breathing and bracing.
+JackProgram,28.0,191.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,28.0,191.0,2.0,Air Bike or Self-Powered Treadmill Sprints,2.0,15 kcal,,180s,7.0,"DELOAD: Half volume, no all-out effort. 70% intensity. Focus on form and breathing."
+JackProgram,28.0,192.0,1.0,Romanian Deadlift,3.0,8.0,3-1-1-0,120s,5.0,70% of working weight. Perfect hip hinge pattern.
+JackProgram,28.0,192.0,2.0,Lat Pulldown,3.0,10.0,3-1-1-0,90s,5.0,"70% of working weight. Full range of motion, slow negative."
+JackProgram,28.0,192.0,3.0,Cable Face Pulls,2.0,15.0,2-2-1-0,60s,5.0,Light. Shoulder health and mobility focus.
+JackProgram,28.0,192.0,4.0,Dead Hang,2.0,30s,,60s,5.0,"Relax shoulders, decompress spine. Grip work."
+JackProgram,28.0,193.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,28.0,193.0,2.0,Easy Tempo Run or Bike,1.0,15 min,,,5.0,"DELOAD: Easy continuous effort. 50% of normal volume. Keep heart rate low, focus on breathing rhythm."
+JackProgram,28.0,194.0,1.0,Goblet Squat,3.0,10.0,3-1-1-0,90s,5.0,"70% of working weight. Deep squat, focus on mobility."
+JackProgram,28.0,194.0,2.0,Incline Dumbbell Press,2.0,10.0,3-1-1-0,90s,5.0,Light. Technique and range of motion focus.
+JackProgram,28.0,194.0,3.0,Walking Lunges,2.0,10/leg,2-0-1-0,90s,5.0,Bodyweight or very light. Balance and stability focus.
+JackProgram,28.0,194.0,4.0,Farmer Carry,2.0,30m,,90s,5.0,Moderate weight. Posture focus.
+JackProgram,28.0,195.0,1.0,Cardio Warmup,1.0,5 min,,,4.0,"5 min easy pace on rower, then 3x20 sec build-up efforts with 1 min easy between."
+JackProgram,28.0,195.0,2.0,Rowing Machine,2.0,2000m,,300s,5.0,DELOAD: 2 x 2000m at easy pace (2:05+ per 500m). Rest 5 min. Focus on technique and breathing.
+JackProgram,28.0,196.0,REST,Rest Day,0.0,0.0,,,,"Full rest day. Prioritise sleep, hydration, and nutrition. Light walking or stretching if desired."

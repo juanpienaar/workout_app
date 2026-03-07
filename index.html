@@ -1584,10 +1584,30 @@ function renderDay() {
   const disabled = isViewOnly ? 'disabled' : '';
   let html = '';
 
-  for (const group of day.exerciseGroups) {
+  // Include custom exercises added by the athlete
+  const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+  let customExercises = [];
+  try { customExercises = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
+
+  // Add custom exercises as a group if any exist
+  const allGroups = [...day.exerciseGroups];
+  if (customExercises.length > 0) {
+    allGroups.push({
+      type: 'single',
+      _isCustom: true,
+      exercises: customExercises.map(ce => ({
+        order: ce.order, name: ce.name, sets: ce.sets, reps: String(ce.reps),
+        tempo: '—', rest: '', rpe: '', instruction: 'Custom exercise',
+      })),
+    });
+  }
+
+  for (const group of allGroups) {
     html += '<div class="group-container">';
 
-    if (group.type === 'superset') {
+    if (group._isCustom) {
+      html += '<span class="group-label" style="background:var(--accent);color:#fff;">Custom Exercises</span>';
+    } else if (group.type === 'superset') {
       html += '<span class="group-label superset">Superset</span>';
     } else if (group.type === 'circuit') {
       html += '<span class="group-label circuit">Circuit</span>';
@@ -1599,7 +1619,9 @@ function renderDay() {
       const cardClass = group.type !== 'single' ? `in-${group.type}` : '';
 
       html += `<div class="exercise-card ${cardClass}">
-        <div class="exercise-name">${ex.name}</div>
+        <div class="exercise-name" style="cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="showWeightHistory('${ex.name.replace(/'/g, "\\'")}')">
+          ${ex.name} <span style="font-size:12px;color:var(--text-muted);">📊</span>
+        </div>
         <div class="exercise-meta">
           <div class="meta-item"><div class="meta-value">${ex.sets}×${ex.reps}</div><div class="meta-label">Sets×Reps</div></div>
           <div class="meta-item"><div class="meta-value">${ex.tempo}</div><div class="meta-label">Tempo</div></div>
@@ -1642,7 +1664,156 @@ function renderDay() {
     html += '</div>';
   }
 
+  // ---- Cardio Log Tables ----
+  const cardioTypes = ['running', 'cycling', 'swimming'];
+  const cardioKey = `cardio_${currentUser}_day${currentDayIndex}`;
+  let cardioData = {};
+  try { cardioData = JSON.parse(localStorage.getItem(cardioKey) || '{}'); } catch {}
+
+  html += `<div class="group-container" style="margin-top:16px;">
+    <span class="group-label" style="background:var(--nn-warm);color:#fff;">Cardio</span>`;
+
+  for (const ctype of cardioTypes) {
+    const icon = ctype === 'running' ? '🏃' : ctype === 'cycling' ? '🚴' : '🏊';
+    const cd = cardioData[ctype] || {};
+    const fields = ctype === 'swimming'
+      ? [{f:'distance',l:'Distance (m)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'laps',l:'Laps',p:'0'}]
+      : [{f:'distance',l:'Distance (km)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'pace',l:ctype==='running'?'Pace (min/km)':'Avg Speed (km/h)',p:'0'}];
+    if (ctype !== 'swimming') fields.push({f:'elevation',l:'Elevation (m)',p:'0'});
+    fields.push({f:'hr',l:'Avg HR (bpm)',p:'0'},{f:'notes',l:'Notes',p:''});
+
+    html += `<div class="exercise-card" style="margin-top:8px;">
+      <div class="exercise-name">${icon} ${ctype.charAt(0).toUpperCase() + ctype.slice(1)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">`;
+    for (const fi of fields) {
+      if (fi.f === 'notes') {
+        html += `<div style="grid-column:span 2;">
+          <textarea class="notes-input cardio-input" data-cardio="${ctype}" data-cfield="${fi.f}"
+            placeholder="${fi.l}" onchange="saveCardio()" ${disabled}>${cd[fi.f] || ''}</textarea></div>`;
+      } else {
+        html += `<div>
+          <label style="font-size:11px;color:var(--text-dim);">${fi.l}</label>
+          <input class="set-input cardio-input" type="number" inputmode="decimal"
+            data-cardio="${ctype}" data-cfield="${fi.f}"
+            placeholder="${fi.p}" value="${cd[fi.f] || ''}" onchange="saveCardio()" ${disabled}>
+        </div>`;
+      }
+    }
+    html += `</div></div>`;
+  }
+  html += '</div>';
+
+  // ---- Add Custom Exercise ----
+  if (!isViewOnly) {
+    html += `<div class="group-container" style="margin-top:16px;">
+      <span class="group-label" style="background:var(--accent);color:#fff;">Add Exercise</span>
+      <div class="exercise-card">
+        <input id="customExName" class="set-input" type="text" placeholder="Exercise name" style="margin-bottom:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <input id="customExSets" class="set-input" type="number" inputmode="numeric" placeholder="Sets" value="3">
+          <input id="customExReps" class="set-input" type="number" inputmode="numeric" placeholder="Reps" value="10">
+        </div>
+        <button class="timer-btn" style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:600;" onclick="addCustomExercise()">+ Add to Today</button>
+      </div>
+    </div>`;
+  }
+
   content.innerHTML = html;
+}
+
+// ==================== CARDIO PERSISTENCE ====================
+function saveCardio() {
+  if (isViewOnly) return;
+  const cardioKey = `cardio_${currentUser}_day${currentDayIndex}`;
+  const data = {};
+  document.querySelectorAll('.cardio-input').forEach(el => {
+    const ctype = el.dataset.cardio;
+    const field = el.dataset.cfield;
+    if (!data[ctype]) data[ctype] = {};
+    const val = el.tagName === 'TEXTAREA' ? el.value : el.value;
+    if (val) data[ctype][field] = val;
+  });
+  localStorage.setItem(cardioKey, JSON.stringify(data));
+  // Sync cardio to server
+  if (serverAvailable !== false) {
+    fetch(`${SERVER_URL}/api/save-day`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user: currentUser, day_key: `cardio_day_${currentDayIndex}`, data, meta: {type: 'cardio'}}),
+    }).catch(e => console.warn('[sync] cardio save failed:', e));
+  }
+}
+
+// ==================== CUSTOM EXERCISE ====================
+function addCustomExercise() {
+  const name = document.getElementById('customExName').value.trim();
+  const sets = parseInt(document.getElementById('customExSets').value) || 3;
+  const reps = parseInt(document.getElementById('customExReps').value) || 10;
+  if (!name) { alert('Enter an exercise name'); return; }
+
+  // Store custom exercises in localStorage
+  const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+  let customs = [];
+  try { customs = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
+  customs.push({name, sets, reps, order: `C${customs.length + 1}`});
+  localStorage.setItem(customKey, JSON.stringify(customs));
+
+  // Re-render
+  renderDayDetail();
+}
+
+// ==================== WEIGHT HISTORY ====================
+function showWeightHistory(exerciseName) {
+  // Scan all days for this exercise and collect weights
+  const history = [];
+  const userInfo = programData?.users?.[currentUser];
+  for (let i = 0; i < allDays.length; i++) {
+    const data = loadDayData(i);
+    for (const [key, sets] of Object.entries(data)) {
+      // Match exercise by name in key (format: order_Exercise_Name)
+      const keyName = key.replace(/^\w+_/, '').replace(/_/g, ' ');
+      if (keyName.toLowerCase() !== exerciseName.toLowerCase()) continue;
+      for (const [sk, sv] of Object.entries(sets)) {
+        if (sk.startsWith('set') && sv.weight) {
+          let date = `Day ${i+1}`;
+          if (userInfo?.startDate) {
+            const start = new Date(userInfo.startDate + 'T00:00:00');
+            date = new Date(start.getTime() + i * 86400000).toISOString().split('T')[0];
+          }
+          history.push({date, set: sk, weight: parseFloat(sv.weight), reps: sv.reps || '?'});
+        }
+      }
+    }
+  }
+  if (history.length === 0) { alert(`No weight history for ${exerciseName}`); return; }
+
+  // Show as a simple modal with text-based chart
+  const maxW = Math.max(...history.map(h => h.weight));
+  let chartHtml = `<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)this.remove()">
+    <div style="background:var(--card);border-radius:16px;padding:20px;max-width:360px;width:100%;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
+    <h3 style="margin-bottom:12px;">📊 ${exerciseName}</h3>`;
+  // Group by date, show latest per date
+  const byDate = {};
+  history.forEach(h => {
+    if (!byDate[h.date]) byDate[h.date] = [];
+    byDate[h.date].push(h);
+  });
+  for (const [date, sets] of Object.entries(byDate)) {
+    const best = Math.max(...sets.map(s => s.weight));
+    const barW = maxW > 0 ? Math.round(best / maxW * 100) : 0;
+    const reps = sets.map(s => `${s.weight}×${s.reps}`).join(', ');
+    chartHtml += `<div style="margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--text-dim);">${date}</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="background:linear-gradient(90deg,var(--accent),var(--nn-warm));height:20px;border-radius:4px;width:${barW}%;min-width:2px;"></div>
+        <span style="font-size:13px;white-space:nowrap;">${best}kg</span>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);">${reps}</div>
+    </div>`;
+  }
+  chartHtml += `<button style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--card-border);background:var(--card);color:var(--text);margin-top:12px;cursor:pointer;" onclick="this.closest('[style*=fixed]').remove()">Close</button>
+    </div></div>`;
+  document.body.insertAdjacentHTML('beforeend', chartHtml);
 }
 
 // ==================== DATA PERSISTENCE ====================
@@ -1791,6 +1962,16 @@ function onNotesChange(ta) { saveCurrentDay(); }
 function toggleSet(btn) {
   if (isViewOnly) return;
   btn.classList.toggle('done');
+  // If marking done, auto-fill empty reps from placeholder (preset)
+  if (btn.classList.contains('done')) {
+    const row = btn.closest('.set-row');
+    if (row) {
+      const repsInput = row.querySelector('.set-input[data-field="reps"]');
+      if (repsInput && !repsInput.value && repsInput.placeholder) {
+        repsInput.value = repsInput.placeholder;
+      }
+    }
+  }
   saveCurrentDay();
   updateDayDetailStats();
 }
