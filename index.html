@@ -1546,10 +1546,22 @@ function renderDay() {
     return;
   }
 
-  // Calculate day stats
+  // Calculate day stats (including custom exercises)
   const savedData = loadDayData(currentDayIndex);
   let totalSets = 0, doneSets = 0, tonnage = 0;
-  for (const group of day.exerciseGroups) {
+
+  // Include custom exercises in stats
+  const customKeyStats = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+  let customExStats = [];
+  try { customExStats = JSON.parse(localStorage.getItem(customKeyStats) || '[]'); } catch {}
+  const allExGroups = [...day.exerciseGroups];
+  if (customExStats.length > 0) {
+    allExGroups.push({exercises: customExStats.map(ce => ({
+      order: ce.order, name: ce.name, sets: ce.sets, reps: String(ce.reps)
+    }))});
+  }
+
+  for (const group of allExGroups) {
     for (const ex of group.exercises) {
       const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
       const exData = savedData[exKey] || {};
@@ -1664,62 +1676,95 @@ function renderDay() {
     html += '</div>';
   }
 
-  // ---- Cardio Log Tables ----
-  const cardioTypes = ['running', 'cycling', 'swimming'];
+  // ---- Cardio Log Tables (only show if user has added them) ----
   const cardioKey = `cardio_${currentUser}_day${currentDayIndex}`;
   let cardioData = {};
   try { cardioData = JSON.parse(localStorage.getItem(cardioKey) || '{}'); } catch {}
 
-  html += `<div class="group-container" style="margin-top:16px;">
-    <span class="group-label" style="background:var(--nn-warm);color:#fff;">Cardio</span>`;
+  const activeCardioTypes = Object.keys(cardioData).filter(k => {
+    const vals = cardioData[k];
+    return vals && typeof vals === 'object' && Object.values(vals).some(v => v);
+  });
 
-  for (const ctype of cardioTypes) {
-    const icon = ctype === 'running' ? '🏃' : ctype === 'cycling' ? '🚴' : '🏊';
-    const cd = cardioData[ctype] || {};
-    const fields = ctype === 'swimming'
-      ? [{f:'distance',l:'Distance (m)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'laps',l:'Laps',p:'0'}]
-      : [{f:'distance',l:'Distance (km)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'pace',l:ctype==='running'?'Pace (min/km)':'Avg Speed (km/h)',p:'0'}];
-    if (ctype !== 'swimming') fields.push({f:'elevation',l:'Elevation (m)',p:'0'});
-    fields.push({f:'hr',l:'Avg HR (bpm)',p:'0'},{f:'notes',l:'Notes',p:''});
+  // Also check session-added cardio types
+  const sessionCardioKey = `cardio_active_${currentUser}_day${currentDayIndex}`;
+  let sessionCardio = [];
+  try { sessionCardio = JSON.parse(localStorage.getItem(sessionCardioKey) || '[]'); } catch {}
+  const visibleCardioTypes = [...new Set([...activeCardioTypes, ...sessionCardio])];
 
-    html += `<div class="exercise-card" style="margin-top:8px;">
-      <div class="exercise-name">${icon} ${ctype.charAt(0).toUpperCase() + ctype.slice(1)}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">`;
-    for (const fi of fields) {
-      if (fi.f === 'notes') {
-        html += `<div style="grid-column:span 2;">
-          <textarea class="notes-input cardio-input" data-cardio="${ctype}" data-cfield="${fi.f}"
-            placeholder="${fi.l}" onchange="saveCardio()" ${disabled}>${cd[fi.f] || ''}</textarea></div>`;
-      } else {
-        html += `<div>
-          <label style="font-size:11px;color:var(--text-dim);">${fi.l}</label>
-          <input class="set-input cardio-input" type="number" inputmode="decimal"
-            data-cardio="${ctype}" data-cfield="${fi.f}"
-            placeholder="${fi.p}" value="${cd[fi.f] || ''}" onchange="saveCardio()" ${disabled}>
-        </div>`;
+  if (visibleCardioTypes.length > 0) {
+    html += `<div class="group-container" style="margin-top:16px;">
+      <span class="group-label" style="background:var(--nn-warm);color:#fff;">Cardio</span>`;
+
+    for (const ctype of visibleCardioTypes) {
+      const icon = ctype === 'running' ? '🏃' : ctype === 'cycling' ? '🚴' : '🏊';
+      const cd = cardioData[ctype] || {};
+      const fields = ctype === 'swimming'
+        ? [{f:'distance',l:'Distance (m)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'laps',l:'Laps',p:'0'}]
+        : [{f:'distance',l:'Distance (km)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'pace',l:ctype==='running'?'Pace (min/km)':'Avg Speed (km/h)',p:'0'}];
+      if (ctype !== 'swimming') fields.push({f:'elevation',l:'Elevation (m)',p:'0'});
+      fields.push({f:'hr',l:'Avg HR (bpm)',p:'0'},{f:'notes',l:'Notes',p:''});
+
+      html += `<div class="exercise-card" style="margin-top:8px;">
+        <div class="exercise-name" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>${icon} ${ctype.charAt(0).toUpperCase() + ctype.slice(1)}</span>
+          <button onclick="removeCardioType('${ctype}')" style="background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">`;
+      for (const fi of fields) {
+        if (fi.f === 'notes') {
+          html += `<div style="grid-column:span 2;">
+            <textarea class="notes-input cardio-input" data-cardio="${ctype}" data-cfield="${fi.f}"
+              placeholder="${fi.l}" onchange="saveCardio()" ${disabled}>${cd[fi.f] || ''}</textarea></div>`;
+        } else {
+          html += `<div>
+            <label style="font-size:11px;color:var(--text-dim);">${fi.l}</label>
+            <input class="cardio-input" type="number" inputmode="decimal"
+              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;"
+              data-cardio="${ctype}" data-cfield="${fi.f}"
+              placeholder="${fi.p}" value="${cd[fi.f] || ''}" onchange="saveCardio()" ${disabled}>
+          </div>`;
+        }
       }
+      html += `</div></div>`;
     }
-    html += `</div></div>`;
+    html += '</div>';
   }
-  html += '</div>';
 
-  // ---- Add Custom Exercise ----
+  // ---- Add Exercise / Activity ----
   if (!isViewOnly) {
     html += `<div class="group-container" style="margin-top:16px;">
-      <span class="group-label" style="background:var(--accent);color:#fff;">Add Exercise</span>
+      <span class="group-label" style="background:var(--accent);color:#fff;">Add to Today</span>
       <div class="exercise-card">
-        <input id="customExName" class="set-input" type="text" placeholder="Exercise name" style="margin-bottom:8px;">
+        <div style="font-weight:600;margin-bottom:8px;font-size:14px;">Strength Exercise</div>
+        <input id="customExName" type="text" placeholder="Exercise name"
+          style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;margin-bottom:8px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <div style="position:relative;">
+          <div>
             <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Sets</label>
-            <input id="customExSets" class="set-input" type="number" inputmode="numeric" placeholder="3" value="3">
+            <input id="customExSets" type="number" inputmode="numeric" placeholder="3" value="3"
+              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
           </div>
-          <div style="position:relative;">
+          <div>
             <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Reps</label>
-            <input id="customExReps" class="set-input" type="number" inputmode="numeric" placeholder="10" value="10">
+            <input id="customExReps" type="number" inputmode="numeric" placeholder="10" value="10"
+              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
           </div>
         </div>
-        <button class="timer-btn" style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:600;" onclick="addCustomExercise()">+ Add to Today</button>
+        <button onclick="addCustomExercise()"
+          style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;">+ Add Exercise</button>
+
+        <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+          <div style="font-weight:600;margin-bottom:8px;font-size:14px;">Cardio Activity</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="addCardioType('running')"
+              style="flex:1;min-width:80px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:13px;">🏃 Running</button>
+            <button onclick="addCardioType('cycling')"
+              style="flex:1;min-width:80px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:13px;">🚴 Cycling</button>
+            <button onclick="addCardioType('swimming')"
+              style="flex:1;min-width:80px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:13px;">🏊 Swimming</button>
+          </div>
+        </div>
       </div>
     </div>`;
   }
@@ -1765,6 +1810,33 @@ function addCustomExercise() {
   localStorage.setItem(customKey, JSON.stringify(customs));
 
   // Re-render
+  renderDay();
+}
+
+function addCardioType(ctype) {
+  const sessionCardioKey = `cardio_active_${currentUser}_day${currentDayIndex}`;
+  let sessionCardio = [];
+  try { sessionCardio = JSON.parse(localStorage.getItem(sessionCardioKey) || '[]'); } catch {}
+  if (!sessionCardio.includes(ctype)) {
+    sessionCardio.push(ctype);
+    localStorage.setItem(sessionCardioKey, JSON.stringify(sessionCardio));
+  }
+  renderDay();
+}
+
+function removeCardioType(ctype) {
+  // Remove from session list
+  const sessionCardioKey = `cardio_active_${currentUser}_day${currentDayIndex}`;
+  let sessionCardio = [];
+  try { sessionCardio = JSON.parse(localStorage.getItem(sessionCardioKey) || '[]'); } catch {}
+  sessionCardio = sessionCardio.filter(c => c !== ctype);
+  localStorage.setItem(sessionCardioKey, JSON.stringify(sessionCardio));
+  // Remove data for this type
+  const cardioKey = `cardio_${currentUser}_day${currentDayIndex}`;
+  let cardioData = {};
+  try { cardioData = JSON.parse(localStorage.getItem(cardioKey) || '{}'); } catch {}
+  delete cardioData[ctype];
+  localStorage.setItem(cardioKey, JSON.stringify(cardioData));
   renderDay();
 }
 
@@ -1937,11 +2009,13 @@ function collectCurrentData() {
   const data = {};
   document.querySelectorAll('.set-input').forEach(input => {
     const key = input.dataset.key;
-    const set = 'set' + input.dataset.set;
+    const set = input.dataset.set;
     const field = input.dataset.field;
+    if (!key || !set || !field) return; // skip cardio/custom form inputs
+    const setKey = 'set' + set;
     if (!data[key]) data[key] = {};
-    if (!data[key][set]) data[key][set] = {};
-    if (input.value) data[key][set][field] = input.value;
+    if (!data[key][setKey]) data[key][setKey] = {};
+    if (input.value) data[key][setKey][field] = input.value;
   });
   document.querySelectorAll('.set-check.done').forEach(btn => {
     const key = btn.dataset.key;

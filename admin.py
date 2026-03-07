@@ -641,7 +641,18 @@ RULES:
 - RPE scale 1-10
 - Instruction should be brief form cues
 - NEVER use commas inside any field value. Use semicolons or slashes instead (e.g., "rower/bike/jump rope" not "rower, bike, jump rope")
-- Output ONLY the CSV data, no markdown, no explanation, no code fences"""
+- Output ONLY the CSV data, no markdown, no explanation, no code fences
+
+CROSSFIT-SPECIFIC FORMAT:
+- For WODs: Exercise=WOD name (e.g. "Fran" or "MetCon"); Sets=1; Reps=1; Instruction=full WOD description
+- For AMRAP/EMOM: Exercise=format name; Sets=1; Reps=time cap; Instruction=movement list with reps
+- For strength: use normal format (Exercise/Sets/Reps/Tempo/Rest)
+- Label sections via Order: W1/W2 for warmup; S1/S2 for strength; M1 for metcon
+
+HYROX-SPECIFIC FORMAT:
+- For running: Exercise=Running; Sets=number of intervals; Reps=distance; Instruction=pace/type details
+- For station work: Exercise=station name (e.g. Sled Push / Ski Erg); specify distances and loads in Instruction
+- For race sims: Exercise=Race Simulation; Sets=1; Reps=1; Instruction=full sim description"""
 
 AMENDMENT_SYSTEM_PROMPT = """You are an expert strength and conditioning coach. You amend existing training programs based on specific requests.
 
@@ -834,34 +845,143 @@ if page == "🤖 Program Builder":
 
             prog_name_ai = st.text_input("Program Name", value=active_prog or "", key="ai_prog_name")
 
-            col1, col2 = st.columns(2)
-            with col1:
-                experience = st.selectbox("Experience Level", ["Beginner", "Intermediate", "Advanced"])
-                goal = st.selectbox("Primary Goal", [
-                    "Hypertrophy", "Strength", "Power", "General Fitness",
-                    "Fat Loss", "Athletic Performance",
-                ])
-                days_per_week = st.selectbox("Training Days per Week", [3, 4, 5, 6], index=2)
-            with col2:
-                num_weeks = st.number_input("Number of Weeks", min_value=1, max_value=16, value=4)
-                split_type = st.selectbox("Split Type", [
-                    "Push/Pull/Legs", "Upper/Lower", "Full Body",
-                    "Bro Split", "Push/Pull/Legs/Upper/Lower", "Let AI decide",
-                ])
-                equipment = st.multiselect(
-                    "Available Equipment",
-                    ["Barbell", "Dumbbell", "Cable", "Machine", "Smith Machine", "Bodyweight", "EZ Bar"],
-                    default=["Barbell", "Dumbbell", "Cable", "Machine"],
+            program_type = st.selectbox("Program Type", [
+                "Strength / Bodybuilding",
+                "CrossFit",
+                "Hyrox",
+            ], key="program_type_sel")
+
+            if program_type == "Strength / Bodybuilding":
+                col1, col2 = st.columns(2)
+                with col1:
+                    experience = st.selectbox("Experience Level", ["Beginner", "Intermediate", "Advanced"])
+                    goal = st.selectbox("Primary Goal", [
+                        "Hypertrophy", "Strength", "Power", "General Fitness",
+                        "Fat Loss", "Athletic Performance",
+                    ])
+                    days_per_week = st.selectbox("Training Days per Week", [3, 4, 5, 6], index=2)
+                with col2:
+                    num_weeks = st.number_input("Number of Weeks", min_value=1, max_value=16, value=4)
+                    split_type = st.selectbox("Split Type", [
+                        "Push/Pull/Legs", "Upper/Lower", "Full Body",
+                        "Bro Split", "Push/Pull/Legs/Upper/Lower", "Let AI decide",
+                    ])
+                    equipment = st.multiselect(
+                        "Available Equipment",
+                        ["Barbell", "Dumbbell", "Cable", "Machine", "Smith Machine", "Bodyweight", "EZ Bar"],
+                        default=["Barbell", "Dumbbell", "Cable", "Machine"],
+                    )
+
+                extra_notes = st.text_area(
+                    "Additional instructions",
+                    placeholder="e.g., Focus on weak hamstrings, include face pulls every session, no deadlifts due to injury...",
+                    height=80,
                 )
 
-            extra_notes = st.text_area(
-                "Additional instructions",
-                placeholder="e.g., Focus on weak hamstrings, include face pulls every session, no deadlifts due to injury...",
-                height=80,
-            )
+            elif program_type == "CrossFit":
+                col1, col2 = st.columns(2)
+                with col1:
+                    experience = st.selectbox("Experience Level", ["Beginner (Scaled)", "Intermediate (RX)", "Advanced (RX+)"])
+                    num_weeks = st.number_input("Number of Weeks", min_value=1, max_value=16, value=4)
+                    days_per_week = st.selectbox("Training Days per Week", [3, 4, 5, 6], index=2)
+                with col2:
+                    cf_focus = st.multiselect(
+                        "CrossFit Focus Areas",
+                        ["Benchmark Girls WODs", "Hero WODs", "Olympic Lifting", "Gymnastics",
+                         "Metabolic Conditioning", "Strength Cycles", "Skill Work"],
+                        default=["Benchmark Girls WODs", "Metabolic Conditioning", "Strength Cycles"],
+                    )
+                    cf_equipment = st.multiselect(
+                        "Available Equipment",
+                        ["Barbell", "Pull-up Bar", "Rings", "Rower", "Assault Bike", "Ski Erg",
+                         "Jump Rope", "Kettlebell", "Wall Ball", "GHD", "Box", "Dumbbell", "Rope"],
+                        default=["Barbell", "Pull-up Bar", "Rower", "Jump Rope", "Kettlebell", "Wall Ball", "Box", "Dumbbell"],
+                    )
+
+                st.markdown("**Benchmark WOD Reference** (auto-included in AI prompt)")
+                with st.expander("CrossFit Benchmark WODs"):
+                    st.markdown("""
+**The Girls (Original):**
+- **Fran:** 21-15-9 Thrusters (95/65lb) & Pull-ups
+- **Diane:** 21-15-9 Deadlifts (225/155lb) & HSPU
+- **Grace:** 30 Clean & Jerks (135/95lb) for time
+- **Helen:** 3 RFT: 400m Run / 21 KB Swings (53/35lb) / 12 Pull-ups
+- **Elizabeth:** 21-15-9 Cleans (135/95lb) & Ring Dips
+- **Isabel:** 30 Snatches (135/95lb) for time
+- **Angie:** 100 Pull-ups / 100 Push-ups / 100 Sit-ups / 100 Squats
+- **Barbara:** 5 RFT: 20 Pull-ups / 30 Push-ups / 40 Sit-ups / 50 Squats (3 min rest)
+- **Chelsea:** EMOM 30: 5 Pull-ups / 10 Push-ups / 15 Squats
+- **Jackie:** 1000m Row / 50 Thrusters (45/35lb) / 30 Pull-ups
+- **Karen:** 150 Wall Balls (20/14lb)
+- **Linda:** 10-9-8-7-6-5-4-3-2-1 Deadlift (1.5x BW) / Bench (BW) / Clean (0.75x BW)
+- **Mary:** AMRAP 20: 5 HSPU / 10 Pistols / 15 Pull-ups
+- **Nancy:** 5 RFT: 400m Run / 15 OHS (95/65lb)
+- **Annie:** 50-40-30-20-10 Double-unders & Sit-ups
+- **Eva:** 5 RFT: 800m Run / 30 KB Swings (70/53lb) / 30 Pull-ups
+- **Kelly:** 5 RFT: 400m Run / 30 Box Jumps (24/20") / 30 Wall Balls (20/14lb)
+- **Amanda:** 9-7-5 Muscle-ups & Snatches (135/95lb)
+- **Cindy:** AMRAP 20: 5 Pull-ups / 10 Push-ups / 15 Squats
+
+**Hero WODs:**
+- **Murph:** 1 Mile Run / 100 Pull-ups / 200 Push-ups / 300 Squats / 1 Mile Run (20/14lb vest)
+- **DT:** 5 RFT: 12 Deadlifts / 9 Hang Power Cleans / 6 Push Jerks (155/105lb)
+- **The Seven:** 7 RFT: 7 HSPU / 7 Thrusters (135/95lb) / 7 Knees-to-elbows / 7 Deadlifts (245/165lb) / 7 Burpees / 7 KB Swings (70/53lb) / 7 Pull-ups
+- **Nate:** AMRAP 20: 2 Muscle-ups / 4 HSPU / 8 KB Swings (70/53lb)
+- **Chad:** 1000 Box Step-ups (20" box / 45/25lb vest)
+""")
+
+                extra_notes = st.text_area(
+                    "Additional instructions",
+                    placeholder="e.g., Include Fran and Grace in week 1, focus on Olympic lifting technique, scale pull-ups to banded...",
+                    height=80,
+                    key="cf_notes",
+                )
+
+            elif program_type == "Hyrox":
+                col1, col2 = st.columns(2)
+                with col1:
+                    experience = st.selectbox("Experience Level", ["Beginner", "Intermediate", "Competitive"])
+                    num_weeks = st.number_input("Number of Weeks", min_value=1, max_value=16, value=8)
+                    days_per_week = st.selectbox("Training Days per Week", [3, 4, 5, 6], index=2)
+                with col2:
+                    hyrox_phase = st.selectbox("Training Phase", [
+                        "Base Building (aerobic foundation)",
+                        "Station Strength (station-specific work)",
+                        "Race Simulation (full practice)",
+                        "Full Prep (combined program)",
+                    ])
+                    hyrox_category = st.selectbox("Race Category", [
+                        "Singles Open", "Singles Pro", "Doubles", "Relay",
+                    ])
+
+                st.markdown("**Hyrox Race Stations** (auto-included in AI prompt)")
+                with st.expander("Hyrox Race Format"):
+                    st.markdown("""
+**Race structure:** 8 × (1km Run + Functional Station)
+
+**The 8 Stations (in order):**
+1. **Ski Erg** — 1000m
+2. **Sled Push** — 50m (152/102kg men/women)
+3. **Sled Pull** — 50m (103/78kg men/women)
+4. **Burpee Broad Jumps** — 80m
+5. **Rowing** — 1000m
+6. **Farmers Carry** — 200m (2×24/16kg)
+7. **Sandbag Lunges** — 100m (20/10kg)
+8. **Wall Balls** — 75/100 reps (6/4kg to 3m/2.7m target)
+
+**Key training elements:** Running endurance, sled conditioning, grip strength, lunging endurance, wall ball capacity, transitions.
+""")
+
+                extra_notes = st.text_area(
+                    "Additional instructions",
+                    placeholder="e.g., Weak on sled push, need to improve 1km run pace, focus on wall ball endurance...",
+                    height=80,
+                    key="hyrox_notes",
+                )
 
             if st.button("🤖 Generate Program", type="primary", use_container_width=True):
-                prompt = f"""Generate a {num_weeks}-week training program called "{prog_name_ai}".
+                if program_type == "Strength / Bodybuilding":
+                    prompt = f"""Generate a {num_weeks}-week training program called "{prog_name_ai}".
 
 Details:
 - Experience: {experience}
@@ -877,6 +997,85 @@ Details:
 Generate the complete CSV with all {num_weeks} weeks. Include the header row.
 Each week should have exactly 7 days ({days_per_week} training + {7 - days_per_week} rest).
 Use exercises from the library above when possible."""
+
+                elif program_type == "CrossFit":
+                    cf_wods_context = """
+CROSSFIT BENCHMARK WODS REFERENCE:
+Girls: Fran (21-15-9 Thrusters 95lb & Pull-ups), Diane (21-15-9 DL 225lb & HSPU), Grace (30 C&J 135lb),
+Helen (3 RFT: 400m/21 KB Swings 53lb/12 Pull-ups), Elizabeth (21-15-9 Cleans 135lb & Ring Dips),
+Isabel (30 Snatches 135lb), Angie (100 PU/100 Push-ups/100 Sit-ups/100 Squats),
+Barbara (5 RFT: 20 PU/30 Push-ups/40 Sit-ups/50 Squats), Chelsea (EMOM 30: 5 PU/10 Push-ups/15 Squats),
+Jackie (1000m Row/50 Thrusters 45lb/30 PU), Karen (150 Wall Balls 20lb),
+Linda (10-1 DL 1.5xBW/Bench BW/Clean 0.75xBW), Mary (AMRAP 20: 5 HSPU/10 Pistols/15 PU),
+Nancy (5 RFT: 400m/15 OHS 95lb), Annie (50-40-30-20-10 DU & Sit-ups),
+Cindy (AMRAP 20: 5 PU/10 Push-ups/15 Squats), Kelly (5 RFT: 400m/30 BJ 24"/30 WB 20lb),
+Amanda (9-7-5 MU & Snatches 135lb), Eva (5 RFT: 800m/30 KBS 70lb/30 PU)
+
+Hero WODs: Murph (1mi/100 PU/200 Push-ups/300 Squats/1mi w/vest),
+DT (5 RFT: 12 DL/9 HPC/6 PJ 155lb), Nate (AMRAP 20: 2 MU/4 HSPU/8 KBS 70lb)
+"""
+                    prompt = f"""Generate a {num_weeks}-week CrossFit training program called "{prog_name_ai}".
+
+Details:
+- Experience: {experience}
+- Training days per week: {days_per_week} (scatter {7 - days_per_week} rest days across the 7-day week)
+- Focus areas: {', '.join(cf_focus)}
+- Available equipment: {', '.join(cf_equipment)}
+- Total days per week: 7 (training + rest = 7)
+{f'- Additional notes: {extra_notes}' if extra_notes else ''}
+
+{cf_wods_context}
+
+{exercise_context}
+
+CROSSFIT PROGRAMMING GUIDELINES:
+- Each training day should have: a Warm-up section (mobility/activation); a Strength or Skill component; a WOD/MetCon
+- Include benchmark WODs (Girls/Heroes) periodically for testing
+- Use proper CrossFit rep schemes: AMRAP; EMOM; For Time; Tabata; RFT (rounds for time)
+- For WODs: put the full WOD description in the Instruction field
+- Vary time domains: short (<7min); medium (7-15min); long (15min+)
+- Include skill progressions for gymnastics movements
+- Scale appropriately for the experience level
+
+Generate the complete CSV with all {num_weeks} weeks. Include the header row.
+Each week should have exactly 7 days ({days_per_week} training + {7 - days_per_week} rest)."""
+
+                elif program_type == "Hyrox":
+                    prompt = f"""Generate a {num_weeks}-week Hyrox training program called "{prog_name_ai}".
+
+Details:
+- Experience: {experience}
+- Training days per week: {days_per_week} (scatter {7 - days_per_week} rest days across the 7-day week)
+- Training Phase: {hyrox_phase}
+- Race Category: {hyrox_category}
+- Total days per week: 7 (training + rest = 7)
+{f'- Additional notes: {extra_notes}' if extra_notes else ''}
+
+{exercise_context}
+
+HYROX RACE FORMAT:
+8 stations each preceded by a 1km run (8km total running):
+1. Ski Erg 1000m
+2. Sled Push 50m (152/102kg)
+3. Sled Pull 50m (103/78kg)
+4. Burpee Broad Jumps 80m
+5. Rowing 1000m
+6. Farmers Carry 200m (2×24/16kg)
+7. Sandbag Lunges 100m (20/10kg)
+8. Wall Balls 75/100 reps (6/4kg)
+
+HYROX PROGRAMMING GUIDELINES:
+- Include running sessions (intervals; tempo; long runs) as primary conditioning
+- Program station-specific training: sled work; ski erg; rowing; wall balls; lunges; carries
+- Include strength work to support race demands: squats; deadlifts; pressing; grip work
+- Program transition practice (moving between stations under fatigue)
+- Include race simulation sessions combining multiple stations with running
+- Progress from base building → station strength → race-specific → taper
+- For running exercises: use Instruction field for pace/interval details
+- For station exercises: specify machine settings; distances; weights in Instruction
+
+Generate the complete CSV with all {num_weeks} weeks. Include the header row.
+Each week should have exactly 7 days ({days_per_week} training + {7 - days_per_week} rest)."""
 
                 with st.spinner("Building your program... (this may take 15-30 seconds)"):
                     response, usage_info = call_claude(prompt, PROGRAM_SYSTEM_PROMPT)
