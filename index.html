@@ -1945,12 +1945,12 @@ function renderDay() {
       // Check if any sets are done
       let setsCompleted = 0;
       for (let cs = 1; cs <= ex.sets; cs++) { if (exData['set' + cs]?.done) setsCompleted++; }
-      const progressText = setsCompleted > 0 ? `${setsCompleted}/${ex.sets}` : `${ex.sets}×${ex.reps}`;
+      const summaryText = `${ex.sets} sets × ${ex.reps} reps`;
 
       html += `<div class="exercise-collapse-header ${cardClass}" onclick="toggleExerciseCollapse('${collapseId}')">
         <div class="exercise-collapse-toggle" id="toggle_${collapseId}">+</div>
         <div class="exercise-collapse-title">${ex.name}</div>
-        <div class="exercise-collapse-meta">${progressText}</div>
+        <div class="exercise-collapse-meta" id="meta_${collapseId}">${summaryText}</div>
       </div>
       <div class="exercise-collapse-body" id="${collapseId}">
       <div class="exercise-card ${cardClass}" style="margin-top:-2px;border-top-left-radius:0;border-top-right-radius:0;">
@@ -3059,14 +3059,17 @@ function toggleWhoopPanel() {
 function toggleExerciseCollapse(id) {
   const body = document.getElementById(id);
   const toggle = document.getElementById('toggle_' + id);
+  const meta = document.getElementById('meta_' + id);
   if (!body) return;
   const isOpen = body.classList.contains('open');
   if (isOpen) {
     body.classList.remove('open');
     if (toggle) toggle.textContent = '+';
+    if (meta) meta.style.display = '';
   } else {
     body.classList.add('open');
     if (toggle) toggle.textContent = '−';
+    if (meta) meta.style.display = 'none';
   }
 }
 
