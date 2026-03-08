@@ -37,11 +37,12 @@ export default function AIBuilder() {
     setLoading(true); setResult(null)
     try {
       const d = await API.generateProgram({
-        types, config, model, weeks,
+        types, typeConfig: config, model, weeks,
         name: name.trim(), notes,
         daysPerWeek, sessionTime,
       })
-      if (d.error) { toast(d.error, 'error'); setLoading(false); return }
+      if (d.error || d.detail) { toast(d.error || d.detail, 'error'); setLoading(false); return }
+      if (!d.program) { toast('Generation returned no program data', 'error'); setLoading(false); return }
       setResult(d)
       setStep(5)
       toast('Program generated!')
