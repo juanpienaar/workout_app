@@ -36,18 +36,21 @@ export default function AIBuilder() {
     if (types.length === 0) { toast('Select at least one type', 'error'); return }
     setLoading(true); setResult(null)
     try {
-      const d = await API.generateProgram({
+      const r = await API.generateProgram({
         types, typeConfig: config, model, weeks,
         name: name.trim(), notes,
         daysPerWeek, sessionTime,
       })
-      if (d.error || d.detail) { toast(d.error || d.detail, 'error'); setLoading(false); return }
-      if (!d.program) { toast('Generation returned no program data', 'error'); setLoading(false); return }
-      setResult(d)
+      console.log('AI generate response:', JSON.stringify(r).slice(0, 500))
+      if (r.error || r.detail) { toast(r.error || r.detail, 'error'); setLoading(false); return }
+      if (!r.program) { toast('Generation returned no program data — check console', 'error'); console.error('Full response:', r); setLoading(false); return }
+      if (!r.program.weeks || r.program.weeks.length === 0) { toast('Program generated but has no weeks', 'error'); console.error('Program:', r.program); setLoading(false); return }
+      setResult(r)
       setStep(5)
-      toast('Program generated!')
+      toast(`Program generated! ${r.program.weeks.length} weeks`)
     } catch (e) {
-      toast(e.message === 'auth_expired' ? 'Session expired' : 'Generation failed', 'error')
+      console.error('AI generate error:', e)
+      toast(e.message === 'auth_expired' ? 'Session expired' : `Generation failed: ${e.message}`, 'error')
     }
     setLoading(false)
   }
@@ -285,7 +288,7 @@ export default function AIBuilder() {
 
           {result.program && (
             <>
-              <MuscleHeatmap loads={calculateMuscleLoad(result.program)} />
+              {(() => { try { return <MuscleHeatmap loads={calculateMuscleLoad(result.program)} /> } catch(e) { console.error('MuscleHeatmap error:', e); return null } })()}
               <div className="card">
                 <div className="card-header">
                   <h3>{result.program.name || name}</h3>
