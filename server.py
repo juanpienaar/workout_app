@@ -352,6 +352,15 @@ class NumNumHandler(http.server.SimpleHTTPRequestHandler):
             user_data = load_user_data(user_key)
             return self._json_response(user_data)
 
+        # --- Body Metrics: Get entries ---
+        if path == "/api/metrics":
+            user_key = params.get("user")
+            if not user_key:
+                return self._json_response({"error": "Missing user"}, 400)
+            user_data = load_user_data(user_key)
+            entries = user_data.get("metrics", [])
+            return self._json_response({"entries": entries})
+
         # --- Fallback: serve static files ---
         super().do_GET()
 
@@ -415,6 +424,22 @@ class NumNumHandler(http.server.SimpleHTTPRequestHandler):
                     }
             save_user_data(user_key, user_data)
             return self._json_response({"ok": True, "synced": len(all_days)})
+
+        # --- Save body metrics entry ---
+        if path == "/api/save-metrics":
+            user_key = body.get("user")
+            entry = body.get("entry", {})
+
+            if not user_key or not entry:
+                return self._json_response({"error": "Missing user or entry"}, 400)
+
+            user_data = load_user_data(user_key)
+            if "metrics" not in user_data:
+                user_data["metrics"] = []
+            entry["saved_at"] = datetime.utcnow().isoformat() + "Z"
+            user_data["metrics"].append(entry)
+            save_user_data(user_key, user_data)
+            return self._json_response({"ok": True})
 
         # --- Send email verification code ---
         if path == "/api/send-verification":

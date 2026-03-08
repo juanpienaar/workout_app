@@ -1,260 +1,770 @@
 {
   "Chest": {
     "Machine": [
-      {"name": "Chest Press Machine", "equipment": "Machine"},
-      {"name": "Incline Chest Press Machine", "equipment": "Machine"},
-      {"name": "Cable Crossover", "equipment": "Cable"},
-      {"name": "Cable Fly (Low to High)", "equipment": "Cable"},
-      {"name": "Cable Fly (High to Low)", "equipment": "Cable"}
+      {
+        "name": "Chest Press Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Incline Chest Press Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Cable Crossover",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Cable Fly (Low to High)",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Cable Fly (High to Low)",
+        "equipment": "Cable"
+      }
     ],
     "Barbell": [
-      {"name": "Barbell Bench Press", "equipment": "Barbell"},
-      {"name": "Incline Barbell Bench Press", "equipment": "Barbell"},
-      {"name": "Decline Barbell Bench Press", "equipment": "Barbell"},
-      {"name": "Close Grip Bench Press", "equipment": "Barbell"},
-      {"name": "Smith Machine Bench Press", "equipment": "Smith Machine"}
+      {
+        "name": "Barbell Bench Press",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Incline Barbell Bench Press",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Decline Barbell Bench Press",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Close Grip Bench Press",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Smith Machine Bench Press",
+        "equipment": "Smith Machine"
+      }
     ],
     "Dumbbell": [
-      {"name": "Dumbbell Bench Press", "equipment": "Dumbbell"},
-      {"name": "Incline Dumbbell Press", "equipment": "Dumbbell"},
-      {"name": "Decline Dumbbell Press", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Fly", "equipment": "Dumbbell"},
-      {"name": "Incline Dumbbell Fly", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Pullover", "equipment": "Dumbbell"}
+      {
+        "name": "Dumbbell Bench Press",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Incline Dumbbell Press",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Decline Dumbbell Press",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Fly",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Incline Dumbbell Fly",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Pullover",
+        "equipment": "Dumbbell"
+      }
     ],
     "Bodyweight": [
-      {"name": "Push Up", "equipment": "Bodyweight"},
-      {"name": "Incline Push Up", "equipment": "Bodyweight"},
-      {"name": "Decline Push Up", "equipment": "Bodyweight"},
-      {"name": "Diamond Push Up", "equipment": "Bodyweight"},
-      {"name": "Dips (Chest Focus)", "equipment": "Bodyweight"}
+      {
+        "name": "Push Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Incline Push Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Decline Push Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Diamond Push Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Dips (Chest Focus)",
+        "equipment": "Bodyweight"
+      }
     ]
   },
   "Back": {
     "Machine": [
-      {"name": "Lat Pulldown", "equipment": "Cable"},
-      {"name": "Low Row Machine", "equipment": "Machine"},
-      {"name": "Seated Cable Row", "equipment": "Cable"},
-      {"name": "Straight Arm Pulldown", "equipment": "Cable"},
-      {"name": "Assisted Pull Up Machine", "equipment": "Machine"},
-      {"name": "Cable Face Pull", "equipment": "Cable"}
+      {
+        "name": "Lat Pulldown",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Low Row Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Seated Cable Row",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Straight Arm Pulldown",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Assisted Pull Up Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Cable Face Pull",
+        "equipment": "Cable"
+      }
     ],
     "Barbell": [
-      {"name": "Barbell Row", "equipment": "Barbell"},
-      {"name": "Pendlay Row", "equipment": "Barbell"},
-      {"name": "T-Bar Row", "equipment": "Barbell"},
-      {"name": "Barbell Shrug", "equipment": "Barbell"},
-      {"name": "Rack Pull", "equipment": "Barbell"},
-      {"name": "Smith Machine Row", "equipment": "Smith Machine"}
+      {
+        "name": "Barbell Row",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Pendlay Row",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "T-Bar Row",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Barbell Shrug",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Rack Pull",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Smith Machine Row",
+        "equipment": "Smith Machine"
+      }
     ],
     "Dumbbell": [
-      {"name": "Dumbbell Row", "equipment": "Dumbbell"},
-      {"name": "Chest Supported Dumbbell Row", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Pullover", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Shrug", "equipment": "Dumbbell"},
-      {"name": "Reverse Fly", "equipment": "Dumbbell"},
-      {"name": "Kroc Row", "equipment": "Dumbbell"}
+      {
+        "name": "Dumbbell Row",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Chest Supported Dumbbell Row",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Pullover",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Shrug",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Reverse Fly",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Kroc Row",
+        "equipment": "Dumbbell"
+      }
     ],
     "Bodyweight": [
-      {"name": "Pull Up", "equipment": "Bodyweight"},
-      {"name": "Chin Up", "equipment": "Bodyweight"},
-      {"name": "Inverted Row", "equipment": "Bodyweight"},
-      {"name": "Neutral Grip Pull Up", "equipment": "Bodyweight"}
+      {
+        "name": "Pull Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Chin Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Inverted Row",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Neutral Grip Pull Up",
+        "equipment": "Bodyweight"
+      }
     ]
   },
   "Shoulders": {
     "Machine": [
-      {"name": "Shoulder Press Machine", "equipment": "Machine"},
-      {"name": "Lateral Raise Machine", "equipment": "Machine"},
-      {"name": "Cable Lateral Raise", "equipment": "Cable"},
-      {"name": "Cable Front Raise", "equipment": "Cable"},
-      {"name": "Cable Rear Delt Fly", "equipment": "Cable"},
-      {"name": "Face Pull", "equipment": "Cable"}
+      {
+        "name": "Shoulder Press Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Lateral Raise Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Cable Lateral Raise",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Cable Front Raise",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Cable Rear Delt Fly",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Face Pull",
+        "equipment": "Cable"
+      }
     ],
     "Barbell": [
-      {"name": "Overhead Press", "equipment": "Barbell"},
-      {"name": "Push Press", "equipment": "Barbell"},
-      {"name": "Behind the Neck Press", "equipment": "Barbell"},
-      {"name": "Barbell Upright Row", "equipment": "Barbell"},
-      {"name": "Smith Machine Shoulder Press", "equipment": "Smith Machine"},
-      {"name": "Barbell Front Raise", "equipment": "Barbell"}
+      {
+        "name": "Overhead Press",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Push Press",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Behind the Neck Press",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Barbell Upright Row",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Smith Machine Shoulder Press",
+        "equipment": "Smith Machine"
+      },
+      {
+        "name": "Barbell Front Raise",
+        "equipment": "Barbell"
+      }
     ],
     "Dumbbell": [
-      {"name": "Dumbbell Shoulder Press", "equipment": "Dumbbell"},
-      {"name": "Arnold Press", "equipment": "Dumbbell"},
-      {"name": "Lateral Raise", "equipment": "Dumbbell"},
-      {"name": "Front Raise", "equipment": "Dumbbell"},
-      {"name": "Reverse Fly", "equipment": "Dumbbell"},
-      {"name": "Lu Raise", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Upright Row", "equipment": "Dumbbell"}
+      {
+        "name": "Dumbbell Shoulder Press",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Arnold Press",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Lateral Raise",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Front Raise",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Reverse Fly",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Lu Raise",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Upright Row",
+        "equipment": "Dumbbell"
+      }
     ],
     "Bodyweight": [
-      {"name": "Pike Push Up", "equipment": "Bodyweight"},
-      {"name": "Handstand Push Up", "equipment": "Bodyweight"},
-      {"name": "Band Pull Apart", "equipment": "Band"}
+      {
+        "name": "Pike Push Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Handstand Push Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Band Pull Apart",
+        "equipment": "Band"
+      }
     ]
   },
   "Legs (Quads)": {
     "Machine": [
-      {"name": "Leg Press Machine", "equipment": "Machine"},
-      {"name": "Hack Squat", "equipment": "Machine"},
-      {"name": "Leg Extension", "equipment": "Machine"},
-      {"name": "Smith Machine Squat", "equipment": "Smith Machine"},
-      {"name": "Weighted Leg Press", "equipment": "Machine"}
+      {
+        "name": "Leg Press Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Hack Squat",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Leg Extension",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Smith Machine Squat",
+        "equipment": "Smith Machine"
+      },
+      {
+        "name": "Weighted Leg Press",
+        "equipment": "Machine"
+      }
     ],
     "Barbell": [
-      {"name": "Barbell Back Squat", "equipment": "Barbell"},
-      {"name": "Barbell Front Squat", "equipment": "Barbell"},
-      {"name": "Zercher Squat", "equipment": "Barbell"},
-      {"name": "Barbell Lunge", "equipment": "Barbell"},
-      {"name": "Barbell Step Up", "equipment": "Barbell"}
+      {
+        "name": "Barbell Back Squat",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Barbell Front Squat",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Zercher Squat",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Barbell Lunge",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Barbell Step Up",
+        "equipment": "Barbell"
+      }
     ],
     "Dumbbell": [
-      {"name": "Goblet Squat", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Lunge", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Bulgarian Split Squat", "equipment": "Dumbbell"},
-      {"name": "Walking Lunges", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Step Up", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Squat", "equipment": "Dumbbell"}
+      {
+        "name": "Goblet Squat",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Lunge",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Bulgarian Split Squat",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Walking Lunges",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Step Up",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Squat",
+        "equipment": "Dumbbell"
+      }
     ],
     "Bodyweight": [
-      {"name": "Bodyweight Squat", "equipment": "Bodyweight"},
-      {"name": "Pistol Squat", "equipment": "Bodyweight"},
-      {"name": "Jump Squat", "equipment": "Bodyweight"},
-      {"name": "Wall Sit", "equipment": "Bodyweight"},
-      {"name": "Sissy Squat", "equipment": "Bodyweight"}
+      {
+        "name": "Bodyweight Squat",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Pistol Squat",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Jump Squat",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Wall Sit",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Sissy Squat",
+        "equipment": "Bodyweight"
+      }
     ]
   },
   "Legs (Hamstrings & Glutes)": {
     "Machine": [
-      {"name": "Seated Leg Curl", "equipment": "Machine"},
-      {"name": "Lying Leg Curl", "equipment": "Machine"},
-      {"name": "Weighted Hip Thrust Machine", "equipment": "Machine"},
-      {"name": "Glute Kickback Machine", "equipment": "Machine"},
-      {"name": "Cable Pull Through", "equipment": "Cable"}
+      {
+        "name": "Seated Leg Curl",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Lying Leg Curl",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Weighted Hip Thrust Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Glute Kickback Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Cable Pull Through",
+        "equipment": "Cable"
+      }
     ],
     "Barbell": [
-      {"name": "Romanian Deadlift", "equipment": "Barbell"},
-      {"name": "Stiff Leg Deadlift", "equipment": "Barbell"},
-      {"name": "Conventional Deadlift", "equipment": "Barbell"},
-      {"name": "Sumo Deadlift", "equipment": "Barbell"},
-      {"name": "Barbell Hip Thrust", "equipment": "Barbell"},
-      {"name": "Good Morning", "equipment": "Barbell"},
-      {"name": "Barbell Glute Bridge", "equipment": "Barbell"}
+      {
+        "name": "Romanian Deadlift",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Stiff Leg Deadlift",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Conventional Deadlift",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Sumo Deadlift",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Barbell Hip Thrust",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Good Morning",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Barbell Glute Bridge",
+        "equipment": "Barbell"
+      }
     ],
     "Dumbbell": [
-      {"name": "Dumbbell Romanian Deadlift", "equipment": "Dumbbell"},
-      {"name": "Single Leg Dumbbell RDL", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Hip Thrust", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Glute Bridge", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Swing", "equipment": "Dumbbell"}
+      {
+        "name": "Dumbbell Romanian Deadlift",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Single Leg Dumbbell RDL",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Hip Thrust",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Glute Bridge",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Swing",
+        "equipment": "Dumbbell"
+      }
     ],
     "Bodyweight": [
-      {"name": "Nordic Hamstring Curl", "equipment": "Bodyweight"},
-      {"name": "Glute Bridge", "equipment": "Bodyweight"},
-      {"name": "Single Leg Glute Bridge", "equipment": "Bodyweight"},
-      {"name": "Reverse Lunge", "equipment": "Bodyweight"}
+      {
+        "name": "Nordic Hamstring Curl",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Glute Bridge",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Single Leg Glute Bridge",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Reverse Lunge",
+        "equipment": "Bodyweight"
+      }
     ]
   },
   "Calves": {
     "Machine": [
-      {"name": "Calf Raise Machine", "equipment": "Machine"},
-      {"name": "Seated Calf Raise", "equipment": "Machine"},
-      {"name": "Leg Press Calf Raise", "equipment": "Machine"}
+      {
+        "name": "Calf Raise Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Seated Calf Raise",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Leg Press Calf Raise",
+        "equipment": "Machine"
+      }
     ],
     "Barbell": [
-      {"name": "Barbell Standing Calf Raise", "equipment": "Barbell"},
-      {"name": "Smith Machine Calf Raise", "equipment": "Smith Machine"}
+      {
+        "name": "Barbell Standing Calf Raise",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Smith Machine Calf Raise",
+        "equipment": "Smith Machine"
+      }
     ],
     "Dumbbell": [
-      {"name": "Dumbbell Calf Raise", "equipment": "Dumbbell"},
-      {"name": "Single Leg Dumbbell Calf Raise", "equipment": "Dumbbell"}
+      {
+        "name": "Dumbbell Calf Raise",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Single Leg Dumbbell Calf Raise",
+        "equipment": "Dumbbell"
+      }
     ],
     "Bodyweight": [
-      {"name": "Bodyweight Calf Raise", "equipment": "Bodyweight"},
-      {"name": "Single Leg Calf Raise", "equipment": "Bodyweight"},
-      {"name": "Tibialis Raise", "equipment": "Bodyweight"}
+      {
+        "name": "Bodyweight Calf Raise",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Single Leg Calf Raise",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Tibialis Raise",
+        "equipment": "Bodyweight"
+      }
     ]
   },
   "Biceps": {
     "Machine": [
-      {"name": "Cable Curl", "equipment": "Cable"},
-      {"name": "Cable Hammer Curl", "equipment": "Cable"},
-      {"name": "Cable Preacher Curl", "equipment": "Cable"},
-      {"name": "Machine Preacher Curl", "equipment": "Machine"}
+      {
+        "name": "Cable Curl",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Cable Hammer Curl",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Cable Preacher Curl",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Machine Preacher Curl",
+        "equipment": "Machine"
+      }
     ],
     "Barbell": [
-      {"name": "Barbell Curl", "equipment": "Barbell"},
-      {"name": "EZ Bar Curl", "equipment": "EZ Bar"},
-      {"name": "Preacher Curl", "equipment": "EZ Bar"},
-      {"name": "Reverse Barbell Curl", "equipment": "Barbell"},
-      {"name": "Drag Curl", "equipment": "Barbell"},
-      {"name": "Spider Curl", "equipment": "EZ Bar"}
+      {
+        "name": "Barbell Curl",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "EZ Bar Curl",
+        "equipment": "EZ Bar"
+      },
+      {
+        "name": "Preacher Curl",
+        "equipment": "EZ Bar"
+      },
+      {
+        "name": "Reverse Barbell Curl",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Drag Curl",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Spider Curl",
+        "equipment": "EZ Bar"
+      }
     ],
     "Dumbbell": [
-      {"name": "Dumbbell Curl", "equipment": "Dumbbell"},
-      {"name": "Hammer Curl", "equipment": "Dumbbell"},
-      {"name": "Incline Dumbbell Curl", "equipment": "Dumbbell"},
-      {"name": "Concentration Curl", "equipment": "Dumbbell"},
-      {"name": "Cross Body Hammer Curl", "equipment": "Dumbbell"},
-      {"name": "Zottman Curl", "equipment": "Dumbbell"}
+      {
+        "name": "Dumbbell Curl",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Hammer Curl",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Incline Dumbbell Curl",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Concentration Curl",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Cross Body Hammer Curl",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Zottman Curl",
+        "equipment": "Dumbbell"
+      }
     ]
   },
   "Triceps": {
     "Machine": [
-      {"name": "Tricep Pushdown", "equipment": "Cable"},
-      {"name": "Overhead Cable Extension", "equipment": "Cable"},
-      {"name": "Tricep Extension Machine", "equipment": "Machine"},
-      {"name": "Assisted Dip Machine", "equipment": "Machine"},
-      {"name": "Cable Kickback", "equipment": "Cable"}
+      {
+        "name": "Tricep Pushdown",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Overhead Cable Extension",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Tricep Extension Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Assisted Dip Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Cable Kickback",
+        "equipment": "Cable"
+      }
     ],
     "Barbell": [
-      {"name": "Skull Crusher", "equipment": "EZ Bar"},
-      {"name": "Close Grip Bench Press", "equipment": "Barbell"},
-      {"name": "Barbell Overhead Tricep Extension", "equipment": "Barbell"},
-      {"name": "JM Press", "equipment": "Barbell"}
+      {
+        "name": "Skull Crusher",
+        "equipment": "EZ Bar"
+      },
+      {
+        "name": "Close Grip Bench Press",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Barbell Overhead Tricep Extension",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "JM Press",
+        "equipment": "Barbell"
+      }
     ],
     "Dumbbell": [
-      {"name": "Dumbbell Overhead Tricep Extension", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Kickback", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Skull Crusher", "equipment": "Dumbbell"},
-      {"name": "Tate Press", "equipment": "Dumbbell"}
+      {
+        "name": "Dumbbell Overhead Tricep Extension",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Kickback",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Skull Crusher",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Tate Press",
+        "equipment": "Dumbbell"
+      }
     ],
     "Bodyweight": [
-      {"name": "Dips (Tricep Focus)", "equipment": "Bodyweight"},
-      {"name": "Close Grip Push Up", "equipment": "Bodyweight"},
-      {"name": "Bench Dip", "equipment": "Bodyweight"}
+      {
+        "name": "Dips (Tricep Focus)",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Close Grip Push Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Bench Dip",
+        "equipment": "Bodyweight"
+      }
     ]
   },
   "Core": {
     "Machine": [
-      {"name": "Weighted Abdominal Machine", "equipment": "Machine"},
-      {"name": "Cable Crunch", "equipment": "Cable"},
-      {"name": "Cable Woodchop", "equipment": "Cable"},
-      {"name": "Cable Pallof Press", "equipment": "Cable"}
+      {
+        "name": "Weighted Abdominal Machine",
+        "equipment": "Machine"
+      },
+      {
+        "name": "Cable Crunch",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Cable Woodchop",
+        "equipment": "Cable"
+      },
+      {
+        "name": "Cable Pallof Press",
+        "equipment": "Cable"
+      }
     ],
     "Barbell": [
-      {"name": "Barbell Rollout", "equipment": "Barbell"},
-      {"name": "Landmine Rotation", "equipment": "Barbell"},
-      {"name": "Barbell Good Morning", "equipment": "Barbell"}
+      {
+        "name": "Barbell Rollout",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Landmine Rotation",
+        "equipment": "Barbell"
+      },
+      {
+        "name": "Barbell Good Morning",
+        "equipment": "Barbell"
+      }
     ],
     "Dumbbell": [
-      {"name": "Dumbbell Side Bend", "equipment": "Dumbbell"},
-      {"name": "Weighted Sit Up", "equipment": "Dumbbell"},
-      {"name": "Dumbbell Russian Twist", "equipment": "Dumbbell"},
-      {"name": "Farmer's Walk", "equipment": "Dumbbell"},
-      {"name": "Suitcase Carry", "equipment": "Dumbbell"}
+      {
+        "name": "Dumbbell Side Bend",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Weighted Sit Up",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Dumbbell Russian Twist",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Farmer's Walk",
+        "equipment": "Dumbbell"
+      },
+      {
+        "name": "Suitcase Carry",
+        "equipment": "Dumbbell"
+      }
     ],
     "Bodyweight": [
-      {"name": "Plank", "equipment": "Bodyweight"},
-      {"name": "Side Plank", "equipment": "Bodyweight"},
-      {"name": "Hanging Leg Raise", "equipment": "Bodyweight"},
-      {"name": "Ab Rollout", "equipment": "Bodyweight"},
-      {"name": "Bicycle Crunch", "equipment": "Bodyweight"},
-      {"name": "Dead Bug", "equipment": "Bodyweight"},
-      {"name": "Mountain Climber", "equipment": "Bodyweight"},
-      {"name": "V-Up", "equipment": "Bodyweight"},
-      {"name": "Hollow Hold", "equipment": "Bodyweight"}
+      {
+        "name": "Plank",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Side Plank",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Hanging Leg Raise",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Ab Rollout",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Bicycle Crunch",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Dead Bug",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Mountain Climber",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "V-Up",
+        "equipment": "Bodyweight"
+      },
+      {
+        "name": "Hollow Hold",
+        "equipment": "Bodyweight"
+      }
     ]
   }
 }

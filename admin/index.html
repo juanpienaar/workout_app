@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NumNum Admin</title>
+<link rel="stylesheet" href="admin.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+
+<!-- Login overlay -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-box">
+    <h2>NumNum Admin</h2>
+    <p class="sub">Coach Dashboard</p>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="coach@numnum.fit">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="loginError" style="color:#dc2626;font-size:13px;margin-bottom:10px;display:none"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- App layout -->
+<div class="app-layout" id="appLayout" style="display:none">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>NumNum</h2>
+      <small>Coach Admin</small>
+    </div>
+    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <span class="icon">📊</span><span class="nav-text">Dashboard</span>
+    </div>
+    <div class="nav-item" data-page="users" onclick="navigate('users')">
+      <span class="icon">👥</span><span class="nav-text">Users</span>
+    </div>
+    <div class="nav-item" data-page="programs" onclick="navigate('programs')">
+      <span class="icon">📋</span><span class="nav-text">Programs</span>
+    </div>
+    <div class="nav-item" data-page="exercises" onclick="navigate('exercises')">
+      <span class="icon">🏋️</span><span class="nav-text">Exercises</span>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" data-page="import" onclick="navigate('import')">
+      <span class="icon">📥</span><span class="nav-text">Import CSV</span>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" onclick="doLogout()" style="margin-top:auto">
+      <span class="icon">🚪</span><span class="nav-text">Logout</span>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content" id="mainContent"></main>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

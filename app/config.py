@@ -2,7 +2,10 @@ import os
 import secrets
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 APP_DIR = Path(__file__).parent.parent  # workout-app/
+load_dotenv(APP_DIR / ".env", override=False)
 
 # Server
 PORT = int(os.environ.get("PORT", os.environ.get("NUMNUM_PORT", 5050)))

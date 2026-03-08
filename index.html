@@ -796,7 +796,8 @@ body {
 }
 
 /* --- Whoop Integration --- */
-.whoop-banner {
+/* Whoop panel (slide-down from header heart) */
+.whoop-panel {
   margin: 0 16px 12px;
   background: var(--card);
   border: 1px solid var(--card-border);
@@ -805,40 +806,37 @@ body {
   overflow: hidden;
   transition: all 0.3s ease;
 }
-.whoop-banner.collapsed { cursor: pointer; }
-.whoop-banner-header {
+.whoop-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-.whoop-banner-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.whoop-logo-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: #44b700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 800;
-  color: #000;
-  flex-shrink: 0;
+  margin-bottom: 8px;
 }
 .whoop-banner-title {
   font-size: 14px;
   font-weight: 700;
 }
-.whoop-chevron {
-  font-size: 16px;
-  color: var(--text-dim);
-  transition: transform 0.3s;
+.whoop-header-btn.active {
+  background: rgba(232,71,95,0.15);
+  border-color: var(--accent);
 }
-.whoop-banner:not(.collapsed) .whoop-chevron { transform: rotate(180deg); }
+
+/* Collapsible exercise card */
+.exercise-collapse-header {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 12px 14px; background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 12px; margin-bottom: 6px; transition: background 0.15s;
+}
+.exercise-collapse-header:hover { background: rgba(232,71,95,0.03); }
+.exercise-collapse-toggle {
+  width: 22px; height: 22px; border-radius: 6px; background: var(--card-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: var(--text); flex-shrink: 0;
+}
+.exercise-collapse-title { font-size: 15px; font-weight: 600; flex: 1; }
+.exercise-collapse-meta { font-size: 12px; color: var(--text-dim); }
+.exercise-collapse-body { display: none; }
+.exercise-collapse-body.open { display: block; }
 .whoop-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1080,6 +1078,7 @@ body {
       <button class="header-btn" onclick="toggleTheme()" id="themeToggleHeader" title="Toggle light/dark mode" style="font-size:16px;">&#x1f319;</button>
       <button class="header-btn" onclick="showMetrics()" title="Body Metrics" style="font-size:15px;">📏</button>
       <button class="header-btn" onclick="showHistory()" title="History">&#x1f4ca;</button>
+      <button class="header-btn whoop-header-btn" id="whoopHeaderBtn" onclick="toggleWhoopPanel()" title="Whoop" style="font-size:16px;display:none;">❤️</button>
       <button class="header-btn" onclick="confirmLogout()" title="Log Out" style="font-size:14px;">&#x23FB;</button>
     </div>
   </div>
@@ -1109,16 +1108,16 @@ body {
     </div>
   </div>
 
-  <!-- WHOOP BANNER -->
-  <div id="whoopBanner" class="whoop-banner collapsed hidden" onclick="toggleWhoopBanner(event)">
-    <div class="whoop-banner-header">
-      <div class="whoop-banner-left">
-        <div class="whoop-logo-icon">W</div>
+  <!-- WHOOP PANEL (toggled from heart button in header) -->
+  <div id="whoopBanner" class="whoop-panel hidden">
+    <div class="whoop-panel-header">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;">❤️</span>
         <span class="whoop-banner-title" id="whoopBannerTitle">Whoop</span>
       </div>
-      <span class="whoop-chevron">&#9662;</span>
+      <button class="btn-icon" onclick="toggleWhoopPanel()" style="font-size:18px;color:var(--text-dim);">✕</button>
     </div>
-    <div id="whoopContent" class="hidden">
+    <div id="whoopContent">
       <!-- Filled dynamically -->
     </div>
   </div>
@@ -1942,8 +1941,19 @@ function renderDay() {
       const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
       const exData = savedData[exKey] || {};
       const cardClass = group.type !== 'single' ? `in-${group.type}` : '';
+      const collapseId = `collapse_${exKey}`;
+      // Check if any sets are done
+      let setsCompleted = 0;
+      for (let cs = 1; cs <= ex.sets; cs++) { if (exData['set' + cs]?.done) setsCompleted++; }
+      const progressText = setsCompleted > 0 ? `${setsCompleted}/${ex.sets}` : `${ex.sets}×${ex.reps}`;
 
-      html += `<div class="exercise-card ${cardClass}">
+      html += `<div class="exercise-collapse-header ${cardClass}" onclick="toggleExerciseCollapse('${collapseId}')">
+        <div class="exercise-collapse-toggle" id="toggle_${collapseId}">+</div>
+        <div class="exercise-collapse-title">${ex.name}</div>
+        <div class="exercise-collapse-meta">${progressText}</div>
+      </div>
+      <div class="exercise-collapse-body" id="${collapseId}">
+      <div class="exercise-card ${cardClass}" style="margin-top:-2px;border-top-left-radius:0;border-top-right-radius:0;">
         <div class="exercise-name" style="cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="showWeightHistory('${ex.name.replace(/'/g, "\\'")}')">
           ${ex.name} <span style="font-size:12px;color:var(--text-muted);">📊</span>
         </div>
@@ -1984,6 +1994,7 @@ function renderDay() {
           </div>
           ${ex.rest ? `<button class="timer-btn" onclick="openTimer('${ex.rest.replace(/'/g, "\\'")}')">⏱ Rest ${ex.rest}</button>` : ''}
         </div>
+      </div>
       </div>`;
     }
     html += '</div>';
@@ -3032,37 +3043,54 @@ function closeSettings() {
 const WHOOP_SERVER = SERVER_URL;
 let whoopExpanded = false;
 
-function toggleWhoopBanner(e) {
-  // Don't toggle when clicking buttons inside
-  if (e && (e.target.closest('button') || e.target.closest('a'))) return;
+function toggleWhoopPanel() {
   const banner = document.getElementById('whoopBanner');
-  const content = document.getElementById('whoopContent');
+  const btn = document.getElementById('whoopHeaderBtn');
   whoopExpanded = !whoopExpanded;
   if (whoopExpanded) {
-    banner.classList.remove('collapsed');
-    content.classList.remove('hidden');
+    banner.classList.remove('hidden');
+    if (btn) btn.classList.add('active');
   } else {
-    banner.classList.add('collapsed');
-    content.classList.add('hidden');
+    banner.classList.add('hidden');
+    if (btn) btn.classList.remove('active');
+  }
+}
+
+function toggleExerciseCollapse(id) {
+  const body = document.getElementById(id);
+  const toggle = document.getElementById('toggle_' + id);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  if (isOpen) {
+    body.classList.remove('open');
+    if (toggle) toggle.textContent = '+';
+  } else {
+    body.classList.add('open');
+    if (toggle) toggle.textContent = '−';
   }
 }
 
 async function initWhoop() {
   if (!currentUser) return;
   const banner = document.getElementById('whoopBanner');
+  const headerBtn = document.getElementById('whoopHeaderBtn');
   try {
     const resp = await authFetch(`${WHOOP_SERVER}/whoop/status?user=${encodeURIComponent(currentUser)}`);
-    if (!resp.ok) { banner.classList.add('hidden'); return; }
+    if (!resp.ok) { banner.classList.add('hidden'); if (headerBtn) headerBtn.style.display = 'none'; return; }
     const data = await resp.json();
-    banner.classList.remove('hidden');
+    // Show heart button in header
+    if (headerBtn) headerBtn.style.display = 'flex';
+    // Keep panel hidden until user clicks heart
+    banner.classList.add('hidden');
     if (data.connected) {
       loadWhoopData();
     } else {
       showWhoopConnect();
     }
   } catch (e) {
-    // Server not running – hide whoop section silently
+    // Server not running – hide whoop
     banner.classList.add('hidden');
+    if (headerBtn) headerBtn.style.display = 'none';
   }
 }
 

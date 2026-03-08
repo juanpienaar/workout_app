@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config
 from .encryption import migrate_tokens_file
-from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes
+from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes, admin_routes
 
 app = FastAPI(title="NumNum Workout", version="1.0.0")
 
@@ -27,6 +27,7 @@ app.include_router(metrics_routes.router)
 app.include_router(coach_routes.router)
 app.include_router(verify_routes.router)
 app.include_router(whoop_routes.router)
+app.include_router(admin_routes.router)
 
 
 # ---- Health check ----
@@ -45,6 +46,14 @@ async def startup():
     print()
 
 
-# ---- Static files (serves index.html, program.json, exercises.json, etc.) ----
-# Must be LAST so API routes take priority
+# ---- Static files ----
+# Admin dashboard at /admin — prefer dist/ (React build), fall back to raw admin/
+admin_dist = config.APP_DIR / "admin" / "dist"
+admin_dir = config.APP_DIR / "admin"
+if admin_dist.exists():
+    app.mount("/admin", StaticFiles(directory=str(admin_dist), html=True), name="admin-static")
+elif admin_dir.exists():
+    app.mount("/admin", StaticFiles(directory=str(admin_dir), html=True), name="admin-static")
+
+# Root serves index.html, program.json, exercises.json, etc. (LAST so API routes take priority)
 app.mount("/", StaticFiles(directory=str(config.APP_DIR), html=True), name="static")
