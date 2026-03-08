@@ -43,10 +43,25 @@ from fastapi.responses import JSONResponse
 
 @app.get("/program.json")
 async def serve_program():
+    # Load programs
+    pdata = {"programs": {}}
     if config.PROGRAM_FILE.exists():
         with open(config.PROGRAM_FILE) as f:
-            return JSONResponse(json.load(f))
-    return JSONResponse({"programs": {}})
+            pdata = json.load(f)
+    # Merge current users (the athlete app expects users inside program.json)
+    if config.USERS_FILE.exists():
+        with open(config.USERS_FILE) as f:
+            users = json.load(f)
+        # Only include non-sensitive fields (no passwordHash)
+        pdata["users"] = {}
+        for name, info in users.items():
+            pdata["users"][name] = {
+                "program": info.get("program", ""),
+                "startDate": info.get("startDate", ""),
+                "email": info.get("email", ""),
+                "email_verified": info.get("email_verified", False),
+            }
+    return JSONResponse(pdata)
 
 @app.get("/exercises.json")
 async def serve_exercises():
