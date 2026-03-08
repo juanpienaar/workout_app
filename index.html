@@ -910,6 +910,81 @@ body {
   font-size: 13px;
 }
 
+/* --- Muscle Diagram --- */
+.muscle-diagram-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin: 0 16px 8px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-dim);
+  gap: 6px;
+}
+.muscle-diagram-toggle:hover { background: var(--card-border); }
+.muscle-diagram-container {
+  margin: 0 16px 12px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px 8px;
+  overflow: hidden;
+}
+.muscle-legend-chip {
+  display: inline-block;
+  margin: 2px 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 10px;
+}
+
+/* --- Metrics Screen --- */
+.metrics-screen {
+  padding: 16px;
+  padding-bottom: 100px;
+}
+.metric-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.metric-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.metric-input-row label {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 2px;
+}
+.metric-input-row input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 14px;
+}
+.metric-history-entry {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--card-border);
+  font-size: 13px;
+}
+.metric-history-entry:last-child { border-bottom: none; }
+
 .hidden { display: none !important; }
 </style>
 </head>
@@ -1003,6 +1078,7 @@ body {
     </div>
     <div class="header-right">
       <button class="header-btn" onclick="toggleTheme()" id="themeToggleHeader" title="Toggle light/dark mode" style="font-size:16px;">&#x1f319;</button>
+      <button class="header-btn" onclick="showMetrics()" title="Body Metrics" style="font-size:15px;">📏</button>
       <button class="header-btn" onclick="showHistory()" title="History">&#x1f4ca;</button>
       <button class="header-btn" onclick="confirmLogout()" title="Log Out" style="font-size:14px;">&#x23FB;</button>
     </div>
@@ -1135,6 +1211,19 @@ body {
   </div>
 </div>
 
+<!-- ======== METRICS SCREEN ======== -->
+<div id="metricsScreen" class="hidden">
+  <div class="header">
+    <div class="header-left">
+      <h2>📊 Body Metrics</h2>
+    </div>
+    <div class="header-right">
+      <button class="header-btn" onclick="showWorkout()" title="Back">&#x2715;</button>
+    </div>
+  </div>
+  <div id="metricsContent" class="metrics-screen"></div>
+</div>
+
 <script>
 // ==================== DATA ====================
 let programData = null;
@@ -1146,12 +1235,92 @@ let weekMap = [];
 let isViewOnly = false;
 let viewMode = 'week';
 
-// ==================== HASHING ====================
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+// ==================== JWT AUTH ====================
+let accessToken = null;
+let refreshToken = null;
+
+function getStoredTokens() {
+  // Check localStorage first (remember me), then sessionStorage
+  let at = localStorage.getItem('nn_access_token');
+  let rt = localStorage.getItem('nn_refresh_token');
+  let user = localStorage.getItem('nn_user');
+  if (at && rt && user) return { at, rt, user, storage: 'local' };
+  at = sessionStorage.getItem('nn_access_token');
+  rt = sessionStorage.getItem('nn_refresh_token');
+  user = sessionStorage.getItem('nn_user');
+  if (at && rt && user) return { at, rt, user, storage: 'session' };
+  return null;
+}
+
+function storeTokens(at, rt, userName, remember) {
+  accessToken = at;
+  refreshToken = rt;
+  const storage = remember ? localStorage : sessionStorage;
+  storage.setItem('nn_access_token', at);
+  storage.setItem('nn_refresh_token', rt);
+  storage.setItem('nn_user', userName);
+  // Clear the other storage
+  const other = remember ? sessionStorage : localStorage;
+  other.removeItem('nn_access_token');
+  other.removeItem('nn_refresh_token');
+  other.removeItem('nn_user');
+  // Also clear legacy keys
+  localStorage.removeItem('workout_current_user');
+  localStorage.removeItem('workout_auth_token');
+  sessionStorage.removeItem('workout_current_user');
+  sessionStorage.removeItem('workout_auth_token');
+}
+
+function clearTokens() {
+  accessToken = null;
+  refreshToken = null;
+  ['nn_access_token', 'nn_refresh_token', 'nn_user',
+   'workout_current_user', 'workout_auth_token'].forEach(k => {
+    localStorage.removeItem(k);
+    sessionStorage.removeItem(k);
+  });
+}
+
+async function refreshAccessToken() {
+  if (!refreshToken) return false;
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({refresh_token: refreshToken}),
+    });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    accessToken = data.access_token;
+    // Update in whichever storage has the token
+    if (localStorage.getItem('nn_access_token')) {
+      localStorage.setItem('nn_access_token', accessToken);
+    } else {
+      sessionStorage.setItem('nn_access_token', accessToken);
+    }
+    return true;
+  } catch { return false; }
+}
+
+async function authFetch(url, options = {}) {
+  if (!options.headers) options.headers = {};
+  if (accessToken) {
+    options.headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+  let resp = await fetch(url, options);
+  if (resp.status === 401 && refreshToken) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      options.headers['Authorization'] = `Bearer ${accessToken}`;
+      resp = await fetch(url, options);
+    }
+    if (resp.status === 401) {
+      clearTokens();
+      showLogin('Session expired. Please log in again.');
+      throw new Error('auth_expired');
+    }
+  }
+  return resp;
 }
 
 // ==================== INIT ====================
@@ -1164,28 +1333,38 @@ async function init() {
     return;
   }
 
-  // Check localStorage (stay logged in)
-  const savedUser = localStorage.getItem('workout_current_user');
-  const savedAuth = localStorage.getItem('workout_auth_token');
-  if (savedUser && programData.users[savedUser]) {
-    const userInfo = programData.users[savedUser];
-    if (savedAuth === userInfo.passwordHash) {
-      isViewOnly = false;
-      selectUser(savedUser);
-      return;
+  // Load exercises database for muscle mapping
+  loadExercisesDB();
+
+  // Check for stored JWT tokens
+  const stored = getStoredTokens();
+  if (stored) {
+    accessToken = stored.at;
+    refreshToken = stored.rt;
+    const userName = stored.user;
+    if (programData.users[userName]) {
+      // Verify token is still valid by making a quick request
+      try {
+        const testResp = await authFetch(`${SERVER_URL}/api/health`);
+        if (testResp.ok || testResp.status !== 401) {
+          isViewOnly = false;
+          selectUser(userName);
+          return;
+        }
+      } catch (e) {
+        if (e.message === 'auth_expired') return; // showLogin already called
+      }
     }
+    clearTokens();
   }
-  // Check sessionStorage (session-only login)
-  const sessionUser = sessionStorage.getItem('workout_current_user');
-  const sessionAuth = sessionStorage.getItem('workout_auth_token');
-  if (sessionUser && programData.users[sessionUser]) {
-    const userInfo = programData.users[sessionUser];
-    if (sessionAuth === userInfo.passwordHash) {
-      isViewOnly = false;
-      selectUser(sessionUser);
-      return;
-    }
+
+  // Legacy migration: check old-style stored credentials
+  const legacyUser = localStorage.getItem('workout_current_user') || sessionStorage.getItem('workout_current_user');
+  if (legacyUser) {
+    // Clear legacy tokens — user must re-login with JWT
+    clearTokens();
   }
+
   showLogin();
 }
 
@@ -1218,45 +1397,34 @@ async function doLogin() {
   if (!email) { errorEl.textContent = 'Please enter your email.'; return; }
   if (!password) { errorEl.textContent = 'Please enter your password.'; return; }
 
-  const userName = findUserByEmail(email);
-  if (!userName) {
-    errorEl.textContent = 'No account found with that email.';
-    return;
-  }
+  errorEl.textContent = 'Signing in...';
 
-  const userInfo = programData.users[userName];
-  const hash = await sha256(password);
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password}),
+    });
+    const data = await resp.json();
 
-  if (hash !== userInfo.passwordHash) {
-    errorEl.textContent = 'Incorrect password. Try again.';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('loginPassword').focus();
-    return;
-  }
+    if (!resp.ok) {
+      errorEl.textContent = data.detail || 'Invalid email or password.';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginPassword').focus();
+      return;
+    }
 
-  if (!userInfo.program || !programData.programs[userInfo.program]) {
-    errorEl.textContent = 'No program assigned to your account yet.';
-    return;
-  }
+    storeTokens(data.access_token, data.refresh_token, data.user_name, remember);
+    isViewOnly = false;
 
-  // Save session
-  if (remember) {
-    localStorage.setItem('workout_current_user', userName);
-    localStorage.setItem('workout_auth_token', hash);
-  } else {
-    sessionStorage.setItem('workout_current_user', userName);
-    sessionStorage.setItem('workout_auth_token', hash);
-    localStorage.removeItem('workout_current_user');
-    localStorage.removeItem('workout_auth_token');
-  }
-
-  isViewOnly = false;
-
-  // Check email verification
-  if (!userInfo.email_verified) {
-    showVerificationScreen(userName, userInfo.email || '');
-  } else {
-    selectUser(userName);
+    const userInfo = programData.users[data.user_name];
+    if (userInfo && !userInfo.email_verified) {
+      showVerificationScreen(data.user_name, userInfo.email || email);
+    } else {
+      selectUser(data.user_name);
+    }
+  } catch (e) {
+    errorEl.textContent = 'Could not reach server. Try again.';
   }
 }
 
@@ -1356,29 +1524,30 @@ function selectUser(name) {
   currentUser = name;
 
   const userInfo = programData.users[name];
-  const program = programData.programs[userInfo.program];
+  const program = userInfo.program ? programData.programs[userInfo.program] : null;
 
   allDays = [];
   weekMap = [];
-  let dayIdx = 0;
 
-  for (const week of program.weeks) {
-    const startIdx = dayIdx;
-    for (const day of week.days) {
-      allDays.push({ ...day, week: week.week });
-      dayIdx++;
+  if (program) {
+    let dayIdx = 0;
+    for (const week of program.weeks) {
+      const startIdx = dayIdx;
+      for (const day of week.days) {
+        allDays.push({ ...day, week: week.week });
+        dayIdx++;
+      }
+      weekMap.push({ weekNum: week.week, startDayIndex: startIdx, endDayIndex: dayIdx - 1 });
     }
-    weekMap.push({ weekNum: week.week, startDayIndex: startIdx, endDayIndex: dayIdx - 1 });
   }
 
   // Determine which week to show initially (based on today's date)
   currentWeekIndex = 0;
-  if (userInfo.startDate) {
+  if (program && userInfo.startDate) {
     const start = new Date(userInfo.startDate + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-    // Find which week contains today
     const todayDayIndex = Math.max(0, Math.min(diffDays, allDays.length - 1));
     for (let w = 0; w < weekMap.length; w++) {
       if (todayDayIndex >= weekMap[w].startDayIndex && todayDayIndex <= weekMap[w].endDayIndex) {
@@ -1389,10 +1558,12 @@ function selectUser(name) {
   }
 
   document.getElementById('headerName').textContent = name;
-  document.getElementById('headerProgram').textContent = userInfo.program;
+  document.getElementById('headerProgram').textContent = userInfo.program || 'No program';
 
-  // Default to today's day detail view
-  if (userInfo.startDate) {
+  if (!program) {
+    // No program assigned — show no-program screen
+    viewMode = 'noprogram';
+  } else if (userInfo.startDate) {
     const start = new Date(userInfo.startDate + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1407,7 +1578,9 @@ function selectUser(name) {
   archiveView = 'current';
   showWorkout();
   initWhoop();
-  pullDataFromServer().then(() => syncAllToServer());
+  if (program) {
+    pullDataFromServer().then(() => syncAllToServer());
+  }
 }
 
 // ==================== WORKOUT SCREEN ====================
@@ -1415,8 +1588,27 @@ function showWorkout() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('workoutScreen').classList.remove('hidden');
   document.getElementById('historyScreen').classList.add('hidden');
+  document.getElementById('metricsScreen').classList.add('hidden');
 
-  if (viewMode === 'week') {
+  if (viewMode === 'noprogram') {
+    document.getElementById('weekOverview').classList.add('hidden');
+    document.getElementById('dayDetail').classList.add('hidden');
+    document.getElementById('workoutContent').innerHTML = '';
+    // Show inline no-program message in weekOverview area
+    document.getElementById('weekOverview').classList.remove('hidden');
+    document.getElementById('weekCards').innerHTML = `
+      <div style="text-align:center;padding:60px 20px;">
+        <div style="font-size:48px;margin-bottom:16px;">🏋️</div>
+        <h2 style="margin-bottom:8px;">No Program Assigned</h2>
+        <p style="color:var(--text-dim);max-width:280px;margin:0 auto;">Your coach hasn't assigned a program yet. You can still log body metrics while you wait!</p>
+        <button onclick="showMetrics()" style="margin-top:20px;padding:12px 24px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📊 Log Metrics</button>
+      </div>`;
+    document.getElementById('weekLabel').textContent = '';
+    document.getElementById('weekDates').textContent = '';
+    document.getElementById('weekSummary').innerHTML = '';
+    document.getElementById('archiveToggle').style.display = 'none';
+  } else if (viewMode === 'week') {
+    document.getElementById('archiveToggle').style.display = '';
     document.getElementById('weekOverview').classList.remove('hidden');
     document.getElementById('dayDetail').classList.add('hidden');
     renderWeekOverview();
@@ -1711,6 +1903,12 @@ function renderDay() {
   const disabled = isViewOnly ? 'disabled' : '';
   let html = '';
 
+  // Muscle diagram toggle
+  html += `<div class="muscle-diagram-toggle" onclick="toggleMuscleDiagram()">
+    🏋️ Muscle Map <span id="muscleDiagramChevron">${muscleDiagramOpen ? '▲' : '▼'}</span>
+  </div>
+  <div id="muscleDiagramContainer" class="muscle-diagram-container ${muscleDiagramOpen ? '' : 'hidden'}"></div>`;
+
   // Include custom exercises added by the athlete
   const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
   let customExercises = [];
@@ -1885,6 +2083,15 @@ function renderDay() {
   }
 
   content.innerHTML = html;
+
+  // Render muscle diagram if open
+  if (muscleDiagramOpen) {
+    const diagramEl = document.getElementById('muscleDiagramContainer');
+    if (diagramEl) {
+      const loads = calculateDayMuscleLoads(day);
+      diagramEl.innerHTML = renderMuscleDiagram(loads);
+    }
+  }
 }
 
 // ==================== CARDIO PERSISTENCE ====================
@@ -2009,6 +2216,334 @@ function showWeightHistory(exerciseName) {
   document.body.insertAdjacentHTML('beforeend', chartHtml);
 }
 
+// ==================== MUSCLE DIAGRAM ====================
+const MUSCLE_MAP = {
+  "Chest":                      {primary: ["chest"], secondary: ["front_delts", "triceps"]},
+  "Back":                       {primary: ["upper_back", "lats"], secondary: ["biceps", "rear_delts"]},
+  "Shoulders":                  {primary: ["front_delts", "side_delts", "rear_delts"], secondary: ["traps"]},
+  "Legs (Quads)":               {primary: ["quads"], secondary: ["glutes", "core"]},
+  "Legs (Hamstrings & Glutes)": {primary: ["hamstrings", "glutes"], secondary: ["lower_back"]},
+  "Calves":                     {primary: ["calves"], secondary: []},
+  "Biceps":                     {primary: ["biceps"], secondary: ["forearms"]},
+  "Triceps":                    {primary: ["triceps"], secondary: ["front_delts"]},
+  "Core":                       {primary: ["core", "obliques"], secondary: ["lower_back"]},
+};
+
+// Try to match exercise name → body part using exercises.json embedded mappings
+let exercisesDB = null;
+async function loadExercisesDB() {
+  if (exercisesDB) return exercisesDB;
+  try {
+    const r = await fetch('exercises.json?v=' + Date.now());
+    exercisesDB = await r.json();
+  } catch { exercisesDB = {}; }
+  return exercisesDB;
+}
+
+function getExerciseBodyPart(exName) {
+  if (!exercisesDB) return null;
+  for (const [bodyPart, categories] of Object.entries(exercisesDB)) {
+    for (const [cat, exList] of Object.entries(categories)) {
+      for (const ex of exList) {
+        if (ex.name.toLowerCase() === exName.toLowerCase()) return bodyPart;
+      }
+    }
+  }
+  // Fuzzy match: check if exercise name contains a body part keyword
+  const lower = exName.toLowerCase();
+  const hints = {
+    'bench': 'Chest', 'press': 'Chest', 'fly': 'Chest', 'push up': 'Chest', 'pushup': 'Chest',
+    'row': 'Back', 'pull': 'Back', 'lat': 'Back', 'deadlift': 'Back',
+    'squat': 'Legs (Quads)', 'lunge': 'Legs (Quads)', 'leg press': 'Legs (Quads)', 'extension': 'Legs (Quads)',
+    'curl': 'Biceps', 'hammer': 'Biceps',
+    'tricep': 'Triceps', 'dip': 'Triceps', 'pushdown': 'Triceps', 'skull': 'Triceps',
+    'shoulder': 'Shoulders', 'lateral': 'Shoulders', 'raise': 'Shoulders', 'ohp': 'Shoulders',
+    'calf': 'Calves',
+    'crunch': 'Core', 'plank': 'Core', 'ab ': 'Core', 'sit up': 'Core',
+    'rdl': 'Legs (Hamstrings & Glutes)', 'hamstring': 'Legs (Hamstrings & Glutes)', 'glute': 'Legs (Hamstrings & Glutes)', 'hip thrust': 'Legs (Hamstrings & Glutes)',
+  };
+  for (const [kw, bp] of Object.entries(hints)) {
+    if (lower.includes(kw)) return bp;
+  }
+  return null;
+}
+
+function calculateDayMuscleLoads(day) {
+  const loads = {};
+  const allMuscles = ["chest","upper_back","lats","front_delts","side_delts","rear_delts","traps","biceps","triceps","forearms","quads","hamstrings","glutes","calves","core","obliques","lower_back"];
+  allMuscles.forEach(m => loads[m] = 0);
+
+  if (!day || day.isRest) return loads;
+
+  for (const group of day.exerciseGroups) {
+    for (const ex of group.exercises) {
+      const bp = getExerciseBodyPart(ex.name);
+      if (!bp || !MUSCLE_MAP[bp]) continue;
+      const sets = parseInt(ex.sets) || 0;
+      const rpe = parseFloat(ex.rpe) || 7;
+      const effort = sets * (rpe / 10);
+      for (const m of MUSCLE_MAP[bp].primary) loads[m] = (loads[m] || 0) + effort;
+      for (const m of MUSCLE_MAP[bp].secondary) loads[m] = (loads[m] || 0) + effort * 0.4;
+    }
+  }
+  return loads;
+}
+
+function muscleLoadColor(load, maxLoad) {
+  if (maxLoad === 0 || load === 0) return '#2a2a3a';
+  const ratio = Math.min(load / maxLoad, 1);
+  let r, g, b;
+  if (ratio < 0.5) {
+    const t = ratio * 2;
+    r = Math.round(40 + t * 215);
+    g = Math.round(80 + t * 140);
+    b = Math.round(220 - t * 180);
+  } else {
+    const t = (ratio - 0.5) * 2;
+    r = 255;
+    g = Math.round(220 - t * 200);
+    b = Math.round(40 - t * 40);
+  }
+  return `rgb(${r},${g},${b})`;
+}
+
+function renderMuscleDiagram(loads) {
+  const maxLoad = Math.max(...Object.values(loads), 0);
+  const c = m => muscleLoadColor(loads[m] || 0, maxLoad);
+
+  let html = `<div style="display:flex;justify-content:center;gap:8px;">
+  <!-- FRONT -->
+  <div style="text-align:center;">
+    <div style="color:var(--text-dim);font-size:10px;margin-bottom:2px;">Front</div>
+    <svg width="110" height="242" viewBox="0 0 140 310">
+      <ellipse cx="70" cy="22" rx="14" ry="17" fill="#333" stroke="#555" stroke-width="0.5"/>
+      <rect x="60" y="38" width="20" height="10" rx="3" fill="${c('traps')}"/>
+      <ellipse cx="40" cy="56" rx="12" ry="10" fill="${c('front_delts')}"/>
+      <ellipse cx="100" cy="56" rx="12" ry="10" fill="${c('front_delts')}"/>
+      <ellipse cx="32" cy="52" rx="7" ry="9" fill="${c('side_delts')}"/>
+      <ellipse cx="108" cy="52" rx="7" ry="9" fill="${c('side_delts')}"/>
+      <ellipse cx="55" cy="72" rx="18" ry="14" fill="${c('chest')}"/>
+      <ellipse cx="85" cy="72" rx="18" ry="14" fill="${c('chest')}"/>
+      <ellipse cx="28" cy="85" rx="7" ry="18" fill="${c('biceps')}"/>
+      <ellipse cx="112" cy="85" rx="7" ry="18" fill="${c('biceps')}"/>
+      <rect x="50" y="88" width="40" height="35" rx="5" fill="${c('core')}"/>
+      <rect x="42" y="92" width="9" height="26" rx="3" fill="${c('obliques')}"/>
+      <rect x="89" y="92" width="9" height="26" rx="3" fill="${c('obliques')}"/>
+      <ellipse cx="22" cy="118" rx="5" ry="18" fill="${c('forearms')}"/>
+      <ellipse cx="118" cy="118" rx="5" ry="18" fill="${c('forearms')}"/>
+      <ellipse cx="55" cy="165" rx="14" ry="35" fill="${c('quads')}"/>
+      <ellipse cx="85" cy="165" rx="14" ry="35" fill="${c('quads')}"/>
+      <ellipse cx="52" cy="235" rx="9" ry="28" fill="${c('calves')}"/>
+      <ellipse cx="88" cy="235" rx="9" ry="28" fill="${c('calves')}"/>
+    </svg>
+  </div>
+  <!-- BACK -->
+  <div style="text-align:center;">
+    <div style="color:var(--text-dim);font-size:10px;margin-bottom:2px;">Back</div>
+    <svg width="110" height="242" viewBox="0 0 140 310">
+      <ellipse cx="70" cy="22" rx="14" ry="17" fill="#333" stroke="#555" stroke-width="0.5"/>
+      <path d="M50,42 Q70,32 90,42 L85,55 Q70,48 55,55 Z" fill="${c('traps')}"/>
+      <ellipse cx="38" cy="56" rx="10" ry="9" fill="${c('rear_delts')}"/>
+      <ellipse cx="102" cy="56" rx="10" ry="9" fill="${c('rear_delts')}"/>
+      <rect x="48" y="58" width="44" height="22" rx="5" fill="${c('upper_back')}"/>
+      <ellipse cx="30" cy="82" rx="7" ry="18" fill="${c('triceps')}"/>
+      <ellipse cx="110" cy="82" rx="7" ry="18" fill="${c('triceps')}"/>
+      <path d="M48,78 L42,105 Q70,115 98,105 L92,78 Z" fill="${c('lats')}"/>
+      <rect x="55" y="105" width="30" height="20" rx="4" fill="${c('lower_back')}"/>
+      <ellipse cx="22" cy="118" rx="5" ry="18" fill="${c('forearms')}"/>
+      <ellipse cx="118" cy="118" rx="5" ry="18" fill="${c('forearms')}"/>
+      <ellipse cx="55" cy="135" rx="16" ry="12" fill="${c('glutes')}"/>
+      <ellipse cx="85" cy="135" rx="16" ry="12" fill="${c('glutes')}"/>
+      <ellipse cx="55" cy="175" rx="13" ry="30" fill="${c('hamstrings')}"/>
+      <ellipse cx="85" cy="175" rx="13" ry="30" fill="${c('hamstrings')}"/>
+      <ellipse cx="52" cy="235" rx="9" ry="28" fill="${c('calves')}"/>
+      <ellipse cx="88" cy="235" rx="9" ry="28" fill="${c('calves')}"/>
+    </svg>
+  </div>
+  </div>`;
+
+  // Legend
+  const active = Object.entries(loads).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+  if (active.length > 0) {
+    html += '<div style="text-align:center;margin-top:8px;">';
+    for (const [m, v] of active) {
+      html += `<span class="muscle-legend-chip" style="background:${muscleLoadColor(v, maxLoad)}">${m.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())} (${v.toFixed(0)})</span>`;
+    }
+    html += '</div>';
+  }
+  return html;
+}
+
+let muscleDiagramOpen = false;
+
+function toggleMuscleDiagram() {
+  muscleDiagramOpen = !muscleDiagramOpen;
+  const container = document.getElementById('muscleDiagramContainer');
+  const chevron = document.getElementById('muscleDiagramChevron');
+  if (muscleDiagramOpen) {
+    container.classList.remove('hidden');
+    chevron.textContent = '▲';
+    // Render
+    const day = allDays[currentDayIndex];
+    if (day && !day.isRest) {
+      const loads = calculateDayMuscleLoads(day);
+      container.innerHTML = renderMuscleDiagram(loads);
+    }
+  } else {
+    container.classList.add('hidden');
+    chevron.textContent = '▼';
+  }
+}
+
+// ==================== BODY METRICS ====================
+const METRIC_FIELDS = [
+  {key: 'weight_kg', label: 'Weight (kg)'},
+  {key: 'body_fat_pct', label: 'Body Fat (%)'},
+  {key: 'chest_cm', label: 'Chest (cm)'},
+  {key: 'waist_cm', label: 'Waist (cm)'},
+  {key: 'hips_cm', label: 'Hips (cm)'},
+  {key: 'bicep_cm', label: 'Bicep (cm)'},
+  {key: 'thigh_cm', label: 'Thigh (cm)'},
+  {key: 'calf_cm', label: 'Calf (cm)'},
+];
+
+function showMetrics() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('workoutScreen').classList.add('hidden');
+  document.getElementById('historyScreen').classList.add('hidden');
+  document.getElementById('metricsScreen').classList.remove('hidden');
+  renderMetrics();
+}
+
+async function renderMetrics() {
+  const container = document.getElementById('metricsContent');
+  // Load metrics from server
+  let entries = [];
+  try {
+    const resp = await authFetch(`${SERVER_URL}/api/metrics`);
+    if (resp.ok) {
+      const data = await resp.json();
+      entries = data.entries || [];
+    }
+  } catch (e) { console.warn('[metrics] fetch failed:', e); }
+
+  // Also check localStorage fallback
+  const localKey = `metrics_${currentUser}`;
+  let localEntries = [];
+  try { localEntries = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch {}
+
+  // Merge: use server data if available, else local
+  if (entries.length === 0 && localEntries.length > 0) entries = localEntries;
+
+  let html = '';
+
+  // Log new measurement form
+  html += `<div class="metric-card">
+    <h3 style="margin-bottom:12px;font-size:16px;">Log Measurement</h3>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;color:var(--text-dim);display:block;margin-bottom:2px;">Date</label>
+      <input type="date" id="metricDate" value="${new Date().toISOString().split('T')[0]}"
+        style="width:100%;padding:10px;border:1px solid var(--card-border);border-radius:8px;background:var(--input-bg);color:var(--text);font-size:14px;">
+    </div>
+    <div class="metric-input-row">`;
+  for (const f of METRIC_FIELDS) {
+    html += `<div>
+      <label>${f.label}</label>
+      <input type="number" inputmode="decimal" id="metric_${f.key}" placeholder="—" step="0.1">
+    </div>`;
+  }
+  html += `</div>
+    <button onclick="saveMetricEntry()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:14px;">Save Measurement</button>
+  </div>`;
+
+  // Latest stats summary
+  if (entries.length > 0) {
+    const latest = entries[entries.length - 1];
+    html += `<div class="metric-card">
+      <h3 style="margin-bottom:8px;font-size:16px;">Latest (${latest.date || '—'})</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;">`;
+    for (const f of METRIC_FIELDS) {
+      const val = latest[f.key];
+      if (val) {
+        html += `<div style="text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:var(--accent);">${val}</div>
+          <div style="font-size:10px;color:var(--text-dim);">${f.label}</div>
+        </div>`;
+      }
+    }
+    html += '</div></div>';
+
+    // Progress chart (weight over time as simple bar chart)
+    const weightEntries = entries.filter(e => e.weight_kg).slice(-20);
+    if (weightEntries.length > 1) {
+      const maxW = Math.max(...weightEntries.map(e => parseFloat(e.weight_kg)));
+      const minW = Math.min(...weightEntries.map(e => parseFloat(e.weight_kg)));
+      html += `<div class="metric-card">
+        <h3 style="margin-bottom:8px;font-size:16px;">Weight Trend</h3>`;
+      for (const e of weightEntries) {
+        const w = parseFloat(e.weight_kg);
+        const range = maxW - minW || 1;
+        const barPct = 30 + ((w - minW) / range) * 70;
+        html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div style="font-size:10px;color:var(--text-dim);width:60px;">${e.date || '—'}</div>
+          <div style="flex:1;height:18px;background:var(--input-bg);border-radius:4px;overflow:hidden;">
+            <div style="width:${barPct}%;height:100%;background:linear-gradient(90deg,var(--accent),var(--nn-warm));border-radius:4px;"></div>
+          </div>
+          <div style="font-size:12px;width:45px;text-align:right;">${w}kg</div>
+        </div>`;
+      }
+      html += '</div>';
+    }
+
+    // History table
+    html += `<div class="metric-card">
+      <h3 style="margin-bottom:8px;font-size:16px;">All Entries</h3>
+      <div style="overflow-x:auto;">`;
+    for (const entry of [...entries].reverse().slice(0, 30)) {
+      const vals = METRIC_FIELDS.map(f => entry[f.key] ? `${f.label.split(' ')[0]}: ${entry[f.key]}` : '').filter(Boolean).join(' · ');
+      html += `<div class="metric-history-entry">
+        <span style="color:var(--text-dim);min-width:80px;">${entry.date || '—'}</span>
+        <span>${vals || 'No data'}</span>
+      </div>`;
+    }
+    html += '</div></div>';
+  }
+
+  container.innerHTML = html;
+}
+
+async function saveMetricEntry() {
+  const date = document.getElementById('metricDate').value;
+  const entry = { date };
+  let hasData = false;
+  for (const f of METRIC_FIELDS) {
+    const val = document.getElementById(`metric_${f.key}`).value;
+    if (val) {
+      entry[f.key] = parseFloat(val);
+      hasData = true;
+    }
+  }
+  if (!hasData) { alert('Enter at least one measurement'); return; }
+
+  // Save to server
+  try {
+    await authFetch(`${SERVER_URL}/api/save-metrics`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(entry),
+    });
+  } catch (e) { console.warn('[metrics] server save failed:', e); }
+
+  // Also save to localStorage
+  const localKey = `metrics_${currentUser}`;
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch {}
+  entries.push(entry);
+  localStorage.setItem(localKey, JSON.stringify(entries));
+
+  renderMetrics();
+}
+
 // ==================== DATA PERSISTENCE ====================
 const SERVER_URL = window.location.origin;
 let serverAvailable = null; // null = unknown, true/false after first check
@@ -2016,7 +2551,7 @@ let serverAvailable = null; // null = unknown, true/false after first check
 async function checkServer() {
   if (serverAvailable !== null) return serverAvailable;
   try {
-    const r = await fetch(`${SERVER_URL}/whoop/status?user=_ping`, {method: 'GET'});
+    const r = await fetch(`${SERVER_URL}/api/health`, {method: 'GET'});
     serverAvailable = r.ok;
   } catch { serverAvailable = false; }
   return serverAvailable;
@@ -2040,7 +2575,7 @@ function saveDayData(dayIndex, data) {
 }
 
 function syncDayToServer(dayIndex, data) {
-  if (serverAvailable === false) return;
+  if (serverAvailable === false || !accessToken) return;
   const day = allDays[dayIndex];
   const meta = day ? {week: day.week, day: day.day, label: day.label || ''} : {};
   const userInfo = programData?.users?.[currentUser];
@@ -2048,10 +2583,10 @@ function syncDayToServer(dayIndex, data) {
     const start = new Date(userInfo.startDate + 'T00:00:00');
     meta.date = new Date(start.getTime() + dayIndex * 86400000).toISOString().split('T')[0];
   }
-  fetch(`${SERVER_URL}/api/save-day`, {
+  authFetch(`${SERVER_URL}/api/save-day`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({user: currentUser, day_key: `day_${dayIndex}`, data, meta}),
+    body: JSON.stringify({day_key: `day_${dayIndex}`, data, meta}),
   }).catch(e => console.warn('[sync] save-day failed:', e));
 }
 
@@ -2065,9 +2600,9 @@ function saveCurrentDay() {
 
 // Pull workout data from server (for cross-device access)
 async function pullDataFromServer() {
-  if (!(await checkServer())) return;
+  if (!(await checkServer()) || !accessToken) return;
   try {
-    const resp = await fetch(`${SERVER_URL}/api/data?user=${encodeURIComponent(currentUser)}`);
+    const resp = await authFetch(`${SERVER_URL}/api/data`);
     if (!resp.ok) return;
     const serverData = await resp.json();
     const logs = serverData.workout_logs || {};
@@ -2111,11 +2646,11 @@ async function syncAllToServer() {
       days[`day_${i}`] = {data, meta};
     }
   }
-  if (Object.keys(days).length > 0) {
-    fetch(`${SERVER_URL}/api/sync-all`, {
+  if (Object.keys(days).length > 0 && accessToken) {
+    authFetch(`${SERVER_URL}/api/sync-all`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user: currentUser, days}),
+      body: JSON.stringify({days}),
     }).catch(e => console.warn('[sync] sync-all failed:', e));
   }
 }
@@ -2216,6 +2751,7 @@ function updateDayDetailStats() {
 function showHistory() {
   if (!isViewOnly) saveCurrentDay();
   document.getElementById('workoutScreen').classList.add('hidden');
+  document.getElementById('metricsScreen').classList.add('hidden');
   document.getElementById('historyScreen').classList.remove('hidden');
 
   const container = document.getElementById('historyContent');
@@ -2266,10 +2802,7 @@ function showHistory() {
 
 function logout() {
   if (!isViewOnly) saveCurrentDay();
-  localStorage.removeItem('workout_current_user');
-  localStorage.removeItem('workout_auth_token');
-  sessionStorage.removeItem('workout_current_user');
-  sessionStorage.removeItem('workout_auth_token');
+  clearTokens();
   isViewOnly = false;
   viewMode = 'week';
   closeLogoutModal();
@@ -2496,7 +3029,7 @@ function closeSettings() {
 }
 
 // ==================== WHOOP INTEGRATION ====================
-const WHOOP_SERVER = window.location.origin; // works when served via server.py
+const WHOOP_SERVER = SERVER_URL;
 let whoopExpanded = false;
 
 function toggleWhoopBanner(e) {
@@ -2518,7 +3051,7 @@ async function initWhoop() {
   if (!currentUser) return;
   const banner = document.getElementById('whoopBanner');
   try {
-    const resp = await fetch(`${WHOOP_SERVER}/whoop/status?user=${encodeURIComponent(currentUser)}`);
+    const resp = await authFetch(`${WHOOP_SERVER}/whoop/status?user=${encodeURIComponent(currentUser)}`);
     if (!resp.ok) { banner.classList.add('hidden'); return; }
     const data = await resp.json();
     banner.classList.remove('hidden');
@@ -2545,7 +3078,7 @@ function showWhoopConnect() {
 async function connectWhoop(e) {
   if (e) e.stopPropagation();
   try {
-    const resp = await fetch(`${WHOOP_SERVER}/whoop/auth?user=${encodeURIComponent(currentUser)}`);
+    const resp = await authFetch(`${WHOOP_SERVER}/whoop/auth?user=${encodeURIComponent(currentUser)}`);
     const data = await resp.json();
     if (data.auth_url) {
       // Try popup first (desktop), fall back to redirect (mobile)
@@ -2566,7 +3099,7 @@ async function connectWhoop(e) {
       alert(data.error || 'Could not start Whoop authorization.');
     }
   } catch (e) {
-    alert('Could not reach the server. Make sure server.py is running.');
+    alert('Could not reach the server.');
   }
 }
 
@@ -2575,7 +3108,7 @@ async function loadWhoopData() {
   document.getElementById('whoopContent').innerHTML = '<div class="whoop-loading">Loading...</div>';
 
   try {
-    const resp = await fetch(`${WHOOP_SERVER}/whoop/summary?user=${encodeURIComponent(currentUser)}`);
+    const resp = await authFetch(`${WHOOP_SERVER}/whoop/summary?user=${encodeURIComponent(currentUser)}`);
     if (!resp.ok) {
       if (resp.status === 401) { showWhoopConnect(); return; }
       throw new Error('API error');
@@ -2684,10 +3217,10 @@ function saveWhoopSnapshot(data) {
     snapshot.sleep_score = Math.round(s.sleep_performance_percentage || 0);
     snapshot.sleep_consistency = Math.round(s.sleep_consistency_percentage || 0);
   }
-  fetch(`${SERVER_URL}/api/save-whoop`, {
+  authFetch(`${SERVER_URL}/api/save-whoop`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({user: currentUser, snapshot}),
+    body: JSON.stringify({snapshot}),
   }).catch(e => console.warn('[sync] save-whoop failed:', e));
 }
 
@@ -2695,7 +3228,7 @@ async function disconnectWhoop(e) {
   if (e) e.stopPropagation();
   if (!confirm('Disconnect your Whoop account?')) return;
   try {
-    await fetch(`${WHOOP_SERVER}/whoop/disconnect?user=${encodeURIComponent(currentUser)}`);
+    await authFetch(`${WHOOP_SERVER}/whoop/disconnect?user=${encodeURIComponent(currentUser)}`);
   } catch {}
   showWhoopConnect();
 }

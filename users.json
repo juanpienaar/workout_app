@@ -3,18 +3,22 @@
     "program": "Functional Body Composition",
     "startDate": "2026-02-23",
     "email": "juan.paul.pienaar@gmail.com",
-    "passwordHash": "921944021f6f2f69b1d487228b95c0191854a5e6bc1311318bee865dd8f5c7a7"
+    "passwordHash": "$2b$12$S7U6JeZ3hbaKqG9/tgNlQ./3m0jKeluFEdJ6x8DTAewn3OYRAUHk6",
+    "role": "coach",
+    "email_verified": true
   },
   "Jack Collet": {
     "program": "JackProgram",
     "startDate": "2026-02-23",
-    "passwordHash": "921944021f6f2f69b1d487228b95c0191854a5e6bc1311318bee865dd8f5c7a7",
-    "email": "jack.collett@numnum.com"
+    "passwordHash": "$2b$12$S7U6JeZ3hbaKqG9/tgNlQ./3m0jKeluFEdJ6x8DTAewn3OYRAUHk6",
+    "email": "jack.collett@numnum.com",
+    "role": "athlete"
   },
   "Caroline Pienaar": {
-    "passwordHash": "921944021f6f2f69b1d487228b95c0191854a5e6bc1311318bee865dd8f5c7a7",
+    "passwordHash": "$2b$12$S7U6JeZ3hbaKqG9/tgNlQ./3m0jKeluFEdJ6x8DTAewn3OYRAUHk6",
     "program": "Functional Body Composition",
     "startDate": "2026-03-06",
-    "email": "caroline_pienaar@yahoo.com"
+    "email": "caroline_pienaar@yahoo.com",
+    "role": "athlete"
   }
 }

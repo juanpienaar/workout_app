@@ -24,6 +24,7 @@ CSV_FILE = APP_DIR / "program.csv"
 USERS_FILE = APP_DIR / "users.json"
 EXERCISES_FILE = APP_DIR / "exercises.json"
 PROGRAM_JSON = APP_DIR / "program.json"
+DATA_DIR = APP_DIR / "user_data"
 APP_URL = "https://numnum.fit/"
 COST_FILE = APP_DIR / "api_costs.json"
 METRICS_FILE = APP_DIR / "user_metrics.json"
@@ -1989,13 +1990,12 @@ elif page == "👥 Users":
     programs = get_program_names()
     all_metrics = load_metrics()
 
-    # ---- Users overview table ----
     active_users = {k: v for k, v in users.items() if not v.get("archived")}
     archived_users = {k: v for k, v in users.items() if v.get("archived")}
+    user_names_list = list(active_users.keys())
 
     if active_users:
-        st.subheader("Active Users")
-
+        # Build clickable table
         table_rows = []
         for name, info in active_users.items():
             table_rows.append({
@@ -2003,25 +2003,29 @@ elif page == "👥 Users":
                 "Email": info.get("email", ""),
                 "Program": info.get("program", "") or "—",
                 "Start Date": info.get("startDate", "") or "—",
-                "Password Set": "Yes" if "passwordHash" in info else "No",
-                "Email Verified": "Yes" if info.get("email_verified") else "No",
+                "Password": "✅" if "passwordHash" in info else "❌",
+                "Verified": "✅" if info.get("email_verified") else "❌",
             })
         overview_df = pd.DataFrame(table_rows)
-        st.dataframe(overview_df, use_container_width=True, hide_index=True)
 
-        # ---- Per-user editing via selection ----
-        selected_user = st.selectbox(
-            "Select user to manage",
-            ["— Select —"] + list(active_users.keys()),
-            key="manage_user_sel",
+        selection = st.dataframe(
+            overview_df,
+            use_container_width=True,
+            hide_index=True,
+            selection_mode="single-row",
+            on_select="rerun",
+            key="users_table",
         )
 
-        if selected_user != "— Select —":
+        # Determine selected user from table click
+        selected_rows = selection.selection.rows if selection and selection.selection else []
+        selected_user = user_names_list[selected_rows[0]] if selected_rows else None
+
+        if selected_user:
             info = users[selected_user]
             st.divider()
-
-            # Editable fields
             st.markdown(f"### {selected_user}")
+
             ecol1, ecol2 = st.columns(2)
             with ecol1:
                 edit_email = st.text_input("Email", value=info.get("email", ""), key=f"ue_{selected_user}")
@@ -2038,7 +2042,6 @@ elif page == "👥 Users":
                 verified = info.get("email_verified", False)
                 st.caption(f"Password: {'✅' if has_pw else '❌'} · Email verified: {'✅' if verified else '❌'}")
 
-            # Action buttons
             btn_cols = st.columns(4)
             with btn_cols[0]:
                 if st.button("💾 Save", key=f"usave_{selected_user}", type="primary"):
@@ -2048,7 +2051,6 @@ elif page == "👥 Users":
                         old_email = info.get("email", "")
                         new_email_val = edit_email.strip().lower()
                         users[selected_user]["email"] = new_email_val
-                        # Reset verification if email changed
                         if new_email_val != old_email:
                             users[selected_user]["email_verified"] = False
                     if edit_pass:
@@ -2074,11 +2076,11 @@ elif page == "👥 Users":
                         st.rerun()
                     else:
                         st.session_state[f"confirm_del_{selected_user}"] = True
-                        st.warning(f"Click Remove again to confirm deleting {selected_user}.")
+                        st.warning(f"Click Remove again to confirm.")
                         st.rerun()
 
-            # ---- Body Metrics (collapsible) ----
-            with st.expander(f"📊 Body Metrics — {selected_user}", expanded=False):
+            # Body Metrics
+            with st.expander(f"📊 Body Metrics", expanded=False):
                 user_entries = all_metrics.get(selected_user, {}).get("entries", [])
 
                 with st.expander("Log new measurement", expanded=False):
@@ -2139,7 +2141,7 @@ elif page == "👥 Users":
                     st.caption("No measurements logged yet.")
 
     else:
-        st.info("No active users. Add one below.")
+        st.info("No users yet. Add one below.")
 
     # ---- Archived users ----
     if archived_users:
@@ -2160,68 +2162,45 @@ elif page == "👥 Users":
                         save_users(users)
                         st.rerun()
 
-    # ---- Quick Assign ----
-    if programs and active_users:
-        st.divider()
-        st.subheader("Quick Assign")
-        qcol1, qcol2, qcol3 = st.columns(3)
-        with qcol1:
-            qa_program = st.selectbox("Program", programs, key="qa_prog")
-        with qcol2:
-            qa_users = st.multiselect("Users", list(active_users.keys()), key="qa_users")
-        with qcol3:
-            qa_date = st.text_input("Start Date", value=datetime.now().strftime("%Y-%m-%d"), key="qa_date")
-
-        if st.button("✅ Assign Program", type="primary"):
-            if qa_users:
-                for u in qa_users:
-                    users[u]["program"] = qa_program
-                    users[u]["startDate"] = qa_date
-                save_users(users)
-                st.success(f"Assigned {qa_program} to {', '.join(qa_users)}")
-                st.rerun()
-            else:
-                st.error("Select at least one user.")
-
-    # ---- Add New User ----
+    # ---- Add New User (inline at bottom) ----
     st.divider()
-    st.subheader("Add New User")
-    col1, col2 = st.columns(2)
-    with col1:
-        new_name = st.text_input("Name")
-        new_email = st.text_input("Email")
-    with col2:
-        new_password = st.text_input("Password", type="password")
-        new_prog_options = ["— No program —"] + programs
-        new_program = st.selectbox("Program (optional)", new_prog_options, key="new_user_prog")
-        if new_program == "— No program —":
-            new_program = ""
+    with st.expander("➕ Add New User"):
+        ac1, ac2 = st.columns(2)
+        with ac1:
+            new_name = st.text_input("Name", key="new_user_name")
+            new_email = st.text_input("Email", key="new_user_email")
+        with ac2:
+            new_password = st.text_input("Password", type="password", key="new_user_pass")
+            new_prog_options = ["— No program —"] + programs
+            new_program = st.selectbox("Program (optional)", new_prog_options, key="new_user_prog")
+            if new_program == "— No program —":
+                new_program = ""
 
-    if st.button("➕ Add User", type="primary"):
-        if not new_name:
-            st.error("Name is required")
-        elif not new_email:
-            st.error("Email is required")
-        elif not new_password:
-            st.error("Password is required")
-        elif new_name in users:
-            st.error(f"{new_name} already exists")
-        else:
-            user_data = {
-                "email": new_email.strip().lower(),
-                "passwordHash": hash_password(new_password),
-                "email_verified": False,
-            }
-            if new_program:
-                user_data["program"] = new_program
-                user_data["startDate"] = datetime.now().strftime("%Y-%m-%d")
+        if st.button("➕ Add User", type="primary"):
+            if not new_name:
+                st.error("Name is required")
+            elif not new_email:
+                st.error("Email is required")
+            elif not new_password:
+                st.error("Password is required")
+            elif new_name in users:
+                st.error(f"{new_name} already exists")
             else:
-                user_data["program"] = ""
-                user_data["startDate"] = ""
-            users[new_name] = user_data
-            save_users(users)
-            st.success(f"Added {new_name}" + (f" → {new_program}" if new_program else ""))
-            st.rerun()
+                user_data = {
+                    "email": new_email.strip().lower(),
+                    "passwordHash": hash_password(new_password),
+                    "email_verified": False,
+                }
+                if new_program:
+                    user_data["program"] = new_program
+                    user_data["startDate"] = datetime.now().strftime("%Y-%m-%d")
+                else:
+                    user_data["program"] = ""
+                    user_data["startDate"] = ""
+                users[new_name] = user_data
+                save_users(users)
+                st.success(f"Added {new_name}" + (f" → {new_program}" if new_program else ""))
+                st.rerun()
 
 
 # ==================== PAGE: EXERCISES ====================
@@ -2600,29 +2579,46 @@ elif page == "📊 Coach Dashboard":
     st.title("📊 Coach Dashboard")
     st.caption("View workout logs and Whoop data synced from the live app.")
 
-    # Server URL - defaults to numnum.fit, can be overridden
-    COACH_SERVER = os.environ.get("NUMNUM_SERVER_URL", "https://numnum.fit")
+    # Coach data — read directly from JSON files on disk (no API call needed)
+    COACH_SERVER = "local"  # kept for compatibility with existing references
 
-    def _coach_request(url):
-        """Make a request with proper User-Agent to avoid Cloudflare blocks."""
-        req = urllib.request.Request(url, headers={"User-Agent": "NumNumAdmin/1.0"})
-        r = urllib.request.urlopen(req, timeout=10)
-        return json.loads(r.read())
+    def _load_user_data_file(user_key):
+        """Load a user's data file from disk."""
+        safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in user_key)
+        f = DATA_DIR / f"{safe_name}.json"
+        if f.exists():
+            with open(f) as fh:
+                return json.load(fh)
+        return {"workout_logs": {}, "whoop_snapshots": [], "notes": {}}
 
     @st.cache_data(ttl=30)
-    def fetch_coach_users(server_url):
-        """Fetch user list from the server's coach API."""
+    def fetch_coach_users(_server_url=None):
+        """List all users with data from disk."""
         try:
-            return _coach_request(f"{server_url}/api/coach/users")
+            users = []
+            for f in DATA_DIR.glob("*.json"):
+                user_key = f.stem
+                data = _load_user_data_file(user_key)
+                log_count = len(data.get("workout_logs", {}))
+                whoop_count = len(data.get("whoop_snapshots", []))
+                latest_log = None
+                if data.get("workout_logs"):
+                    latest_log = max(data["workout_logs"].keys())
+                users.append({
+                    "user": user_key,
+                    "workout_logs": log_count,
+                    "whoop_snapshots": whoop_count,
+                    "latest_log": latest_log,
+                })
+            return {"users": users}
         except Exception as e:
             return {"error": str(e)}
 
     @st.cache_data(ttl=30)
-    def fetch_coach_user_data(server_url, user_key):
-        """Fetch a specific user's full data from the server."""
+    def fetch_coach_user_data(_server_url=None, user_key=""):
+        """Load a specific user's full data from disk."""
         try:
-            encoded = urllib.parse.quote(user_key)
-            return _coach_request(f"{server_url}/api/coach/user/{encoded}")
+            return _load_user_data_file(user_key)
         except Exception as e:
             return {"error": str(e)}
 
