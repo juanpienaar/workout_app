@@ -35,9 +35,17 @@ WHOOP_SCOPES = "read:recovery read:cycles read:sleep read:workout read:profile r
 # Encryption
 ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY", "")
 
-# Data paths
-USERS_FILE = APP_DIR / "users.json"
-DATA_DIR = APP_DIR / "user_data"
-WHOOP_CONFIG_FILE = APP_DIR / "whoop_config.json"
-WHOOP_TOKENS_FILE = APP_DIR / "whoop_tokens.json"
-METRICS_FILE = APP_DIR / "user_metrics.json"
+# Data paths — use RAILWAY_VOLUME_MOUNT_PATH if available (persistent storage),
+# otherwise fall back to app directory (local dev)
+_VOLUME = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "")
+DATA_ROOT = Path(_VOLUME) if _VOLUME else APP_DIR
+
+USERS_FILE = DATA_ROOT / "users.json"
+PROGRAM_FILE = DATA_ROOT / "program.json"
+EXERCISES_FILE = DATA_ROOT / "exercises.json"
+PROGRAM_CSV = DATA_ROOT / "program.csv"
+DATA_DIR = DATA_ROOT / "user_data"
+WHOOP_CONFIG_FILE = DATA_ROOT / "whoop_config.json"
+WHOOP_TOKENS_FILE = DATA_ROOT / "whoop_tokens.json"
+METRICS_FILE = DATA_ROOT / "user_metrics.json"
+API_COSTS_FILE = DATA_ROOT / "api_costs.json"

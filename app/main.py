@@ -1,5 +1,6 @@
 """FastAPI application — replaces server.py."""
 
+import shutil
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -36,12 +37,61 @@ async def health():
     return {"status": "ok", "version": "1.0.0"}
 
 
+# ---- Serve data files from volume (overrides static mount) ----
+import json
+from fastapi.responses import JSONResponse
+
+@app.get("/program.json")
+async def serve_program():
+    if config.PROGRAM_FILE.exists():
+        with open(config.PROGRAM_FILE) as f:
+            return JSONResponse(json.load(f))
+    return JSONResponse({"programs": {}})
+
+@app.get("/exercises.json")
+async def serve_exercises():
+    if config.EXERCISES_FILE.exists():
+        with open(config.EXERCISES_FILE) as f:
+            return JSONResponse(json.load(f))
+    return JSONResponse({})
+
+
+# ---- Seed volume on first deploy ----
+def seed_volume():
+    """Copy data files from app dir to persistent volume if they don't exist yet."""
+    if config.DATA_ROOT == config.APP_DIR:
+        return  # Local dev — no volume, nothing to seed
+
+    config.DATA_ROOT.mkdir(parents=True, exist_ok=True)
+    config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Files to seed from the git repo into the volume
+    seed_files = [
+        "users.json", "program.json", "exercises.json", "program.csv",
+        "whoop_config.json", "whoop_tokens.json", "user_metrics.json",
+    ]
+    for fname in seed_files:
+        src = config.APP_DIR / fname
+        dst = config.DATA_ROOT / fname
+        if src.exists() and not dst.exists():
+            shutil.copy2(src, dst)
+            print(f"  Seeded {fname} → volume")
+
+    # Seed user_data directory
+    src_ud = config.APP_DIR / "user_data"
+    if src_ud.exists() and not config.DATA_DIR.exists():
+        shutil.copytree(src_ud, config.DATA_DIR)
+        print(f"  Seeded user_data/ → volume")
+
+
 # ---- Startup ----
 @app.on_event("startup")
 async def startup():
+    seed_volume()
     migrate_tokens_file()
     print(f"\n  NumNum Workout (FastAPI)")
     print(f"  http://localhost:{config.PORT}")
+    print(f"  Data root: {config.DATA_ROOT}")
     print(f"  CORS origins: {origins}")
     print()
 

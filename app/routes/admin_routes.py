@@ -59,27 +59,24 @@ class AIGenerateRequest(BaseModel):
 # ── Helpers ──────────────────────────────────────────────────────
 
 def _load_program_json() -> dict:
-    p = config.APP_DIR / "program.json"
+    p = config.PROGRAM_FILE
     if p.exists():
         with open(p) as f:
             return json.load(f)
     return {"programs": {}}
 
 def _save_program_json(data: dict):
-    p = config.APP_DIR / "program.json"
-    with open(p, "w") as f:
+    with open(config.PROGRAM_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
 def _load_exercises() -> dict:
-    p = config.APP_DIR / "exercises.json"
-    if p.exists():
-        with open(p) as f:
+    if config.EXERCISES_FILE.exists():
+        with open(config.EXERCISES_FILE) as f:
             return json.load(f)
     return {}
 
 def _save_exercises(data: dict):
-    p = config.APP_DIR / "exercises.json"
-    with open(p, "w") as f:
+    with open(config.EXERCISES_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
 
@@ -295,7 +292,7 @@ async def delete_exercise(group: str, name: str, coach: Annotated[dict, Depends(
 @router.post("/build")
 async def run_build(coach: Annotated[dict, Depends(require_coach)]):
     """Run build.py to regenerate program.json from program.csv."""
-    csv_file = config.APP_DIR / "program.csv"
+    csv_file = config.PROGRAM_CSV
     build_script = config.APP_DIR / "build.py"
     if not csv_file.exists():
         raise HTTPException(400, "program.csv not found")
@@ -305,7 +302,7 @@ async def run_build(coach: Annotated[dict, Depends(require_coach)]):
         result = subprocess.run(
             [sys.executable, str(build_script), str(csv_file)],
             capture_output=True, text=True, timeout=30,
-            cwd=str(config.APP_DIR),
+            cwd=str(config.DATA_ROOT),
         )
         if result.returncode != 0:
             raise HTTPException(500, f"Build failed: {result.stderr}")
@@ -324,7 +321,7 @@ async def import_csv(file: UploadFile = File(...), coach: Annotated[dict, Depend
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(400, "File must be a .csv")
     content = await file.read()
-    csv_path = config.APP_DIR / "program.csv"
+    csv_path = config.PROGRAM_CSV
     with open(csv_path, "wb") as f:
         f.write(content)
     # Run build
@@ -333,7 +330,7 @@ async def import_csv(file: UploadFile = File(...), coach: Annotated[dict, Depend
         result = subprocess.run(
             [sys.executable, str(build_script), str(csv_path)],
             capture_output=True, text=True, timeout=30,
-            cwd=str(config.APP_DIR),
+            cwd=str(config.DATA_ROOT),
         )
         if result.returncode != 0:
             raise HTTPException(500, f"Build failed: {result.stderr}")
@@ -433,13 +430,13 @@ async def deploy(body: dict, coach: Annotated[dict, Depends(require_coach)]):
         steps = []
 
         # 1. Run build.py if program.csv exists
-        csv_file = config.APP_DIR / "program.csv"
+        csv_file = config.PROGRAM_CSV
         build_script = config.APP_DIR / "build.py"
         if csv_file.exists() and build_script.exists():
             result = subprocess.run(
                 [sys.executable, str(build_script), str(csv_file)],
                 capture_output=True, text=True, timeout=30,
-                cwd=str(config.APP_DIR),
+                cwd=str(config.DATA_ROOT),
             )
             steps.append({"step": "build", "ok": result.returncode == 0, "output": result.stdout or result.stderr})
 

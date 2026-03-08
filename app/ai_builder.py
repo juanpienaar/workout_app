@@ -32,7 +32,7 @@ MODELS = {
     },
 }
 
-COST_FILE = config.DATA_DIR / "api_costs.json"
+COST_FILE = config.API_COSTS_FILE
 
 # ── System prompts ───────────────────────────────────────────────
 
@@ -99,7 +99,7 @@ def track_usage(input_tokens: int, output_tokens: int, model_key: str, descripti
 
 def build_exercise_library_context() -> str:
     """Format exercise library for Claude context."""
-    exercises_path = config.APP_DIR / "exercises.json"
+    exercises_path = config.EXERCISES_FILE
     if not exercises_path.exists():
         return "No exercise library available."
     with open(exercises_path) as f:
