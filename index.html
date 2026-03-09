@@ -345,9 +345,10 @@ body {
   flex-shrink: 0;
 }
 .day-nav-btn:disabled { opacity: 0.3; cursor: default; }
-.day-info { text-align: center; flex: 1; }
-.day-info .day-label { font-size: 18px; font-weight: 700; }
-.day-info .day-date { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+.day-info { text-align: center; flex: 1; cursor: pointer; }
+.day-info .day-week-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); }
+.day-info .day-label { font-size: 22px; font-weight: 700; margin-top: 2px; }
+.day-info .day-date { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 
 /* Sticky day detail header */
 .day-detail-sticky {
@@ -359,21 +360,7 @@ body {
   border-bottom: 1px solid var(--card-border);
 }
 
-/* Back to week button */
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  margin: 8px 20px;
-  border-radius: 8px;
-  border: 1px solid var(--card-border);
-  background: var(--card);
-  color: var(--text);
-  font-size: 14px;
-  cursor: pointer;
-}
-.back-btn:active { background: var(--accent); }
+/* Back to week: tap day header area */
 
 /* Day detail stats bar */
 .day-detail-stats {
@@ -395,16 +382,31 @@ body {
 /* --- Progress Bar --- */
 .progress-bar {
   margin: 0 20px 16px;
-  height: 4px;
+  height: 6px;
   background: var(--card);
-  border-radius: 2px;
-  overflow: hidden;
+  border-radius: 3px;
+  overflow: visible;
+  position: relative;
 }
 .progress-fill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--nn-gold));
+  border-radius: 3px;
   transition: width 0.3s;
+  box-shadow: 0 0 8px var(--accent), 0 0 16px rgba(124,110,240,0.3);
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--nn-gold);
+  box-shadow: 0 0 6px var(--nn-gold);
 }
 
 /* --- Exercise Groups --- */
@@ -425,7 +427,7 @@ body {
 
 .exercise-card {
   background: var(--card);
-  border: 1px solid var(--card-border);
+  border: 1px solid rgba(124,110,240,0.25);
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 8px;
@@ -512,7 +514,7 @@ body {
   justify-content: center;
   transition: all 0.2s;
 }
-.set-check.done { background: var(--green); border-color: var(--green); color: #000; }
+.set-check.done { background: linear-gradient(135deg, #7c6ef0, #a78bfa); border-color: #7c6ef0; color: #fff; }
 .set-check:disabled { opacity: 0.5; cursor: default; }
 
 /* --- Notes --- */
@@ -653,12 +655,21 @@ body {
 }
 .timer-btn:active { background: var(--accent); color: white; }
 
-/* NumNum header logo */
-.header-logo {
-  width: 28px;
-  height: 34px;
-  margin-right: 8px;
-  vertical-align: middle;
+/* User initials avatar */
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c6ef0, #a78bfa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-right: 10px;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
 }
 .header-left { display: flex; align-items: center; }
 .header-left-text { display: flex; flex-direction: column; }
@@ -825,10 +836,10 @@ body {
 /* Collapsible exercise card */
 .exercise-collapse-header {
   display: flex; align-items: center; gap: 10px; cursor: pointer;
-  padding: 12px 14px; background: var(--card); border: 1px solid var(--card-border);
+  padding: 12px 14px; background: var(--card); border: 1px solid rgba(124,110,240,0.25);
   border-radius: 12px; margin-bottom: 6px; transition: background 0.15s;
 }
-.exercise-collapse-header:hover { background: rgba(232,71,95,0.03); }
+.exercise-collapse-header:hover { background: rgba(124,110,240,0.04); }
 .exercise-collapse-toggle {
   width: 22px; height: 22px; border-radius: 6px; background: var(--card-border);
   display: flex; align-items: center; justify-content: center;
@@ -909,38 +920,7 @@ body {
   font-size: 13px;
 }
 
-/* --- Muscle Diagram --- */
-.muscle-diagram-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  margin: 0 16px 8px;
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--text-dim);
-  gap: 6px;
-}
-.muscle-diagram-toggle:hover { background: var(--card-border); }
-.muscle-diagram-container {
-  margin: 0 16px 12px;
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  padding: 12px 8px;
-  overflow: hidden;
-}
-.muscle-legend-chip {
-  display: inline-block;
-  margin: 2px 4px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  color: #fff;
-  font-size: 10px;
-}
+/* Muscle diagram removed */
 
 /* --- Metrics Screen --- */
 .metrics-screen {
@@ -1058,18 +1038,7 @@ body {
 <div id="workoutScreen" class="hidden">
   <div class="header">
     <div class="header-left">
-      <svg class="header-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 430" width="28" height="34">
-        <defs>
-          <linearGradient id="hg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FF7043"/><stop offset="50%" stop-color="#E8475F"/><stop offset="100%" stop-color="#AD1457"/></linearGradient>
-          <linearGradient id="hg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#E8475F"/><stop offset="100%" stop-color="#AD1457"/></linearGradient>
-        </defs>
-        <rect x="95" y="42" width="210" height="10" rx="5" fill="url(#hg2)"/>
-        <path d="M200 205 C155 172,105 155,105 108 C105 78,125 52,152 52 C174 52,190 67,200 84 C210 67,226 52,248 52 C275 52,295 78,295 108 C295 155,245 172,200 205Z" fill="url(#hg1)"/>
-        <path d="M191 205 L209 205 L213 225 L187 225Z" fill="url(#hg1)"/>
-        <rect x="198" y="200" width="4" height="30" rx="2" fill="#FFC107" opacity="0.7"/>
-        <path d="M200 225 C155 258,105 275,105 322 C105 352,125 378,152 378 C174 378,190 363,200 346 C210 363,226 378,248 378 C275 378,295 352,295 322 C295 275,245 258,200 225Z" fill="url(#hg1)"/>
-        <rect x="95" y="378" width="210" height="10" rx="5" fill="url(#hg2)"/>
-      </svg>
+      <div class="user-avatar" id="headerAvatar"></div>
       <div class="header-left-text">
         <h2 id="headerName"></h2>
         <span id="headerProgram"></span>
@@ -1144,10 +1113,10 @@ body {
   <!-- DAY DETAIL (when you tap into a day) -->
   <div id="dayDetail" class="hidden">
     <div class="day-detail-sticky">
-      <button class="back-btn" onclick="backToWeek()">&#8249; Back to Week</button>
       <div class="day-nav">
         <button class="day-nav-btn" id="prevDay" onclick="changeDay(-1)">&#8249;</button>
-        <div class="day-info">
+        <div class="day-info" onclick="backToWeek()">
+          <div class="day-week-label" id="dayWeekLabel"></div>
           <div class="day-label" id="dayLabel"></div>
           <div class="day-date" id="dayDate"></div>
         </div>
@@ -1559,6 +1528,10 @@ function selectUser(name) {
 
   document.getElementById('headerName').textContent = name;
   document.getElementById('headerProgram').textContent = userInfo.program || 'No program';
+  // Set avatar initials
+  const nameParts = name.trim().split(/\s+/);
+  const initials = nameParts.length >= 2 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
+  document.getElementById('headerAvatar').textContent = initials;
 
   if (!program) {
     // No program assigned — show no-program screen
@@ -1827,10 +1800,11 @@ function renderDay() {
   const dayDate = startDate ? new Date(startDate.getTime() + currentDayIndex * 86400000) : null;
   const wk = weekMap[currentWeekIndex];
 
-  document.getElementById('dayLabel').textContent = `Week ${day.week} · Day ${day.day}`;
+  document.getElementById('dayWeekLabel').textContent = `Week ${day.week}`;
+  document.getElementById('dayLabel').textContent = `Day ${day.day}`;
   document.getElementById('dayDate').textContent = dayDate
     ? dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
-    : `Day ${day.day}`;
+    : '';
   document.getElementById('prevDay').disabled = currentDayIndex <= 0;
   document.getElementById('nextDay').disabled = currentDayIndex >= allDays.length - 1;
 
@@ -1888,7 +1862,7 @@ function renderDay() {
 
   document.getElementById('dayDetailStats').innerHTML = `
     <div class="day-detail-stat">
-      <div class="dds-value" style="color:${pct === 100 ? 'var(--green)' : 'var(--text)'}">${pct}%</div>
+      <div class="dds-value" style="color:${pct === 100 ? 'var(--green)' : 'var(--accent)'}">${pct}<span style="font-size:12px;font-weight:600;">%</span></div>
       <div class="dds-label">Complete</div>
     </div>
     <div class="day-detail-stat">
@@ -1902,12 +1876,6 @@ function renderDay() {
 
   const disabled = isViewOnly ? 'disabled' : '';
   let html = '';
-
-  // Muscle diagram toggle
-  html += `<div class="muscle-diagram-toggle" onclick="toggleMuscleDiagram()">
-    🏋️ Muscle Map <span id="muscleDiagramChevron">${muscleDiagramOpen ? '▲' : '▼'}</span>
-  </div>
-  <div id="muscleDiagramContainer" class="muscle-diagram-container ${muscleDiagramOpen ? '' : 'hidden'}"></div>`;
 
   // Include custom exercises added by the athlete
   const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
@@ -1950,19 +1918,19 @@ function renderDay() {
 
       html += `<div class="exercise-collapse-header ${cardClass}" onclick="toggleExerciseCollapse('${collapseId}')">
         <div class="exercise-collapse-toggle" id="toggle_${collapseId}">+</div>
-        <div class="exercise-collapse-title">${ex.name}</div>
+        <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;">${getEquipmentIcon(ex.name)} ${ex.name}</div>
         <div class="exercise-collapse-meta" id="meta_${collapseId}">${summaryText}</div>
       </div>
       <div class="exercise-collapse-body" id="${collapseId}">
       <div class="exercise-card ${cardClass}" style="margin-top:-2px;border-top-left-radius:0;border-top-right-radius:0;">
-        <div class="exercise-name" style="cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="showWeightHistory('${ex.name.replace(/'/g, "\\'")}')">
-          ${ex.name} <span style="font-size:12px;color:var(--text-muted);">&#9679;</span>
+        <div class="exercise-name" style="cursor:pointer;display:flex;align-items:center;gap:8px;" onclick="showWeightHistory('${ex.name.replace(/'/g, "\\'")}')">
+          ${getEquipmentIcon(ex.name)} ${ex.name}
         </div>
         <div class="exercise-meta">
           <div class="meta-item"><div class="meta-value">${ex.sets}×${ex.reps}</div><div class="meta-label">Sets×Reps</div></div>
           <div class="meta-item"><div class="meta-value">${ex.tempo}</div><div class="meta-label">Tempo</div></div>
           ${ex.rest ? `<div class="meta-item"><div class="meta-value">${ex.rest}</div><div class="meta-label">Rest</div></div>` : ''}
-          ${ex.rpe ? `<div class="meta-item"><div class="meta-value">${ex.rpe}</div><div class="meta-label">RPE</div></div>` : ''}
+          ${ex.rpe ? `<div class="meta-item"><div class="meta-value" style="color:var(--accent2,#a78bfa)">${ex.rpe}</div><div class="meta-label">RPE</div></div>` : ''}
         </div>
         <div class="exercise-instruction">${ex.instruction}</div>
         <div class="sets-log">
@@ -2252,6 +2220,21 @@ async function loadExercisesDB() {
   return exercisesDB;
 }
 
+function getEquipmentIcon(name) {
+  const n = name.toLowerCase();
+  if (n.includes('barbell') || n.includes('bench press') || n.includes('squat') || n.includes('deadlift') || n.includes('overhead press') || n.includes('clean') || n.includes('snatch') || n.includes('row') && !n.includes('cable'))
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><line x1="2" y1="12" x2="22" y2="12"/><rect x="3" y="8" width="3" height="8" rx="1"/><rect x="18" y="8" width="3" height="8" rx="1"/><rect x="6" y="9" width="2" height="6" rx="0.5"/><rect x="16" y="9" width="2" height="6" rx="0.5"/></svg>';
+  if (n.includes('dumbbell') || n.includes('db ') || n.startsWith('db ') || n.includes('curl') || n.includes('fly') || n.includes('lateral raise'))
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  if (n.includes('cable') || n.includes('pulldown') || n.includes('pull-down') || n.includes('face pull'))
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="18"/><circle cx="12" cy="20" r="2"/><line x1="6" y1="2" x2="18" y2="2"/></svg>';
+  if (n.includes('machine') || n.includes('press') && !n.includes('bench') || n.includes('leg ext') || n.includes('leg curl') || n.includes('hack'))
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="8" x2="9" y2="16"/><line x1="15" y1="8" x2="15" y2="16"/></svg>';
+  if (n.includes('push-up') || n.includes('pushup') || n.includes('plank') || n.includes('bodyweight') || n.includes('pull-up') || n.includes('pullup') || n.includes('dip') || n.includes('lunge') || n.includes('crunch') || n.includes('sit-up'))
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8"/><path d="M8 12h8"/><path d="M9 21l3-5 3 5"/></svg>';
+  return '';
+}
+
 function getExerciseBodyPart(exName) {
   if (!exercisesDB) return null;
   for (const [bodyPart, categories] of Object.entries(exercisesDB)) {
@@ -2278,133 +2261,6 @@ function getExerciseBodyPart(exName) {
     if (lower.includes(kw)) return bp;
   }
   return null;
-}
-
-function calculateDayMuscleLoads(day) {
-  const loads = {};
-  const allMuscles = ["chest","upper_back","lats","front_delts","side_delts","rear_delts","traps","biceps","triceps","forearms","quads","hamstrings","glutes","calves","core","obliques","lower_back"];
-  allMuscles.forEach(m => loads[m] = 0);
-
-  if (!day || day.isRest) return loads;
-
-  for (const group of day.exerciseGroups) {
-    for (const ex of group.exercises) {
-      const bp = getExerciseBodyPart(ex.name);
-      if (!bp || !MUSCLE_MAP[bp]) continue;
-      const sets = parseInt(ex.sets) || 0;
-      const rpe = parseFloat(ex.rpe) || 7;
-      const effort = sets * (rpe / 10);
-      for (const m of MUSCLE_MAP[bp].primary) loads[m] = (loads[m] || 0) + effort;
-      for (const m of MUSCLE_MAP[bp].secondary) loads[m] = (loads[m] || 0) + effort * 0.4;
-    }
-  }
-  return loads;
-}
-
-function muscleLoadColor(load, maxLoad) {
-  if (maxLoad === 0 || load === 0) return '#2a2a3a';
-  const ratio = Math.min(load / maxLoad, 1);
-  let r, g, b;
-  if (ratio < 0.5) {
-    const t = ratio * 2;
-    r = Math.round(40 + t * 215);
-    g = Math.round(80 + t * 140);
-    b = Math.round(220 - t * 180);
-  } else {
-    const t = (ratio - 0.5) * 2;
-    r = 255;
-    g = Math.round(220 - t * 200);
-    b = Math.round(40 - t * 40);
-  }
-  return `rgb(${r},${g},${b})`;
-}
-
-function renderMuscleDiagram(loads) {
-  const maxLoad = Math.max(...Object.values(loads), 0);
-  const c = m => muscleLoadColor(loads[m] || 0, maxLoad);
-
-  let html = `<div style="display:flex;justify-content:center;gap:8px;">
-  <!-- FRONT -->
-  <div style="text-align:center;">
-    <div style="color:var(--text-dim);font-size:10px;margin-bottom:2px;">Front</div>
-    <svg width="110" height="242" viewBox="0 0 140 310">
-      <ellipse cx="70" cy="22" rx="14" ry="17" fill="#333" stroke="#555" stroke-width="0.5"/>
-      <rect x="60" y="38" width="20" height="10" rx="3" fill="${c('traps')}"/>
-      <ellipse cx="40" cy="56" rx="12" ry="10" fill="${c('front_delts')}"/>
-      <ellipse cx="100" cy="56" rx="12" ry="10" fill="${c('front_delts')}"/>
-      <ellipse cx="32" cy="52" rx="7" ry="9" fill="${c('side_delts')}"/>
-      <ellipse cx="108" cy="52" rx="7" ry="9" fill="${c('side_delts')}"/>
-      <ellipse cx="55" cy="72" rx="18" ry="14" fill="${c('chest')}"/>
-      <ellipse cx="85" cy="72" rx="18" ry="14" fill="${c('chest')}"/>
-      <ellipse cx="28" cy="85" rx="7" ry="18" fill="${c('biceps')}"/>
-      <ellipse cx="112" cy="85" rx="7" ry="18" fill="${c('biceps')}"/>
-      <rect x="50" y="88" width="40" height="35" rx="5" fill="${c('core')}"/>
-      <rect x="42" y="92" width="9" height="26" rx="3" fill="${c('obliques')}"/>
-      <rect x="89" y="92" width="9" height="26" rx="3" fill="${c('obliques')}"/>
-      <ellipse cx="22" cy="118" rx="5" ry="18" fill="${c('forearms')}"/>
-      <ellipse cx="118" cy="118" rx="5" ry="18" fill="${c('forearms')}"/>
-      <ellipse cx="55" cy="165" rx="14" ry="35" fill="${c('quads')}"/>
-      <ellipse cx="85" cy="165" rx="14" ry="35" fill="${c('quads')}"/>
-      <ellipse cx="52" cy="235" rx="9" ry="28" fill="${c('calves')}"/>
-      <ellipse cx="88" cy="235" rx="9" ry="28" fill="${c('calves')}"/>
-    </svg>
-  </div>
-  <!-- BACK -->
-  <div style="text-align:center;">
-    <div style="color:var(--text-dim);font-size:10px;margin-bottom:2px;">Back</div>
-    <svg width="110" height="242" viewBox="0 0 140 310">
-      <ellipse cx="70" cy="22" rx="14" ry="17" fill="#333" stroke="#555" stroke-width="0.5"/>
-      <path d="M50,42 Q70,32 90,42 L85,55 Q70,48 55,55 Z" fill="${c('traps')}"/>
-      <ellipse cx="38" cy="56" rx="10" ry="9" fill="${c('rear_delts')}"/>
-      <ellipse cx="102" cy="56" rx="10" ry="9" fill="${c('rear_delts')}"/>
-      <rect x="48" y="58" width="44" height="22" rx="5" fill="${c('upper_back')}"/>
-      <ellipse cx="30" cy="82" rx="7" ry="18" fill="${c('triceps')}"/>
-      <ellipse cx="110" cy="82" rx="7" ry="18" fill="${c('triceps')}"/>
-      <path d="M48,78 L42,105 Q70,115 98,105 L92,78 Z" fill="${c('lats')}"/>
-      <rect x="55" y="105" width="30" height="20" rx="4" fill="${c('lower_back')}"/>
-      <ellipse cx="22" cy="118" rx="5" ry="18" fill="${c('forearms')}"/>
-      <ellipse cx="118" cy="118" rx="5" ry="18" fill="${c('forearms')}"/>
-      <ellipse cx="55" cy="135" rx="16" ry="12" fill="${c('glutes')}"/>
-      <ellipse cx="85" cy="135" rx="16" ry="12" fill="${c('glutes')}"/>
-      <ellipse cx="55" cy="175" rx="13" ry="30" fill="${c('hamstrings')}"/>
-      <ellipse cx="85" cy="175" rx="13" ry="30" fill="${c('hamstrings')}"/>
-      <ellipse cx="52" cy="235" rx="9" ry="28" fill="${c('calves')}"/>
-      <ellipse cx="88" cy="235" rx="9" ry="28" fill="${c('calves')}"/>
-    </svg>
-  </div>
-  </div>`;
-
-  // Legend
-  const active = Object.entries(loads).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
-  if (active.length > 0) {
-    html += '<div style="text-align:center;margin-top:8px;">';
-    for (const [m, v] of active) {
-      html += `<span class="muscle-legend-chip" style="background:${muscleLoadColor(v, maxLoad)}">${m.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())} (${v.toFixed(0)})</span>`;
-    }
-    html += '</div>';
-  }
-  return html;
-}
-
-let muscleDiagramOpen = false;
-
-function toggleMuscleDiagram() {
-  muscleDiagramOpen = !muscleDiagramOpen;
-  const container = document.getElementById('muscleDiagramContainer');
-  const chevron = document.getElementById('muscleDiagramChevron');
-  if (muscleDiagramOpen) {
-    container.classList.remove('hidden');
-    chevron.textContent = '▲';
-    // Render
-    const day = allDays[currentDayIndex];
-    if (day && !day.isRest) {
-      const loads = calculateDayMuscleLoads(day);
-      container.innerHTML = renderMuscleDiagram(loads);
-    }
-  } else {
-    container.classList.add('hidden');
-    chevron.textContent = '▼';
-  }
 }
 
 // ==================== BODY METRICS ====================
