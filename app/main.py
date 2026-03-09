@@ -1,15 +1,22 @@
 """FastAPI application — replaces server.py."""
 
 import shutil
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from . import config
 from .encryption import migrate_tokens_file
 from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes, admin_routes
 
 app = FastAPI(title="NumNum Workout", version="1.0.0")
+
+# ---- Rate limiting ----
+app.state.limiter = auth_routes.limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ---- CORS ----
 origins = [o.strip() for o in config.CORS_ORIGINS.split(",") if o.strip()]

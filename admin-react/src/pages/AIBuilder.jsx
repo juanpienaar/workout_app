@@ -206,6 +206,19 @@ export default function AIBuilder() {
         </div>
       )}
 
+      {/* NL modification overlay */}
+      {nlLoading && (
+        <div className="generation-overlay">
+          <div className="generation-modal">
+            <div className="generation-spinner" />
+            <h3>Modifying Program...</h3>
+            <p style={{ color: 'var(--text-dim)', marginBottom: 16 }}>
+              Claude is applying your changes. This usually takes 10-20 seconds.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Step 1: Select types */}
       {step === 1 && (
         <div className="card">

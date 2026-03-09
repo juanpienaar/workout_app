@@ -6,7 +6,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -27,7 +27,8 @@ RESET_TOKENS: dict = {}
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(req: LoginRequest):
+@limiter.limit("5/minute")
+async def login(request: Request, req: LoginRequest):
     user_name, user_info = find_user_by_email(req.email)
     if not user_name or not user_info:
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -54,7 +55,8 @@ async def login(req: LoginRequest):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(req: RefreshRequest):
+@limiter.limit("10/minute")
+async def refresh(request: Request, req: RefreshRequest):
     payload = decode_token(req.refresh_token, expected_type="refresh")
     user_name = payload.get("sub")
     role = payload.get("role", "athlete")
@@ -65,7 +67,8 @@ async def refresh(req: RefreshRequest):
 
 
 @router.post("/forgot-password")
-async def forgot_password(req: ForgotPasswordRequest):
+@limiter.limit("3/minute")
+async def forgot_password(request: Request, req: ForgotPasswordRequest):
     user_name, user_info = find_user_by_email(req.email)
     # Always return success (don't reveal if email exists)
     if not user_name:
@@ -109,7 +112,8 @@ async def forgot_password(req: ForgotPasswordRequest):
 
 
 @router.post("/reset-password")
-async def reset_password(req: ResetPasswordRequest):
+@limiter.limit("3/minute")
+async def reset_password(request: Request, req: ResetPasswordRequest):
     stored = RESET_TOKENS.get(req.token)
     if not stored:
         raise HTTPException(status_code=400, detail="Invalid or expired reset token")
