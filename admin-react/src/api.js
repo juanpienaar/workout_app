@@ -65,6 +65,7 @@ export const API = {
 
   // AI Builder
   generateProgram: (config) => authFetch('/api/admin/ai/generate', { method: 'POST', body: JSON.stringify(config) }).then(r => r.json()),
+  modifyProgram: (data) => authFetch('/api/admin/ai/modify-program', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
   getCosts: () => authFetch('/api/admin/ai/costs').then(r => r.json()),
 
   // Deploy

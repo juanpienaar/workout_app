@@ -98,10 +98,10 @@ export const MODEL_COSTS = {
 }
 
 export const PROGRAM_TYPES = [
-  { id: 'strength', icon: '💪', label: 'Strength' },
-  { id: 'crossfit', icon: '🏋️', label: 'CrossFit' },
-  { id: 'hyrox', icon: '🏃', label: 'HYROX' },
-  { id: 'running', icon: '👟', label: 'Running' },
-  { id: 'cycling', icon: '🚴', label: 'Cycling' },
-  { id: 'swimming', icon: '🏊', label: 'Swimming' },
+  { id: 'strength', icon: 'strength', label: 'Strength' },
+  { id: 'crossfit', icon: 'crossfit', label: 'CrossFit' },
+  { id: 'hyrox', icon: 'hyrox', label: 'HYROX' },
+  { id: 'running', icon: 'running', label: 'Running' },
+  { id: 'cycling', icon: 'cycling', label: 'Cycling' },
+  { id: 'swimming', icon: 'swimming', label: 'Swimming' },
 ]

@@ -3,6 +3,7 @@ import { API } from '../api'
 import { useToast } from '../components/Toast'
 import MuscleHeatmap from '../components/MuscleHeatmap'
 import { calculateMuscleLoad } from '../utils/muscleLoad'
+import { Icon } from '../components/Icons'
 
 function exerciseSummary(week) {
   const names = []
@@ -116,10 +117,10 @@ export default function Programs() {
 
   return (
     <div>
-      <div className="page-title"><span className="icon">📋</span> Programs</div>
+      <div className="page-title"><Icon name="programs" size={22} style={{ color: 'var(--accent2)' }} /> Programs</div>
       <div className="toolbar">
         <div />
-        <button className="btn btn-secondary btn-sm" onClick={rebuild}>🔨 Rebuild JSON</button>
+        <button className="btn btn-secondary btn-sm" onClick={rebuild}>Rebuild JSON</button>
       </div>
 
       {programs.map(p => (
@@ -130,7 +131,7 @@ export default function Programs() {
               <span className="meta">{p.weeks} weeks · {p.days_per_week} days/week</span>
             </div>
             <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-              <button className="btn btn-secondary btn-sm" onClick={() => duplicate(p.name)}>📋 Duplicate</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => duplicate(p.name)}>Duplicate</button>
               <button className="btn btn-danger btn-sm" onClick={() => remove(p.name)}>Delete</button>
             </div>
           </div>

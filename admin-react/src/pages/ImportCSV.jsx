@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { API } from '../api'
 import { useToast } from '../components/Toast'
+import { Icon } from '../components/Icons'
 
 export default function ImportCSV() {
   const toast = useToast()
@@ -24,7 +25,7 @@ export default function ImportCSV() {
 
   return (
     <div>
-      <div className="page-title"><span className="icon">📥</span> Import CSV</div>
+      <div className="page-title"><Icon name="import" size={22} style={{ color: 'var(--accent2)' }} /> Import CSV</div>
       <div className="card">
         <p style={{ color: 'var(--text-dim)', marginBottom: 16 }}>Upload a program CSV file. It will replace the current program.csv and rebuild program.json.</p>
         <p style={{ color: 'var(--text-dim)', marginBottom: 16, fontSize: 13 }}>Required columns: Program, Week, Day, Order, Exercise, Sets, Reps, Tempo, Rest, RPE, Instruction</p>
@@ -36,7 +37,7 @@ export default function ImportCSV() {
           onDragLeave={() => setDragOver(false)}
           onDrop={e => { e.preventDefault(); setDragOver(false); upload(e.dataTransfer.files[0]) }}
         >
-          <p style={{ fontSize: 32, marginBottom: 8 }}>📄</p>
+          <Icon name="import" size={32} style={{ marginBottom: 8, display: 'block' }} />
           <p>{loading ? 'Uploading and building...' : 'Drop CSV file here or click to browse'}</p>
         </div>
         <input ref={inputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={e => upload(e.target.files[0])} />

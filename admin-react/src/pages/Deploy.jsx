@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { API } from '../api'
 import { useToast } from '../components/Toast'
+import { Icon } from '../components/Icons'
 
 export default function Deploy() {
   const toast = useToast()
@@ -35,12 +36,12 @@ export default function Deploy() {
 
   return (
     <div>
-      <div className="page-title"><span className="icon">🚀</span> Deploy</div>
+      <div className="page-title"><Icon name="deploy" size={22} style={{ color: 'var(--accent2)' }} /> Deploy</div>
 
       <div className="card">
         <div className="card-header">
           <h3>Git Status</h3>
-          <button className="btn btn-secondary btn-sm" onClick={loadStatus}>🔄 Refresh</button>
+          <button className="btn btn-secondary btn-sm" onClick={loadStatus}>Refresh</button>
         </div>
         {!status && <p style={{ color: 'var(--text-dim)' }}>Loading...</p>}
         {status?.error && <p style={{ color: 'var(--text-dim)' }}>Could not read git status. Make sure this is a git repository.</p>}
@@ -80,7 +81,7 @@ export default function Deploy() {
             onKeyDown={e => { if (e.key === 'Enter') doDeploy() }} />
         </div>
         <button className="btn btn-primary" onClick={doDeploy} disabled={deploying}>
-          {deploying ? '⏳ Deploying...' : '🚀 Build & Deploy'}
+          {deploying ? 'Deploying...' : 'Build & Deploy'}
         </button>
 
         {result && (

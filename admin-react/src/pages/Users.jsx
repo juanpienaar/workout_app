@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { API } from '../api'
 import { useToast } from '../components/Toast'
 import Modal from '../components/Modal'
+import { Icon } from '../components/Icons'
 
 export default function Users() {
   const toast = useToast()
@@ -61,7 +62,7 @@ export default function Users() {
 
   return (
     <div>
-      <div className="page-title"><span className="icon">👥</span> Users</div>
+      <div className="page-title"><Icon name="users" size={22} style={{ color: 'var(--accent2)' }} /> Users</div>
       <div className="toolbar">
         <input type="search" className="search-input" placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)} />
         <button className="btn btn-primary" onClick={openAdd}>+ Add User</button>
@@ -80,7 +81,7 @@ export default function Users() {
               <td>{u.email_verified ? '✓' : '—'}</td>
               <td style={{ textAlign: 'right' }}>
                 <button className="btn-icon" onClick={() => openEdit(u)}>✏️</button>
-                <button className="btn-icon" onClick={() => remove(u.username)}>🗑️</button>
+                <button className="btn-icon" onClick={() => remove(u.username)}><Icon name="delete" size={14} /></button>
               </td>
             </tr>
           ))}

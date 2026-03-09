@@ -1,46 +1,63 @@
 import React from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth'
+import { Icon, LogoIcon } from './Icons'
 
-const pages = [
-  { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-  { id: 'users', icon: '👥', label: 'Users' },
-  { id: 'programs', icon: '📋', label: 'Programs' },
-  { id: 'exercises', icon: '🏋️', label: 'Exercises' },
-  { id: 'ai-builder', icon: '🤖', label: 'AI Builder' },
-  { id: 'import', icon: '📥', label: 'Import CSV' },
-  { id: 'deploy', icon: '🚀', label: 'Deploy' },
+const mainPages = [
+  { id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
+  { id: 'users', icon: 'users', label: 'Users' },
+  { id: 'programs', icon: 'programs', label: 'Programs' },
+  { id: 'exercises', icon: 'exercises', label: 'Exercises' },
+]
+
+const toolPages = [
+  { id: 'ai-builder', icon: 'ai-builder', label: 'AI Builder' },
+  { id: 'import', icon: 'import', label: 'Import CSV' },
+  { id: 'deploy', icon: 'deploy', label: 'Deploy' },
 ]
 
 export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout, user } = useAuth()
+  const { logout } = useAuth()
   const currentPath = location.pathname.replace('/admin/', '').replace('/admin', '') || 'dashboard'
+
+  function renderNav(pages) {
+    return pages.map(p => (
+      <div
+        key={p.id}
+        className={`nav-item ${currentPath === p.id ? 'active' : ''}`}
+        onClick={() => navigate(p.id)}
+      >
+        <span className="icon"><Icon name={p.icon} /></span>
+        <span className="nav-text">{p.label}</span>
+      </div>
+    ))
+  }
 
   return (
     <div className="app-layout">
       <nav className="sidebar">
         <div className="sidebar-logo">
-          <h2>NumNum</h2>
-          <small>Coach Admin</small>
+          <div className="logo-mark">
+            <LogoIcon />
+            <span className="logo-text">NumNum</span>
+          </div>
+          <div className="logo-sub">Coach Admin</div>
         </div>
-        {pages.map((p, i) => (
-          <React.Fragment key={p.id}>
-            {(p.id === 'ai-builder' || p.id === 'deploy') && i > 0 && <div className="nav-divider" />}
-            <div
-              className={`nav-item ${currentPath === p.id ? 'active' : ''}`}
-              onClick={() => navigate(p.id)}
-            >
-              <span className="icon">{p.icon}</span>
-              <span className="nav-text">{p.label}</span>
-            </div>
-          </React.Fragment>
-        ))}
-        <div className="nav-divider" />
-        <div className="nav-item" onClick={logout}>
-          <span className="icon">🚪</span>
-          <span className="nav-text">Logout</span>
+        <div className="sidebar-nav">
+          <div className="nav-section-label">Main</div>
+          {renderNav(mainPages)}
+          <div className="nav-divider" />
+          <div className="nav-section-label">Tools</div>
+          {renderNav(toolPages)}
+          <div className="nav-divider" />
+        </div>
+        <div className="sidebar-footer">
+          <div className="nav-item" onClick={logout}>
+            <span className="icon"><Icon name="logout" /></span>
+            <span className="nav-text">Logout</span>
+          </div>
         </div>
       </nav>
       <main className="main-content">

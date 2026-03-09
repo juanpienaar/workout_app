@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from ..auth import require_coach, hash_password
 from ..data import load_users, save_users, load_user_data, save_user_data, get_user_file
-from ..ai_builder import generate_program, load_costs as load_ai_costs, MODELS
+from ..ai_builder import generate_program, modify_program as ai_modify_program, load_costs as load_ai_costs, MODELS
 from .. import config
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -54,6 +54,11 @@ class AIGenerateRequest(BaseModel):
     daysPerWeek: int = 5
     sessionTime: int = 60
     experience: str = "intermediate"
+
+class AIModifyRequest(BaseModel):
+    program: dict
+    modification_prompt: str
+    model: str = "sonnet"
 
 
 # ── Helpers ──────────────────────────────────────────────────────
@@ -376,6 +381,25 @@ async def ai_costs(coach: Annotated[dict, Depends(require_coach)]):
     """Return aggregated AI API costs."""
     costs = load_ai_costs()
     return costs
+
+
+@router.post("/ai/modify-program")
+async def ai_modify(req: AIModifyRequest, coach: Annotated[dict, Depends(require_coach)]):
+    """Modify a program via natural language using Claude AI."""
+    try:
+        modified, cost_info = ai_modify_program(
+            program=req.program,
+            modification_prompt=req.modification_prompt,
+            model_key=req.model,
+        )
+    except json.JSONDecodeError as e:
+        raise HTTPException(500, f"AI returned invalid JSON: {str(e)}")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"AI modification failed: {str(e)}")
+
+    return {"ok": True, "program": modified, "cost": cost_info}
 
 
 @router.get("/ai/models")

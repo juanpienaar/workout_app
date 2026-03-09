@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { API } from '../api'
 import { useToast } from '../components/Toast'
 import Modal from '../components/Modal'
+import { Icon } from '../components/Icons'
 
 export default function Exercises() {
   const toast = useToast()
@@ -52,7 +53,7 @@ export default function Exercises() {
 
   return (
     <div>
-      <div className="page-title"><span className="icon">🏋️</span> Exercise Library</div>
+      <div className="page-title"><Icon name="exercises" size={22} style={{ color: 'var(--accent2)' }} /> Exercise Library</div>
 
       {/* Context banner */}
       <div className="info-banner">
@@ -101,7 +102,7 @@ export default function Exercises() {
                     {exercises.map(ex => (
                       <div key={ex.name} className="exercise-item">
                         <span>{ex.name}</span>
-                        <button className="btn-icon" style={{ fontSize: 14 }} onClick={() => remove(group, ex.name)}>🗑️</button>
+                        <button className="btn-icon" style={{ fontSize: 14 }} onClick={() => remove(group, ex.name)}><Icon name="delete" size={14} /></button>
                       </div>
                     ))}
                   </div>

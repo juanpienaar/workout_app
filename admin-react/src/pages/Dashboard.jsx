@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { API } from '../api'
 import { useToast } from '../components/Toast'
+import { Icon } from '../components/Icons'
 
 function getWeekRange() {
   const now = new Date()
@@ -96,7 +97,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="page-title"><span className="icon">📊</span> Coach Dashboard</div>
+      <div className="page-title"><Icon name="dashboard" size={22} style={{ color: 'var(--accent2)' }} /> Coach Dashboard</div>
 
       {loading && <p style={{ color: 'var(--text-dim)' }}>Loading athletes...</p>}
 

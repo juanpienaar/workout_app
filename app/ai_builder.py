@@ -416,3 +416,76 @@ def generate_program(
 
     program = csv_rows_to_program(rows, name)
     return program, cost_info
+
+
+# ── Program modification via natural language ───────────────────
+
+MODIFY_SYSTEM_PROMPT = """You are an expert strength and conditioning coach.
+You will receive a workout program as JSON and a modification request from a coach.
+Apply the requested changes to the program and return the complete modified program as valid JSON.
+
+RULES:
+- Return ONLY the JSON. No markdown, no explanation, no code fences.
+- Preserve the exact same structure: {name, weeks: [{week, days: [{day, isRest, exerciseGroups: [{type, exercises: [{order, name, sets, reps, tempo, rest, rpe, instruction}]}]}]}]}
+- Keep all unmodified parts exactly the same.
+- When modifying exercises, use realistic values for sets, reps, tempo, rest, and RPE.
+- If asked to make something "harder", increase sets/reps/RPE. If "easier", decrease them.
+- If asked to swap exercises, replace with appropriate alternatives."""
+
+
+def modify_program(program: dict, modification_prompt: str, model_key: str = "sonnet") -> tuple[dict, dict]:
+    """
+    Modify an existing program via Claude using natural language instructions.
+    Returns (modified_program, cost_info).
+    """
+    import os
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        env_path = config.APP_DIR / ".env"
+        if env_path.exists():
+            for line in open(env_path):
+                if line.startswith("ANTHROPIC_API_KEY="):
+                    api_key = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    break
+
+    if not api_key:
+        raise ValueError("No ANTHROPIC_API_KEY found in environment or .env file")
+
+    import anthropic
+    model_info = MODELS.get(model_key, MODELS["sonnet"])
+    client = anthropic.Anthropic(api_key=api_key)
+
+    user_prompt = f"""Here is the current workout program:
+
+{json.dumps(program, indent=2)}
+
+Coach's modification request: {modification_prompt}
+
+Apply the changes and return the complete modified program as valid JSON."""
+
+    message = client.messages.create(
+        model=model_info["id"],
+        max_tokens=16384,
+        system=MODIFY_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_prompt}],
+    )
+
+    input_tokens = message.usage.input_tokens
+    output_tokens = message.usage.output_tokens
+    cost = track_usage(input_tokens, output_tokens, model_key, f"Modify program: {modification_prompt[:80]}")
+
+    response_text = message.content[0].text.strip()
+
+    # Strip markdown fences if present
+    if response_text.startswith("```"):
+        lines = response_text.split("\n")
+        response_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+
+    modified = json.loads(response_text)
+
+    return modified, {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cost_usd": round(cost, 6),
+        "model": model_key,
+    }

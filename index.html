@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1a1a2e">
+<meta name="theme-color" content="#080810">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -14,21 +15,21 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-/* Dark theme (default) */
+/* Dark theme (default) — Obsidian Flow */
 :root, [data-theme="dark"] {
-  --bg: #0f0f1a;
-  --card: #1a1a2e;
-  --card-border: #2a2a4a;
-  --accent: #E8475F;
-  --accent-dim: #AD1457;
-  --nn-warm: #FF7043;
-  --nn-gold: #FFC107;
-  --text: #eee;
-  --text-dim: #888;
-  --text-muted: #555;
-  --green: #4ade80;
+  --bg: #080810;
+  --card: rgba(255,255,255,0.025);
+  --card-border: rgba(255,255,255,0.08);
+  --accent: #7c6ef0;
+  --accent-dim: #6558d4;
+  --nn-warm: #a78bfa;
+  --nn-gold: #2dd4bf;
+  --text: #f0f0f8;
+  --text-dim: #9b97b0;
+  --text-muted: #5c5775;
+  --green: #34d399;
   --yellow: #fbbf24;
-  --input-bg: #0d0d1a;
+  --input-bg: rgba(255,255,255,0.03);
 }
 
 /* Light theme */
@@ -36,10 +37,10 @@
   --bg: #f5f5f7;
   --card: #ffffff;
   --card-border: #e0e0e6;
-  --accent: #E8475F;
-  --accent-dim: #AD1457;
-  --nn-warm: #FF7043;
-  --nn-gold: #FF8F00;
+  --accent: #7c6ef0;
+  --accent-dim: #6558d4;
+  --nn-warm: #a78bfa;
+  --nn-gold: #2dd4bf;
   --text: #1a1a2e;
   --text-dim: #666;
   --text-muted: #999;
@@ -49,8 +50,8 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  background: var(--bg);
+  font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: radial-gradient(ellipse 50% 60% at 10% 0%, rgba(124,110,240,0.08) 0%, transparent 60%), radial-gradient(ellipse 40% 50% at 90% 100%, rgba(45,212,191,0.05) 0%, transparent 60%), var(--bg);
   color: var(--text);
   min-height: 100vh;
   padding-bottom: env(safe-area-inset-bottom, 20px);
@@ -84,7 +85,7 @@ body {
 .login-title {
   font-size: clamp(20px, 4vh, 28px);
   font-weight: 700;
-  color: #E8475F;
+  color: var(--accent);
   margin-bottom: 4px;
 }
 .login-subtitle {
@@ -990,7 +991,7 @@ body {
 
 <!-- ======== LOGIN SCREEN ======== -->
 <div id="loginScreen" class="login-screen">
-  <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleLogin" title="Toggle light/dark mode">&#x1f319;</button>
+  <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleLogin" title="Toggle light/dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
   <div class="login-card">
     <div class="login-logo">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480" width="80" height="96" style="opacity:0.9;">
@@ -1075,11 +1076,11 @@ body {
       </div>
     </div>
     <div class="header-right">
-      <button class="header-btn" onclick="toggleTheme()" id="themeToggleHeader" title="Toggle light/dark mode" style="font-size:16px;">&#x1f319;</button>
-      <button class="header-btn" onclick="showMetrics()" title="Body Metrics" style="font-size:15px;">📏</button>
-      <button class="header-btn" onclick="showHistory()" title="History">&#x1f4ca;</button>
-      <button class="header-btn whoop-header-btn" id="whoopHeaderBtn" onclick="toggleWhoopPanel()" title="Whoop" style="font-size:16px;display:none;">❤️</button>
-      <button class="header-btn" onclick="confirmLogout()" title="Log Out" style="font-size:14px;">&#x23FB;</button>
+      <button class="header-btn" onclick="toggleTheme()" id="themeToggleHeader" title="Toggle light/dark mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      <button class="header-btn" onclick="showMetrics()" title="Body Metrics"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></button>
+      <button class="header-btn" onclick="showHistory()" title="History"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></button>
+      <button class="header-btn whoop-header-btn" id="whoopHeaderBtn" onclick="toggleWhoopPanel()" title="Whoop" style="display:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+      <button class="header-btn" onclick="confirmLogout()" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
   </div>
 
@@ -1214,7 +1215,7 @@ body {
 <div id="metricsScreen" class="hidden">
   <div class="header">
     <div class="header-left">
-      <h2>📊 Body Metrics</h2>
+      <h2>Body Metrics</h2>
     </div>
     <div class="header-right">
       <button class="header-btn" onclick="showWorkout()" title="Back">&#x2715;</button>
@@ -1600,7 +1601,7 @@ function showWorkout() {
         <div style="font-size:48px;margin-bottom:16px;">🏋️</div>
         <h2 style="margin-bottom:8px;">No Program Assigned</h2>
         <p style="color:var(--text-dim);max-width:280px;margin:0 auto;">Your coach hasn't assigned a program yet. You can still log body metrics while you wait!</p>
-        <button onclick="showMetrics()" style="margin-top:20px;padding:12px 24px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📊 Log Metrics</button>
+        <button onclick="showMetrics()" style="margin-top:20px;padding:12px 24px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;">Log Metrics</button>
       </div>`;
     document.getElementById('weekLabel').textContent = '';
     document.getElementById('weekDates').textContent = '';
@@ -1955,7 +1956,7 @@ function renderDay() {
       <div class="exercise-collapse-body" id="${collapseId}">
       <div class="exercise-card ${cardClass}" style="margin-top:-2px;border-top-left-radius:0;border-top-right-radius:0;">
         <div class="exercise-name" style="cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="showWeightHistory('${ex.name.replace(/'/g, "\\'")}')">
-          ${ex.name} <span style="font-size:12px;color:var(--text-muted);">📊</span>
+          ${ex.name} <span style="font-size:12px;color:var(--text-muted);">&#9679;</span>
         </div>
         <div class="exercise-meta">
           <div class="meta-item"><div class="meta-value">${ex.sets}×${ex.reps}</div><div class="meta-label">Sets×Reps</div></div>
@@ -2202,7 +2203,7 @@ function showWeightHistory(exerciseName) {
   const maxW = Math.max(...history.map(h => h.weight));
   let chartHtml = `<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)this.remove()">
     <div style="background:var(--card);border-radius:16px;padding:20px;max-width:360px;width:100%;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
-    <h3 style="margin-bottom:12px;">📊 ${exerciseName}</h3>`;
+    <h3 style="margin-bottom:12px;">&#9679; ${exerciseName}</h3>`;
   // Group by date, show latest per date
   const byDate = {};
   history.forEach(h => {
