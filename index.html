@@ -568,91 +568,247 @@ body {
 .history-item .hi-exercise { font-weight: 600; margin-top: 2px; }
 .history-item .hi-sets { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 
-/* --- Rest Timer --- */
-.rest-timer-overlay {
+/* --- Rest Timer Pill (non-blocking) --- */
+.timer-pill {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.85);
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  display: none;
   align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-radius: 50px;
+  background: rgba(20,20,35,0.85);
+  border: 1px solid rgba(124,110,240,0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 16px rgba(124,110,240,0.15);
+  font-family: 'Space Mono', monospace;
+  cursor: pointer;
+  transition: all 0.3s;
+  min-width: 180px;
   justify-content: center;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
-.rest-timer-label {
-  font-size: 16px;
-  color: var(--text-dim);
-  margin-bottom: 32px;
-  text-transform: uppercase;
-  letter-spacing: 3px;
+.timer-pill.visible { display: flex; }
+.timer-pill.pulse {
+  animation: timerPulse 0.6s ease-in-out 3;
+  border-color: var(--green);
+  box-shadow: 0 0 20px rgba(52,211,153,0.4);
 }
-.rest-timer-ring {
-  position: relative;
-  width: 260px;
-  height: 260px;
-  margin-bottom: 24px;
+@keyframes timerPulse {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.06); }
 }
-.rest-timer-ring svg { transform: rotate(-90deg); }
-.rest-timer-ring circle {
-  fill: none;
-  stroke-width: 6;
-}
-.rest-timer-ring .ring-bg { stroke: var(--card-border); }
-.rest-timer-ring .ring-fg {
-  stroke: var(--accent);
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.3s ease;
-}
-.rest-timer-time {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 72px;
-  font-weight: 200;
+.timer-pill-time {
+  font-size: 22px;
+  font-weight: 700;
   color: #fff;
   font-variant-numeric: tabular-nums;
+  min-width: 50px;
+  text-align: center;
 }
-.rest-timer-controls {
+.timer-pill-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+.timer-pill-dismiss {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: var(--text-dim);
+  font-size: 14px;
   display: flex;
-  gap: 16px;
-  margin-top: 16px;
-}
-.rest-timer-btn {
-  padding: 14px 32px;
-  border-radius: 12px;
-  border: none;
-  font-size: 16px;
-  font-weight: 600;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  flex-shrink: 0;
 }
-.rest-timer-btn.primary {
-  background: linear-gradient(135deg, #FF7043, #E8475F);
-  color: white;
+.timer-pill-dismiss:active { background: rgba(255,255,255,0.15); }
+.timer-pill-progress {
+  position: absolute;
+  bottom: 0; left: 18px; right: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
 }
-.rest-timer-btn.secondary {
-  background: var(--card);
-  color: var(--text);
-  border: 1px solid var(--card-border);
+.timer-pill-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s linear;
+  border-radius: 1px;
 }
-.rest-timer-btn:active { transform: scale(0.95); }
-.rest-timer-presets {
-  display: flex;
+/* Expanded timer pill */
+.timer-pill-expanded {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 901;
+  display: none;
+  flex-direction: column;
+  align-items: center;
   gap: 10px;
-  margin-top: 20px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  background: rgba(20,20,35,0.95);
+  border: 1px solid rgba(124,110,240,0.3);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
 }
-.rest-timer-presets button {
-  padding: 8px 16px;
+.timer-pill-expanded.visible { display: flex; }
+.timer-pill-presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.timer-pill-presets button {
+  padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid var(--card-border);
   background: var(--card);
   color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+}
+.timer-pill-presets button:active { background: var(--accent); color: white; }
+.timer-pill-actions {
+  display: flex;
+  gap: 8px;
+}
+.timer-pill-actions button {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
-.rest-timer-presets button:active { background: var(--accent); color: white; }
+.timer-pill-actions .tp-pause {
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+}
+.timer-pill-actions .tp-reset {
+  background: rgba(232,71,95,0.15);
+  color: #E8475F;
+}
+
+/* Skip exercise modal */
+.skip-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.skip-modal {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: 24px;
+  width: 90%;
+  max-width: 340px;
+  backdrop-filter: blur(20px);
+}
+.skip-modal h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+.skip-modal select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 14px;
+  margin-bottom: 10px;
+  -webkit-appearance: none;
+}
+.skip-modal textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 14px;
+  resize: vertical;
+  min-height: 60px;
+  margin-bottom: 12px;
+  display: none;
+}
+.skip-modal-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.skip-modal-btns button {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.skip-modal-btns .skip-cancel {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-dim);
+}
+.skip-modal-btns .skip-confirm {
+  background: rgba(232,71,95,0.2);
+  color: #E8475F;
+}
+
+/* Exercise lock styling */
+.exercise-card.locked {
+  opacity: 0.35;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
+.exercise-card.locked .exercise-header { pointer-events: auto; cursor: pointer; }
+.exercise-card.skipped {
+  opacity: 0.4;
+}
+.exercise-card.skipped .exercise-header .ex-name {
+  text-decoration: line-through;
+}
+.skip-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(232,71,95,0.15);
+  color: #E8475F;
+  margin-left: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.skip-btn {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(232,71,95,0.3);
+  background: rgba(232,71,95,0.08);
+  color: #E8475F;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.skip-btn:active { background: rgba(232,71,95,0.2); }
 
 /* Timer button in exercise card */
 .timer-btn {
@@ -1064,33 +1220,54 @@ body {
       <button class="header-btn" onclick="toggleTheme()" id="themeToggleHeader" title="Toggle light/dark mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <button class="header-btn" onclick="showMetrics()" title="Body Metrics"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></button>
       <button class="header-btn" onclick="showHistory()" title="History"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></button>
+      <button class="header-btn" id="orientationLockBtn" onclick="toggleOrientationLock()" title="Lock orientation"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></button>
       <button class="header-btn whoop-header-btn" id="whoopHeaderBtn" onclick="toggleWhoopPanel()" title="Whoop" style="display:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
       <button class="header-btn" onclick="confirmLogout()" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
   </div>
 
-  <!-- Rest Timer Overlay -->
-  <div id="restTimerOverlay" class="rest-timer-overlay hidden">
-    <div class="rest-timer-label">Rest Timer</div>
-    <div class="rest-timer-ring">
-      <svg width="260" height="260">
-        <circle class="ring-bg" cx="130" cy="130" r="120"/>
-        <circle class="ring-fg" id="timerRing" cx="130" cy="130" r="120"
-          stroke-dasharray="754" stroke-dashoffset="0"/>
-      </svg>
-      <div class="rest-timer-time" id="timerDisplay">0:00</div>
+  <!-- Rest Timer Pill (non-blocking) -->
+  <div id="timerPill" class="timer-pill" onclick="toggleTimerExpanded()">
+    <div>
+      <div class="timer-pill-label">REST</div>
+      <div class="timer-pill-time" id="timerDisplay">0:00</div>
     </div>
-    <div class="rest-timer-controls">
-      <button class="rest-timer-btn secondary" onclick="stopTimer()">Dismiss</button>
-      <button class="rest-timer-btn primary" id="timerStartBtn" onclick="toggleTimer()">Start</button>
+    <div class="timer-pill-dismiss" onclick="event.stopPropagation(); stopTimer();">✕</div>
+    <div class="timer-pill-progress">
+      <div class="timer-pill-progress-fill" id="timerProgressFill" style="width:100%"></div>
     </div>
-    <div class="rest-timer-presets">
+  </div>
+  <div id="timerExpanded" class="timer-pill-expanded">
+    <div class="timer-pill-actions">
+      <button class="tp-pause" id="timerPauseBtn" onclick="toggleTimer()">Pause</button>
+      <button class="tp-reset" onclick="resetTimerToTotal()">Reset</button>
+    </div>
+    <div class="timer-pill-presets">
       <button onclick="setTimerPreset(30)">0:30</button>
       <button onclick="setTimerPreset(60)">1:00</button>
-      <button onclick="setTimerPreset(75)">1:15</button>
       <button onclick="setTimerPreset(90)">1:30</button>
       <button onclick="setTimerPreset(120)">2:00</button>
       <button onclick="setTimerPreset(180)">3:00</button>
+    </div>
+  </div>
+
+  <!-- Skip Exercise Modal -->
+  <div id="skipModal" class="skip-modal-backdrop" style="display:none;" onclick="if(event.target===this)closeSkipModal()">
+    <div class="skip-modal">
+      <h3>Why are you skipping this?</h3>
+      <select id="skipReason" onchange="document.getElementById('skipOtherText').style.display = this.value==='Other' ? 'block' : 'none'">
+        <option value="">Select a reason...</option>
+        <option value="Injured">Injured</option>
+        <option value="Unwell">Unwell</option>
+        <option value="No time">No time</option>
+        <option value="Equipment unavailable">Equipment unavailable</option>
+        <option value="Other">Other</option>
+      </select>
+      <textarea id="skipOtherText" placeholder="Tell us more..."></textarea>
+      <div class="skip-modal-btns">
+        <button class="skip-cancel" onclick="closeSkipModal()">Cancel</button>
+        <button class="skip-confirm" onclick="confirmSkip()">Skip Exercise</button>
+      </div>
     </div>
   </div>
 
@@ -1917,6 +2094,7 @@ function renderDay() {
     });
   }
 
+  let exerciseIndex = 0;
   for (const group of allGroups) {
     html += '<div class="group-container">';
 
@@ -1930,6 +2108,7 @@ function renderDay() {
 
     for (const ex of group.exercises) {
       const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
+      const currentExIndex = exerciseIndex++;
       const exData = savedData[exKey] || {};
       const cardClass = group.type !== 'single' ? `in-${group.type}` : '';
       const collapseId = `collapse_${exKey}`;
@@ -1945,8 +2124,12 @@ function renderDay() {
       </div>
       <div class="exercise-collapse-body" id="${collapseId}">
       <div class="exercise-card ${cardClass}" style="margin-top:-2px;border-top-left-radius:0;border-top-right-radius:0;">
-        <div class="exercise-name" style="cursor:pointer;display:flex;align-items:center;gap:8px;" onclick="showWeightHistory('${ex.name.replace(/'/g, "\\'")}')">
-          ${getEquipmentIcon(ex.name)} ${ex.name}
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="exercise-name" style="cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;" onclick="showWeightHistory('${ex.name.replace(/'/g, "\\'")}')">
+            ${getEquipmentIcon(ex.name)} ${ex.name}
+            ${skippedExercises[exKey] ? `<span class="skip-badge">Skipped — ${skippedExercises[exKey].reason}</span>` : ''}
+          </div>
+          ${!isViewOnly && !skippedExercises[exKey] ? `<button class="skip-btn" onclick="event.stopPropagation();openSkipModal('${exKey}',${currentExIndex})" title="Skip exercise">✕</button>` : ''}
         </div>
         <div class="exercise-meta">
           <div class="meta-item"><div class="meta-value">${ex.sets}×${ex.reps}</div><div class="meta-label">Sets×Reps</div></div>
@@ -2134,14 +2317,10 @@ function renderDay() {
 
   content.innerHTML = html;
 
-  // Render muscle diagram if open
-  if (muscleDiagramOpen) {
-    const diagramEl = document.getElementById('muscleDiagramContainer');
-    if (diagramEl) {
-      const loads = calculateDayMuscleLoads(day);
-      diagramEl.innerHTML = renderMuscleDiagram(loads);
-    }
-  }
+  // Feature 3 + 9: Load skips and apply exercise lock
+  loadSkippedExercises();
+  activeExerciseIndex = null; // reset and recalculate
+  applyExerciseLock();
 }
 
 // ==================== CARDIO PERSISTENCE ====================
@@ -2673,6 +2852,23 @@ function collectCurrentData() {
 function onSetChange(input) {
   saveCurrentDay();
   updateDayDetailStats();
+  // Feature 11: Auto-confirm set when weight entered and reps pre-populated
+  if (input.dataset.field === 'weight' && input.value) {
+    const row = input.closest('.set-row');
+    if (row) {
+      const repsInput = row.querySelector('.set-input[data-field="reps"]');
+      const checkBtn = row.querySelector('.set-check');
+      if (repsInput && (repsInput.value || repsInput.placeholder) && checkBtn && !checkBtn.classList.contains('done')) {
+        // Auto-fill reps from placeholder if empty
+        if (!repsInput.value && repsInput.placeholder) {
+          repsInput.value = repsInput.placeholder;
+        }
+        toggleSet(checkBtn);
+      }
+    }
+  }
+  // Feature 3: Check exercise completion for lock advancement
+  checkExerciseCompletion();
 }
 function onNotesChange(ta) { saveCurrentDay(); }
 function toggleSet(btn) {
@@ -2690,6 +2886,8 @@ function toggleSet(btn) {
   }
   saveCurrentDay();
   updateDayDetailStats();
+  // Feature 3: Check exercise completion for lock advancement
+  checkExerciseCompletion();
 }
 
 function updateDayDetailStats() {
@@ -2804,11 +3002,15 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && !isViewOnly) saveCurrentDay();
 });
 
-// ==================== REST TIMER ====================
+// ==================== REST TIMER (Non-blocking pill) ====================
 let timerSeconds = 0;
 let timerTotal = 0;
 let timerInterval = null;
 let timerRunning = false;
+let timerExpandedOpen = false;
+
+// Timer settings (persisted)
+const timerSettings = JSON.parse(localStorage.getItem('nn_timer_settings') || '{"sound":true,"vibration":true}');
 
 function parseRestTime(restStr) {
   const s = restStr.toLowerCase().trim();
@@ -2828,55 +3030,45 @@ function formatTime(secs) {
 }
 
 function updateTimerDisplay() {
-  document.getElementById('timerDisplay').textContent = formatTime(timerSeconds);
-  const ring = document.getElementById('timerRing');
-  const circumference = 754;
-  const progress = timerTotal > 0 ? (timerSeconds / timerTotal) : 0;
-  ring.style.strokeDashoffset = circumference * (1 - progress);
-  if (timerSeconds <= 0 && timerTotal > 0) {
-    ring.style.stroke = '#4ade80';
-  } else {
-    ring.style.stroke = '';
-  }
+  const el = document.getElementById('timerDisplay');
+  if (el) el.textContent = formatTime(timerSeconds);
+  const fill = document.getElementById('timerProgressFill');
+  if (fill) fill.style.width = (timerTotal > 0 ? (timerSeconds / timerTotal) * 100 : 0) + '%';
 }
 
+// Feature 1: Auto-start timer when rest duration is known
 function openTimer(restStr) {
   const seconds = parseRestTime(restStr);
   timerSeconds = seconds;
   timerTotal = seconds;
-  timerRunning = false;
   clearInterval(timerInterval);
-  document.getElementById('timerStartBtn').textContent = 'Start';
+  // Show the pill
+  const pill = document.getElementById('timerPill');
+  if (pill) pill.classList.add('visible');
+  pill?.classList.remove('pulse');
   updateTimerDisplay();
-  document.getElementById('restTimerOverlay').classList.remove('hidden');
+  // Auto-start immediately (Feature 1)
+  startTimerCountdown();
 }
 
-function setTimerPreset(seconds) {
-  timerSeconds = seconds;
-  timerTotal = seconds;
-  timerRunning = false;
-  clearInterval(timerInterval);
-  document.getElementById('timerStartBtn').textContent = 'Start';
-  updateTimerDisplay();
-}
-
-function toggleTimer() {
-  if (timerRunning) {
-    clearInterval(timerInterval);
-    timerRunning = false;
-    document.getElementById('timerStartBtn').textContent = 'Resume';
-  } else {
-    if (timerSeconds <= 0) timerSeconds = timerTotal;
-    timerRunning = true;
-    document.getElementById('timerStartBtn').textContent = 'Pause';
-    timerInterval = setInterval(() => {
-      timerSeconds--;
-      updateTimerDisplay();
-      if (timerSeconds <= 0) {
-        clearInterval(timerInterval);
-        timerRunning = false;
-        document.getElementById('timerStartBtn').textContent = 'Restart';
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+function startTimerCountdown() {
+  if (timerRunning) return;
+  if (timerSeconds <= 0) timerSeconds = timerTotal;
+  timerRunning = true;
+  const btn = document.getElementById('timerPauseBtn');
+  if (btn) btn.textContent = 'Pause';
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      if (btn) btn.textContent = 'Restart';
+      // Feature 4: Sound + vibration alert
+      if (timerSettings.vibration && navigator.vibrate) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+      }
+      if (timerSettings.sound) {
         try {
           const ctx = new (window.AudioContext || window.webkitAudioContext)();
           for (let i = 0; i < 3; i++) {
@@ -2891,15 +3083,253 @@ function toggleTimer() {
           }
         } catch(e) {}
       }
-    }, 1000);
+      // Pulse the pill to indicate time's up
+      const pill = document.getElementById('timerPill');
+      pill?.classList.add('pulse');
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => { if (!timerRunning && timerSeconds <= 0) stopTimer(); }, 5000);
+    }
+  }, 1000);
+}
+
+function setTimerPreset(seconds) {
+  timerSeconds = seconds;
+  timerTotal = seconds;
+  clearInterval(timerInterval);
+  timerRunning = false;
+  updateTimerDisplay();
+  const pill = document.getElementById('timerPill');
+  if (pill) pill.classList.add('visible');
+  pill?.classList.remove('pulse');
+  startTimerCountdown();
+  closeTimerExpanded();
+}
+
+function toggleTimer() {
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    const btn = document.getElementById('timerPauseBtn');
+    if (btn) btn.textContent = 'Resume';
+  } else {
+    startTimerCountdown();
   }
+}
+
+function resetTimerToTotal() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerSeconds = timerTotal;
+  updateTimerDisplay();
+  const btn = document.getElementById('timerPauseBtn');
+  if (btn) btn.textContent = 'Start';
+  document.getElementById('timerPill')?.classList.remove('pulse');
 }
 
 function stopTimer() {
   clearInterval(timerInterval);
   timerRunning = false;
   timerSeconds = 0;
-  document.getElementById('restTimerOverlay').classList.add('hidden');
+  const pill = document.getElementById('timerPill');
+  if (pill) pill.classList.remove('visible', 'pulse');
+  closeTimerExpanded();
+}
+
+function toggleTimerExpanded() {
+  timerExpandedOpen = !timerExpandedOpen;
+  const el = document.getElementById('timerExpanded');
+  if (el) el.classList.toggle('visible', timerExpandedOpen);
+}
+function closeTimerExpanded() {
+  timerExpandedOpen = false;
+  const el = document.getElementById('timerExpanded');
+  if (el) el.classList.remove('visible');
+}
+
+// ==================== EXERCISE LOCK (Feature 3) ====================
+let activeExerciseIndex = null;
+let skippedExercises = {}; // { exKey: { reason, timestamp } }
+
+function loadSkippedExercises() {
+  try {
+    const raw = localStorage.getItem(`skips_${currentUser}_day${currentDayIndex}`);
+    skippedExercises = raw ? JSON.parse(raw) : {};
+  } catch { skippedExercises = {}; }
+}
+function saveSkippedExercises() {
+  localStorage.setItem(`skips_${currentUser}_day${currentDayIndex}`, JSON.stringify(skippedExercises));
+}
+
+function applyExerciseLock() {
+  if (isViewOnly) return;
+  const day = allDays[currentDayIndex];
+  if (!day || day.isRest) return;
+  const cards = document.querySelectorAll('.exercise-card');
+  const allExKeys = [];
+  for (const group of day.exerciseGroups) {
+    for (const ex of group.exercises) {
+      allExKeys.push(ex.order + '_' + ex.name.replace(/\s+/g, '_'));
+    }
+  }
+  // Find the first non-complete, non-skipped exercise
+  if (activeExerciseIndex === null) {
+    const data = collectCurrentData();
+    for (let i = 0; i < allExKeys.length; i++) {
+      if (skippedExercises[allExKeys[i]]) continue;
+      const exKey = allExKeys[i];
+      const exData = data[exKey] || {};
+      // Find matching exercise for set count
+      let setCount = 0;
+      for (const group of day.exerciseGroups) {
+        for (const ex of group.exercises) {
+          if ((ex.order + '_' + ex.name.replace(/\s+/g, '_')) === exKey) setCount = ex.sets;
+        }
+      }
+      let allDone = setCount > 0;
+      for (let s = 1; s <= setCount; s++) {
+        if (!exData['set' + s]?.done) { allDone = false; break; }
+      }
+      // Check if it's a cardio exercise - don't lock cardio
+      let isCardio = false;
+      for (const group of day.exerciseGroups) {
+        for (const ex of group.exercises) {
+          if ((ex.order + '_' + ex.name.replace(/\s+/g, '_')) === exKey) isCardio = !!getCardioType(ex.name);
+        }
+      }
+      if (isCardio) continue; // skip locking for cardio
+      if (!allDone) {
+        activeExerciseIndex = i;
+        break;
+      }
+    }
+  }
+  cards.forEach((card, i) => {
+    const exKey = allExKeys[i];
+    if (!exKey) return;
+    card.classList.remove('locked', 'skipped');
+    if (skippedExercises[exKey]) {
+      card.classList.add('skipped');
+      return;
+    }
+    if (activeExerciseIndex !== null && i !== activeExerciseIndex && !skippedExercises[exKey]) {
+      // Check if this exercise is already completed
+      const data = collectCurrentData();
+      const exData = data[exKey] || {};
+      let setCount = 0;
+      for (const group of day.exerciseGroups) {
+        for (const ex of group.exercises) {
+          if ((ex.order + '_' + ex.name.replace(/\s+/g, '_')) === exKey) setCount = ex.sets;
+        }
+      }
+      let allDone = setCount > 0;
+      for (let s = 1; s <= setCount; s++) {
+        if (!exData['set' + s]?.done) { allDone = false; break; }
+      }
+      if (!allDone) card.classList.add('locked');
+    }
+  });
+}
+
+function checkExerciseCompletion() {
+  const day = allDays[currentDayIndex];
+  if (!day || day.isRest || isViewOnly) return;
+  const data = collectCurrentData();
+  const allExKeys = [];
+  for (const group of day.exerciseGroups) {
+    for (const ex of group.exercises) {
+      allExKeys.push({ key: ex.order + '_' + ex.name.replace(/\s+/g, '_'), sets: ex.sets, name: ex.name });
+    }
+  }
+  if (activeExerciseIndex === null) return;
+  const active = allExKeys[activeExerciseIndex];
+  if (!active) return;
+  const exData = data[active.key] || {};
+  let allDone = active.sets > 0;
+  for (let s = 1; s <= active.sets; s++) {
+    if (!exData['set' + s]?.done) { allDone = false; break; }
+  }
+  if (allDone) {
+    // Advance to next non-complete, non-skipped exercise
+    activeExerciseIndex = null;
+    for (let i = 0; i < allExKeys.length; i++) {
+      if (skippedExercises[allExKeys[i].key]) continue;
+      const eData = data[allExKeys[i].key] || {};
+      let done = allExKeys[i].sets > 0;
+      for (let s = 1; s <= allExKeys[i].sets; s++) {
+        if (!eData['set' + s]?.done) { done = false; break; }
+      }
+      if (!done) { activeExerciseIndex = i; break; }
+    }
+    applyExerciseLock();
+    // Auto-expand next exercise card
+    if (activeExerciseIndex !== null) {
+      const cards = document.querySelectorAll('.exercise-card');
+      cards.forEach((c, idx) => {
+        const content = c.querySelector('.exercise-content');
+        if (!content) return;
+        if (idx === activeExerciseIndex) {
+          content.style.display = '';
+          c.dataset.collapsed = 'false';
+        } else if (!skippedExercises[allExKeys[idx]?.key]) {
+          content.style.display = 'none';
+          c.dataset.collapsed = 'true';
+        }
+      });
+    }
+  }
+}
+
+// ==================== SKIP EXERCISE (Feature 9) ====================
+let skipTargetExKey = null;
+let skipTargetIndex = null;
+
+function openSkipModal(exKey, index) {
+  skipTargetExKey = exKey;
+  skipTargetIndex = index;
+  document.getElementById('skipReason').value = '';
+  document.getElementById('skipOtherText').value = '';
+  document.getElementById('skipOtherText').style.display = 'none';
+  document.getElementById('skipModal').style.display = 'flex';
+}
+function closeSkipModal() {
+  document.getElementById('skipModal').style.display = 'none';
+  skipTargetExKey = null;
+  skipTargetIndex = null;
+}
+function confirmSkip() {
+  const reason = document.getElementById('skipReason').value;
+  if (!reason) return;
+  const otherText = reason === 'Other' ? document.getElementById('skipOtherText').value : '';
+  skippedExercises[skipTargetExKey] = {
+    reason: reason === 'Other' ? (otherText || 'Other') : reason,
+    timestamp: new Date().toISOString(),
+    dayIndex: currentDayIndex,
+  };
+  saveSkippedExercises();
+  closeSkipModal();
+  // If this was the active exercise, advance
+  if (skipTargetIndex === activeExerciseIndex) {
+    activeExerciseIndex = null;
+  }
+  // Re-render to show skipped state
+  applyExerciseLock();
+  // Sync skip data to server
+  syncSkipToServer();
+  // Refresh the view
+  const day = allDays[currentDayIndex];
+  if (day) renderDay(currentDayIndex);
+}
+function syncSkipToServer() {
+  if (serverAvailable === false || !accessToken) return;
+  authFetch(`${SERVER_URL}/api/save-day`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      day_key: `skips_day_${currentDayIndex}`,
+      data: skippedExercises,
+      meta: { type: 'skips', dayIndex: currentDayIndex },
+    }),
+  }).catch(e => console.warn('[sync] skip save failed:', e));
 }
 
 // ==================== THEME ====================
@@ -2926,6 +3356,49 @@ function toggleTheme() {
 (function() {
   const saved = localStorage.getItem('workout_theme') || 'dark';
   applyTheme(saved);
+})();
+
+// ==================== ORIENTATION LOCK (Feature 6) ====================
+let orientationLocked = false;
+function toggleOrientationLock() {
+  if (orientationLocked) {
+    // Unlock
+    try {
+      if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+      if (document.fullscreenElement) document.exitFullscreen();
+    } catch(e) {}
+    orientationLocked = false;
+    localStorage.setItem('nn_orientation_lock', 'false');
+    const btn = document.getElementById('orientationLockBtn');
+    if (btn) btn.style.color = '';
+  } else {
+    // Lock to portrait — requires fullscreen on most browsers
+    try {
+      const el = document.documentElement;
+      const requestFS = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+      if (requestFS) {
+        requestFS.call(el).then(() => {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('portrait').catch(() => {});
+          }
+        }).catch(() => {});
+      } else if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait').catch(() => {});
+      }
+    } catch(e) {}
+    orientationLocked = true;
+    localStorage.setItem('nn_orientation_lock', 'true');
+    const btn = document.getElementById('orientationLockBtn');
+    if (btn) btn.style.color = 'var(--accent)';
+  }
+}
+// Restore orientation lock preference on load
+(function() {
+  if (localStorage.getItem('nn_orientation_lock') === 'true') {
+    orientationLocked = true;
+    const btn = document.getElementById('orientationLockBtn');
+    if (btn) btn.style.color = 'var(--accent)';
+  }
 })();
 
 // ==================== ARCHIVE (day-level) ====================
