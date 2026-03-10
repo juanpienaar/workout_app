@@ -350,10 +350,10 @@ body {
 .day-info .day-label { font-size: 22px; font-weight: 700; margin-top: 2px; }
 .day-info .day-date { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 
-/* Sticky day detail header */
+/* Sticky day detail header — sits below the main header */
 .day-detail-sticky {
   position: sticky;
-  top: 0;
+  top: 57px; /* height of .header (16px pad-top + ~25px content + 12px pad-bottom) */
   z-index: 50;
   background: var(--bg);
   padding-bottom: 4px;
@@ -457,6 +457,22 @@ body {
   letter-spacing: 0.5px;
   margin-top: 2px;
 }
+
+.rpe-tooltip {
+  position: fixed;
+  z-index: 2000;
+  background: var(--card);
+  border: 1px solid rgba(124,110,240,0.3);
+  border-radius: 12px;
+  padding: 14px 16px;
+  max-width: 280px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.rpe-tooltip .rpe-number { font-size: 28px; font-weight: 700; color: var(--accent2); }
+.rpe-tooltip .rpe-desc { font-size: 14px; color: var(--text); margin-top: 4px; line-height: 1.4; }
+.rpe-backdrop { position: fixed; inset: 0; z-index: 1999; }
 
 .exercise-instruction {
   font-size: 13px;
@@ -1677,14 +1693,17 @@ function renderWeekOverview() {
         exerciseNames.push(ex.name);
         const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
         const exData = savedData[exKey] || {};
+        const isCardio = !!getCardioType(ex.name);
         for (let s = 1; s <= ex.sets; s++) {
           totalSets++;
           const sd = exData['set' + s] || {};
           if (sd.done) {
             doneSets++;
-            const w = parseFloat(sd.weight) || 0;
-            const r = parseInt(sd.reps) || 0;
-            tonnage += w * r;
+            if (!isCardio) {
+              const w = parseFloat(sd.weight) || 0;
+              const r = parseInt(sd.reps) || 0;
+              tonnage += w * r;
+            }
           }
         }
       }
@@ -1846,14 +1865,17 @@ function renderDay() {
     for (const ex of group.exercises) {
       const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
       const exData = savedData[exKey] || {};
+      const isCardio = !!getCardioType(ex.name);
       for (let s = 1; s <= ex.sets; s++) {
         totalSets++;
         const sd = exData['set' + s] || {};
         if (sd.done) {
           doneSets++;
-          const w = parseFloat(sd.weight) || 0;
-          const r = parseInt(sd.reps) || 0;
-          tonnage += w * r;
+          if (!isCardio) {
+            const w = parseFloat(sd.weight) || 0;
+            const r = parseInt(sd.reps) || 0;
+            tonnage += w * r;
+          }
         }
       }
     }
@@ -1930,7 +1952,7 @@ function renderDay() {
           <div class="meta-item"><div class="meta-value">${ex.sets}×${ex.reps}</div><div class="meta-label">Sets×Reps</div></div>
           <div class="meta-item"><div class="meta-value">${ex.tempo}</div><div class="meta-label">Tempo</div></div>
           ${ex.rest ? `<div class="meta-item"><div class="meta-value">${ex.rest}</div><div class="meta-label">Rest</div></div>` : ''}
-          ${ex.rpe ? `<div class="meta-item"><div class="meta-value" style="color:var(--accent2,#a78bfa)">${ex.rpe}</div><div class="meta-label">RPE</div></div>` : ''}
+          ${ex.rpe ? `<div class="meta-item" onclick="showRpeTooltip(event, ${ex.rpe})" style="cursor:pointer;"><div class="meta-value" style="color:var(--accent2,#a78bfa)">${ex.rpe}</div><div class="meta-label">RPE</div></div>` : ''}
         </div>
         <div class="exercise-instruction">${ex.instruction}</div>
         <div class="sets-log">`;
@@ -2034,7 +2056,11 @@ function renderDay() {
       <span class="group-label" style="background:var(--nn-warm);color:#fff;">Cardio</span>`;
 
     for (const ctype of visibleCardioTypes) {
-      const icon = ctype === 'running' ? '🏃' : ctype === 'cycling' ? '🚴' : '🏊';
+      const icon = ctype === 'running'
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="17" cy="4" r="2"/><path d="M15 20l-3-8 4-2v-4l-4 2-3 4"/><path d="M7 20l3-8"/><path d="M3 20h18"/></svg>'
+        : ctype === 'cycling'
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l3-7h4l3 7"/><circle cx="12" cy="7" r="1.5"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-3h8l2 3h4"/><path d="M6 12c0 3 2 6 6 6s6-3 6-6"/><circle cx="12" cy="7" r="2"/></svg>';
       const cd = cardioData[ctype] || {};
       const fields = ctype === 'swimming'
         ? [{f:'distance',l:'Distance (m)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'laps',l:'Laps',p:'0'}]
@@ -2262,6 +2288,43 @@ async function loadExercisesDB() {
     exercisesDB = await r.json();
   } catch { exercisesDB = {}; }
   return exercisesDB;
+}
+
+const RPE_DESCRIPTIONS = {
+  1: "You're basically asleep. Are you even here?",
+  2: "A light stroll. Your nan could do this.",
+  3: "Warming up. Coffee still in hand.",
+  4: "Comfortable. You could do this all day.",
+  5: "Starting to feel it. Mildly inconvenient.",
+  6: "Working now. You'd decline a phone call.",
+  7: "Hard. You're questioning your life choices.",
+  8: "Very hard. Talking is not an option.",
+  9: "Nearly maximal. Everything hurts. Why?",
+  10: "Absolute chaos. You may need a sit down.",
+};
+
+function showRpeTooltip(event, rpe) {
+  event.stopPropagation();
+  dismissRpeTooltip();
+  const val = parseInt(rpe) || 7;
+  const desc = RPE_DESCRIPTIONS[val] || `RPE ${val}`;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'rpe-backdrop';
+  backdrop.onclick = dismissRpeTooltip;
+  const tip = document.createElement('div');
+  tip.className = 'rpe-tooltip';
+  tip.innerHTML = `<div class="rpe-number">RPE ${val}</div><div class="rpe-desc">${desc}</div>`;
+  document.body.appendChild(backdrop);
+  document.body.appendChild(tip);
+  // Position near the tapped element
+  const rect = event.currentTarget.getBoundingClientRect();
+  tip.style.left = Math.max(16, Math.min(rect.left, window.innerWidth - 296)) + 'px';
+  tip.style.top = (rect.top - tip.offsetHeight - 8) + 'px';
+  if (parseFloat(tip.style.top) < 8) tip.style.top = (rect.bottom + 8) + 'px';
+}
+
+function dismissRpeTooltip() {
+  document.querySelectorAll('.rpe-tooltip, .rpe-backdrop').forEach(el => el.remove());
 }
 
 function getCardioType(name) {
@@ -2639,14 +2702,17 @@ function updateDayDetailStats() {
     for (const ex of group.exercises) {
       const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
       const exData = data[exKey] || {};
+      const isCardio = !!getCardioType(ex.name);
       for (let s = 1; s <= ex.sets; s++) {
         totalSets++;
         const sd = exData['set' + s] || {};
         if (sd.done) {
           doneSets++;
-          const w = parseFloat(sd.weight) || 0;
-          const r = parseInt(sd.reps) || 0;
-          tonnage += w * r;
+          if (!isCardio) {
+            const w = parseFloat(sd.weight) || 0;
+            const r = parseInt(sd.reps) || 0;
+            tonnage += w * r;
+          }
         }
       }
     }
