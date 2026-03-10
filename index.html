@@ -1933,25 +1933,69 @@ function renderDay() {
           ${ex.rpe ? `<div class="meta-item"><div class="meta-value" style="color:var(--accent2,#a78bfa)">${ex.rpe}</div><div class="meta-label">RPE</div></div>` : ''}
         </div>
         <div class="exercise-instruction">${ex.instruction}</div>
-        <div class="sets-log">
-          <div class="sets-log-header">
+        <div class="sets-log">`;
+
+      const cardioType = getCardioType(ex.name);
+      if (cardioType === 'swimming') {
+        // Swimming: laps + time
+        html += `<div class="sets-log-header">
+            <div>Set</div><div style="text-align:center">Laps</div><div style="text-align:center">Time</div><div></div>
+          </div>`;
+        for (let s = 1; s <= ex.sets; s++) {
+          const setData = exData['set' + s] || {};
+          html += `<div class="set-row">
+            <div class="set-num">${s}</div>
+            <input class="set-input" type="number" inputmode="numeric" placeholder="laps"
+              data-key="${exKey}" data-set="${s}" data-field="weight"
+              value="${setData.weight || ''}" onchange="onSetChange(this)" ${disabled}>
+            <input class="set-input" type="text" inputmode="text" placeholder="mm:ss"
+              data-key="${exKey}" data-set="${s}" data-field="reps"
+              value="${setData.reps || ''}" onchange="onSetChange(this)" ${disabled}>
+            <button class="set-check ${setData.done ? 'done' : ''}"
+              data-key="${exKey}" data-set="${s}"
+              onclick="toggleSet(this)" ${disabled}>✓</button>
+          </div>`;
+        }
+      } else if (cardioType === 'running' || cardioType === 'cycling') {
+        // Running/Cycling: distance + time
+        html += `<div class="sets-log-header">
+            <div>Set</div><div style="text-align:center">Distance</div><div style="text-align:center">Time</div><div></div>
+          </div>`;
+        for (let s = 1; s <= ex.sets; s++) {
+          const setData = exData['set' + s] || {};
+          html += `<div class="set-row">
+            <div class="set-num">${s}</div>
+            <input class="set-input" type="number" inputmode="decimal" placeholder="km"
+              data-key="${exKey}" data-set="${s}" data-field="weight"
+              value="${setData.weight || ''}" onchange="onSetChange(this)" ${disabled}>
+            <input class="set-input" type="text" inputmode="text" placeholder="mm:ss"
+              data-key="${exKey}" data-set="${s}" data-field="reps"
+              value="${setData.reps || ''}" onchange="onSetChange(this)" ${disabled}>
+            <button class="set-check ${setData.done ? 'done' : ''}"
+              data-key="${exKey}" data-set="${s}"
+              onclick="toggleSet(this)" ${disabled}>✓</button>
+          </div>`;
+        }
+      } else {
+        // Standard strength: weight + reps
+        html += `<div class="sets-log-header">
             <div>Set</div><div style="text-align:center">Weight</div><div style="text-align:center">Reps</div><div></div>
           </div>`;
-
-      for (let s = 1; s <= ex.sets; s++) {
-        const setData = exData['set' + s] || {};
-        html += `<div class="set-row">
-          <div class="set-num">${s}</div>
-          <input class="set-input" type="number" inputmode="decimal" placeholder="kg (weight)"
-            data-key="${exKey}" data-set="${s}" data-field="weight"
-            value="${setData.weight || ''}" onchange="onSetChange(this)" ${disabled}>
-          <input class="set-input" type="number" inputmode="numeric" placeholder="${ex.reps} reps"
-            data-key="${exKey}" data-set="${s}" data-field="reps"
-            value="${setData.reps || ''}" onchange="onSetChange(this)" ${disabled}>
-          <button class="set-check ${setData.done ? 'done' : ''}"
-            data-key="${exKey}" data-set="${s}"
-            onclick="toggleSet(this)" ${disabled}>✓</button>
-        </div>`;
+        for (let s = 1; s <= ex.sets; s++) {
+          const setData = exData['set' + s] || {};
+          html += `<div class="set-row">
+            <div class="set-num">${s}</div>
+            <input class="set-input" type="number" inputmode="decimal" placeholder="kg"
+              data-key="${exKey}" data-set="${s}" data-field="weight"
+              value="${setData.weight || ''}" onchange="onSetChange(this)" ${disabled}>
+            <input class="set-input" type="number" inputmode="numeric" placeholder="${ex.reps} reps"
+              data-key="${exKey}" data-set="${s}" data-field="reps"
+              value="${setData.reps || ''}" onchange="onSetChange(this)" ${disabled}>
+            <button class="set-check ${setData.done ? 'done' : ''}"
+              data-key="${exKey}" data-set="${s}"
+              onclick="toggleSet(this)" ${disabled}>✓</button>
+          </div>`;
+        }
       }
 
       html += `</div>
@@ -2218,6 +2262,17 @@ async function loadExercisesDB() {
     exercisesDB = await r.json();
   } catch { exercisesDB = {}; }
   return exercisesDB;
+}
+
+function getCardioType(name) {
+  const n = name.toLowerCase();
+  if (n.includes('run') || n.includes('jog') || n.includes('sprint') || n.includes('tempo run') || n.includes('interval run') || n.includes('fartlek') || n.includes('easy run') || n.includes('long run') || n.includes('hill run') || n.includes('threshold'))
+    return 'running';
+  if (n.includes('cycl') || n.includes('bike') || n.includes('spin') || n.includes('ride'))
+    return 'cycling';
+  if (n.includes('swim') || n.includes('pool') || n.includes('freestyle') || n.includes('backstroke') || n.includes('breaststroke') || n.includes('butterfly'))
+    return 'swimming';
+  return null;
 }
 
 function getEquipmentIcon(name) {
