@@ -350,14 +350,25 @@ body {
 .day-info .day-label { font-size: 22px; font-weight: 700; margin-top: 2px; }
 .day-info .day-date { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 
-/* Sticky day detail header — sits below the main header */
+/* Day detail layout — full remaining viewport below header */
+#dayDetail {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 57px); /* viewport minus header */
+  overflow: hidden;
+}
 .day-detail-sticky {
-  position: sticky;
-  top: 57px; /* height of .header (16px pad-top + ~25px content + 12px pad-bottom) */
+  flex-shrink: 0;
   z-index: 50;
   background: var(--bg);
   padding-bottom: 4px;
   border-bottom: 1px solid var(--card-border);
+}
+.workout-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px 100px;
 }
 
 /* Back to week: tap day header area */
@@ -410,7 +421,6 @@ body {
 }
 
 /* --- Exercise Groups --- */
-.workout-content { padding: 0 16px 100px; }
 .group-container { margin-bottom: 16px; }
 .group-label {
   font-size: 11px;
@@ -770,17 +780,14 @@ body {
   color: #E8475F;
 }
 
-/* Exercise lock styling */
-.exercise-card.locked {
-  opacity: 0.35;
-  pointer-events: none;
-  filter: grayscale(0.3);
-}
-.exercise-card.locked .exercise-header { pointer-events: auto; cursor: pointer; }
+/* Skipped exercise styling */
 .exercise-card.skipped {
   opacity: 0.4;
 }
-.exercise-card.skipped .exercise-header .ex-name {
+.exercise-collapse-header.skipped-header {
+  opacity: 0.4;
+}
+.exercise-collapse-header.skipped-header .exercise-collapse-title {
   text-decoration: line-through;
 }
 .skip-badge {
@@ -1021,6 +1028,30 @@ body {
 .exercise-collapse-meta { font-size: 12px; color: var(--text-dim); }
 .exercise-collapse-body { display: none; }
 .exercise-collapse-body.open { display: block; }
+
+/* Focus mode: when exercise is opened, everything else hides */
+.workout-content.focus-mode .group-container { display: none; }
+.workout-content.focus-mode .group-container.focus-active { display: block; }
+.workout-content.focus-mode .focus-active .exercise-collapse-header { display: none; }
+.workout-content.focus-mode .focus-active .exercise-collapse-body { display: block; }
+.workout-content.focus-mode .focus-active .exercise-card { border-radius: 14px; }
+/* Focus back button */
+.focus-back-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  margin: 12px 20px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.focus-back-btn:active { background: rgba(124,110,240,0.08); }
+.workout-content.focus-mode .focus-back-btn { display: inline-flex; }
 .whoop-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2074,7 +2105,7 @@ function renderDay() {
     </div>`;
 
   const disabled = isViewOnly ? 'disabled' : '';
-  let html = '';
+  let html = '<button class="focus-back-btn" onclick="exitFocusMode()">&#8249; All exercises</button>';
 
   // Include custom exercises added by the athlete
   const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
@@ -2117,10 +2148,15 @@ function renderDay() {
       for (let cs = 1; cs <= ex.sets; cs++) { if (exData['set' + cs]?.done) setsCompleted++; }
       const summaryText = `${ex.sets} sets × ${ex.reps} reps`;
 
-      html += `<div class="exercise-collapse-header ${cardClass}" onclick="toggleExerciseCollapse('${collapseId}')">
-        <div class="exercise-collapse-toggle" id="toggle_${collapseId}">+</div>
-        <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;">${getEquipmentIcon(ex.name)} ${ex.name}</div>
-        <div class="exercise-collapse-meta" id="meta_${collapseId}">${summaryText}</div>
+      const isSkipped = !!skippedExercises[exKey];
+      const completionLabel = setsCompleted > 0 ? `${setsCompleted}/${ex.sets}` : '';
+      html += `<div class="exercise-collapse-header ${cardClass} ${isSkipped ? 'skipped-header' : ''}" onclick="toggleExerciseCollapse('${collapseId}')">
+        <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === ex.sets ? 'background:var(--green);color:#fff;' : ''}">${setsCompleted === ex.sets ? '✓' : '+'}</div>
+        <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;">
+          ${getEquipmentIcon(ex.name)} ${ex.name}
+          ${isSkipped ? `<span class="skip-badge">Skipped</span>` : ''}
+        </div>
+        <div class="exercise-collapse-meta" id="meta_${collapseId}">${isSkipped ? skippedExercises[exKey].reason : (completionLabel || summaryText)}</div>
       </div>
       <div class="exercise-collapse-body" id="${collapseId}">
       <div class="exercise-card ${cardClass}" style="margin-top:-2px;border-top-left-radius:0;border-top-right-radius:0;">
@@ -2316,11 +2352,10 @@ function renderDay() {
   }
 
   content.innerHTML = html;
+  content.classList.remove('focus-mode'); // reset focus mode on day change
 
-  // Feature 3 + 9: Load skips and apply exercise lock
+  // Load skip state for styling
   loadSkippedExercises();
-  activeExerciseIndex = null; // reset and recalculate
-  applyExerciseLock();
 }
 
 // ==================== CARDIO PERSISTENCE ====================
@@ -2859,7 +2894,6 @@ function onSetChange(input) {
       const repsInput = row.querySelector('.set-input[data-field="reps"]');
       const checkBtn = row.querySelector('.set-check');
       if (repsInput && (repsInput.value || repsInput.placeholder) && checkBtn && !checkBtn.classList.contains('done')) {
-        // Auto-fill reps from placeholder if empty
         if (!repsInput.value && repsInput.placeholder) {
           repsInput.value = repsInput.placeholder;
         }
@@ -2867,8 +2901,6 @@ function onSetChange(input) {
       }
     }
   }
-  // Feature 3: Check exercise completion for lock advancement
-  checkExerciseCompletion();
 }
 function onNotesChange(ta) { saveCurrentDay(); }
 function toggleSet(btn) {
@@ -2886,8 +2918,6 @@ function toggleSet(btn) {
   }
   saveCurrentDay();
   updateDayDetailStats();
-  // Feature 3: Check exercise completion for lock advancement
-  checkExerciseCompletion();
 }
 
 function updateDayDetailStats() {
@@ -3146,8 +3176,7 @@ function closeTimerExpanded() {
   if (el) el.classList.remove('visible');
 }
 
-// ==================== EXERCISE LOCK (Feature 3) ====================
-let activeExerciseIndex = null;
+// ==================== SKIP EXERCISE STATE ====================
 let skippedExercises = {}; // { exKey: { reason, timestamp } }
 
 function loadSkippedExercises() {
@@ -3158,125 +3187,6 @@ function loadSkippedExercises() {
 }
 function saveSkippedExercises() {
   localStorage.setItem(`skips_${currentUser}_day${currentDayIndex}`, JSON.stringify(skippedExercises));
-}
-
-function applyExerciseLock() {
-  if (isViewOnly) return;
-  const day = allDays[currentDayIndex];
-  if (!day || day.isRest) return;
-  const cards = document.querySelectorAll('.exercise-card');
-  const allExKeys = [];
-  for (const group of day.exerciseGroups) {
-    for (const ex of group.exercises) {
-      allExKeys.push(ex.order + '_' + ex.name.replace(/\s+/g, '_'));
-    }
-  }
-  // Find the first non-complete, non-skipped exercise
-  if (activeExerciseIndex === null) {
-    const data = collectCurrentData();
-    for (let i = 0; i < allExKeys.length; i++) {
-      if (skippedExercises[allExKeys[i]]) continue;
-      const exKey = allExKeys[i];
-      const exData = data[exKey] || {};
-      // Find matching exercise for set count
-      let setCount = 0;
-      for (const group of day.exerciseGroups) {
-        for (const ex of group.exercises) {
-          if ((ex.order + '_' + ex.name.replace(/\s+/g, '_')) === exKey) setCount = ex.sets;
-        }
-      }
-      let allDone = setCount > 0;
-      for (let s = 1; s <= setCount; s++) {
-        if (!exData['set' + s]?.done) { allDone = false; break; }
-      }
-      // Check if it's a cardio exercise - don't lock cardio
-      let isCardio = false;
-      for (const group of day.exerciseGroups) {
-        for (const ex of group.exercises) {
-          if ((ex.order + '_' + ex.name.replace(/\s+/g, '_')) === exKey) isCardio = !!getCardioType(ex.name);
-        }
-      }
-      if (isCardio) continue; // skip locking for cardio
-      if (!allDone) {
-        activeExerciseIndex = i;
-        break;
-      }
-    }
-  }
-  cards.forEach((card, i) => {
-    const exKey = allExKeys[i];
-    if (!exKey) return;
-    card.classList.remove('locked', 'skipped');
-    if (skippedExercises[exKey]) {
-      card.classList.add('skipped');
-      return;
-    }
-    if (activeExerciseIndex !== null && i !== activeExerciseIndex && !skippedExercises[exKey]) {
-      // Check if this exercise is already completed
-      const data = collectCurrentData();
-      const exData = data[exKey] || {};
-      let setCount = 0;
-      for (const group of day.exerciseGroups) {
-        for (const ex of group.exercises) {
-          if ((ex.order + '_' + ex.name.replace(/\s+/g, '_')) === exKey) setCount = ex.sets;
-        }
-      }
-      let allDone = setCount > 0;
-      for (let s = 1; s <= setCount; s++) {
-        if (!exData['set' + s]?.done) { allDone = false; break; }
-      }
-      if (!allDone) card.classList.add('locked');
-    }
-  });
-}
-
-function checkExerciseCompletion() {
-  const day = allDays[currentDayIndex];
-  if (!day || day.isRest || isViewOnly) return;
-  const data = collectCurrentData();
-  const allExKeys = [];
-  for (const group of day.exerciseGroups) {
-    for (const ex of group.exercises) {
-      allExKeys.push({ key: ex.order + '_' + ex.name.replace(/\s+/g, '_'), sets: ex.sets, name: ex.name });
-    }
-  }
-  if (activeExerciseIndex === null) return;
-  const active = allExKeys[activeExerciseIndex];
-  if (!active) return;
-  const exData = data[active.key] || {};
-  let allDone = active.sets > 0;
-  for (let s = 1; s <= active.sets; s++) {
-    if (!exData['set' + s]?.done) { allDone = false; break; }
-  }
-  if (allDone) {
-    // Advance to next non-complete, non-skipped exercise
-    activeExerciseIndex = null;
-    for (let i = 0; i < allExKeys.length; i++) {
-      if (skippedExercises[allExKeys[i].key]) continue;
-      const eData = data[allExKeys[i].key] || {};
-      let done = allExKeys[i].sets > 0;
-      for (let s = 1; s <= allExKeys[i].sets; s++) {
-        if (!eData['set' + s]?.done) { done = false; break; }
-      }
-      if (!done) { activeExerciseIndex = i; break; }
-    }
-    applyExerciseLock();
-    // Auto-expand next exercise card
-    if (activeExerciseIndex !== null) {
-      const cards = document.querySelectorAll('.exercise-card');
-      cards.forEach((c, idx) => {
-        const content = c.querySelector('.exercise-content');
-        if (!content) return;
-        if (idx === activeExerciseIndex) {
-          content.style.display = '';
-          c.dataset.collapsed = 'false';
-        } else if (!skippedExercises[allExKeys[idx]?.key]) {
-          content.style.display = 'none';
-          c.dataset.collapsed = 'true';
-        }
-      });
-    }
-  }
 }
 
 // ==================== SKIP EXERCISE (Feature 9) ====================
@@ -3509,19 +3419,33 @@ function toggleWhoopPanel() {
 
 function toggleExerciseCollapse(id) {
   const body = document.getElementById(id);
-  const toggle = document.getElementById('toggle_' + id);
-  const meta = document.getElementById('meta_' + id);
   if (!body) return;
-  const isOpen = body.classList.contains('open');
-  if (isOpen) {
-    body.classList.remove('open');
-    if (toggle) toggle.textContent = '+';
-    if (meta) meta.style.display = '';
+  const content = document.getElementById('workoutContent');
+  const isCurrentlyFocused = content.classList.contains('focus-mode') &&
+    body.closest('.group-container')?.classList.contains('focus-active');
+
+  if (isCurrentlyFocused) {
+    // Exit focus mode
+    exitFocusMode();
   } else {
+    // Enter focus mode — show only this exercise
+    content.classList.add('focus-mode');
+    // Mark this exercise's group as active
+    document.querySelectorAll('.group-container').forEach(g => g.classList.remove('focus-active'));
+    const group = body.closest('.group-container');
+    if (group) group.classList.add('focus-active');
+    // Open the body
     body.classList.add('open');
-    if (toggle) toggle.textContent = '−';
-    if (meta) meta.style.display = 'none';
+    // Scroll to top of content
+    content.scrollTop = 0;
   }
+}
+
+function exitFocusMode() {
+  const content = document.getElementById('workoutContent');
+  content.classList.remove('focus-mode');
+  document.querySelectorAll('.group-container').forEach(g => g.classList.remove('focus-active'));
+  document.querySelectorAll('.exercise-collapse-body').forEach(b => b.classList.remove('open'));
 }
 
 async function initWhoop() {

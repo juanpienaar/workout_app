@@ -167,6 +167,35 @@ async def get_user_full_data(username: str, coach: Annotated[dict, Depends(requi
     return data
 
 
+@router.get("/debug/data-status")
+async def debug_data_status(coach: Annotated[dict, Depends(require_coach)]):
+    """Debug endpoint — shows what data files exist and their sizes."""
+    import os
+    result = {
+        "data_root": str(config.DATA_ROOT),
+        "data_dir": str(config.DATA_DIR),
+        "data_dir_exists": config.DATA_DIR.exists(),
+        "volume_env": os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "(not set)"),
+        "users_file_exists": config.USERS_FILE.exists(),
+        "program_file_exists": config.PROGRAM_FILE.exists(),
+        "user_data_files": [],
+    }
+    if config.DATA_DIR.exists():
+        for f in config.DATA_DIR.iterdir():
+            try:
+                size = f.stat().st_size
+                # Peek at workout_logs count
+                with open(f) as fh:
+                    d = json.load(fh)
+                    log_count = len(d.get("workout_logs", {}))
+                result["user_data_files"].append({
+                    "name": f.name, "size_bytes": size, "workout_log_count": log_count
+                })
+            except:
+                result["user_data_files"].append({"name": f.name, "error": "could not read"})
+    return result
+
+
 # ══════════════════════════════════════════════════════════════════
 # PROGRAMS
 # ══════════════════════════════════════════════════════════════════
