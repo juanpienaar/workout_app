@@ -66,6 +66,36 @@ async def mark_messages_read(current_user: Annotated[dict, Depends(get_current_u
     return {"ok": True}
 
 
+from pydantic import BaseModel as _BaseModel
+
+class AthleteReplyRequest(_BaseModel):
+    message: str
+    reply_to: str = ""
+
+@router.post("/messages/reply")
+async def reply_message(req: AthleteReplyRequest, current_user: Annotated[dict, Depends(get_current_user)]):
+    user_key = current_user["name"]
+    if not req.message.strip():
+        raise HTTPException(400, "Message cannot be empty")
+    user_data = load_user_data(user_key)
+    msgs = user_data.setdefault("messages", [])
+    msg = {
+        "id": f"msg_{int(datetime.now(timezone.utc).timestamp()*1000)}",
+        "text": req.message.strip(),
+        "day_key": "",
+        "source": "athlete",
+        "from": user_key,
+        "sent_at": datetime.now(timezone.utc).isoformat() + "Z",
+        "read": False,
+        "reply_to": req.reply_to,
+    }
+    msgs.append(msg)
+    if len(msgs) > 200:
+        user_data["messages"] = msgs[-200:]
+    save_user_data(user_key, user_data)
+    return {"ok": True, "message": msg}
+
+
 @router.post("/save-whoop")
 async def save_whoop(req: SaveWhoopRequest, current_user: Annotated[dict, Depends(get_current_user)]):
     user_key = current_user["name"]

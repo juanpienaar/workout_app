@@ -5,15 +5,10 @@ import { Icon, LogoIcon } from './Icons'
 
 const mainPages = [
   { id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
-  { id: 'users', icon: 'users', label: 'Users' },
   { id: 'programs', icon: 'programs', label: 'Programs' },
-  { id: 'exercises', icon: 'exercises', label: 'Exercises' },
-  { id: 'messages', icon: 'messages', label: 'Messages' },
 ]
 
 const toolPages = [
-  { id: 'ai-builder', icon: 'ai-builder', label: 'AI Builder' },
-  { id: 'import', icon: 'import', label: 'Import CSV' },
   { id: 'deploy', icon: 'deploy', label: 'Deploy' },
 ]
 

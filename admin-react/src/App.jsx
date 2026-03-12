@@ -5,13 +5,8 @@ import { configureApi } from './api'
 import { ToastProvider } from './components/Toast'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
-import Users from './pages/Users'
 import Programs from './pages/Programs'
-import Exercises from './pages/Exercises'
-import ImportCSV from './pages/ImportCSV'
-import AIBuilder from './pages/AIBuilder'
 import Deploy from './pages/Deploy'
-import Messages from './pages/Messages'
 
 function LoginPage() {
   const { login } = useAuth()
@@ -74,12 +69,7 @@ function AppInner() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="users" element={<Users />} />
           <Route path="programs" element={<Programs />} />
-          <Route path="exercises" element={<Exercises />} />
-          <Route path="messages" element={<Messages />} />
-          <Route path="ai-builder" element={<AIBuilder />} />
-          <Route path="import" element={<ImportCSV />} />
           <Route path="deploy" element={<Deploy />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Route>

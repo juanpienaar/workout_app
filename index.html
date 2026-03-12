@@ -1221,7 +1221,12 @@ body {
 .msg-item .msg-source.agent { background: rgba(167,139,250,0.15); color: var(--accent2, #a78bfa); }
 .msg-item .msg-text { font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
 .msg-item .msg-day { color: var(--accent2, #a78bfa); font-size: 11px; }
+.msg-item.from-athlete { border-left-color: var(--blue, #60a5fa); margin-left: 24px; }
+.msg-item .msg-source.athlete { background: rgba(96,165,250,0.15); color: var(--blue, #60a5fa); }
 .msg-unread-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; }
+.msg-reply-bar { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border); }
+.msg-reply-bar input { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg, var(--card)); color: var(--text); font-size: 14px; }
+.msg-reply-bar button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; display: flex; align-items: center; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
@@ -1485,6 +1490,13 @@ body {
     </div>
     <div class="msg-panel-body" id="msgList">
       <div style="color:var(--text-dim);text-align:center;padding:20px;">No messages yet.</div>
+    </div>
+    <div class="msg-reply-bar">
+      <input id="msgReplyInput" type="text" placeholder="Type a reply..." autocomplete="off"
+        onkeydown="if(event.key==='Enter')sendAthleteReply()">
+      <button onclick="sendAthleteReply()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
     </div>
   </div>
 </div>
@@ -4095,29 +4107,62 @@ function openMessages() {
     list.innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:20px;">No messages from your coach yet.</div>';
     return;
   }
+  renderMsgList();
+  markMessagesRead();
+}
+
+function renderMsgList() {
+  const list = document.getElementById('msgList');
+  if (_coachMessages.length === 0) {
+    list.innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:20px;">No messages yet. Start a conversation!</div>';
+    return;
+  }
   let html = '';
-  const sorted = [..._coachMessages].reverse();
-  for (const msg of sorted) {
-    const srcCls = msg.source === 'agent' ? 'agent' : 'coach';
-    const srcLabel = msg.source === 'agent' ? 'AGENT' : 'COACH';
+  // Chronological order (oldest first, like a chat)
+  for (const msg of _coachMessages) {
+    const isAthlete = msg.source === 'athlete';
+    const srcCls = isAthlete ? 'athlete' : (msg.source === 'agent' ? 'agent' : 'coach');
+    const srcLabel = isAthlete ? 'YOU' : (msg.source === 'agent' ? 'AGENT' : 'COACH');
     const date = formatMsgDate(msg.sent_at);
-    html += `<div class="msg-item ${msg.source === 'agent' ? 'from-agent' : ''}">
+    html += `<div class="msg-item ${isAthlete ? 'from-athlete' : (msg.source === 'agent' ? 'from-agent' : '')}">
       <div class="msg-meta">
         <span class="msg-source ${srcCls}">${srcLabel}</span>
         <span>${date}</span>
         ${msg.day_key ? `<span class="msg-day">📋 ${msg.day_key.replace('_', ' ')}</span>` : ''}
-        ${!msg.read ? '<span class="msg-unread-dot"></span>' : ''}
+        ${!msg.read && !isAthlete ? '<span class="msg-unread-dot"></span>' : ''}
       </div>
       <div class="msg-text">${escapeHtml(msg.text)}</div>
     </div>`;
   }
   list.innerHTML = html;
-  // Mark as read
-  markMessagesRead();
+  // Auto-scroll to bottom
+  list.scrollTop = list.scrollHeight;
 }
 
 function closeMessages() {
   document.getElementById('msgOverlay').style.display = 'none';
+}
+
+async function sendAthleteReply() {
+  const input = document.getElementById('msgReplyInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.disabled = true;
+  try {
+    const resp = await authFetch(`${SERVER_URL}/api/messages/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text }),
+    });
+    if (resp.ok) {
+      const r = await resp.json();
+      _coachMessages.push(r.message);
+      input.value = '';
+      renderMsgList();
+    }
+  } catch {}
+  input.disabled = false;
+  input.focus();
 }
 
 async function markMessagesRead() {
