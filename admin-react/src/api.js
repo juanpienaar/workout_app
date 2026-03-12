@@ -58,6 +58,11 @@ export const API = {
   addExercise: (group, item) => authFetch(`/api/admin/exercises/${encodeURIComponent(group)}`, { method: 'POST', body: JSON.stringify(item) }).then(r => r.json()),
   deleteExercise: (group, name) => authFetch(`/api/admin/exercises/${encodeURIComponent(group)}/${encodeURIComponent(name)}`, { method: 'DELETE' }).then(r => r.json()),
 
+  // Messages
+  getMessages: (name) => authFetch(`/api/admin/users/${encodeURIComponent(name)}/messages`).then(r => r.json()),
+  sendMessage: (name, data) => authFetch(`/api/admin/users/${encodeURIComponent(name)}/messages`, { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
+  deleteMessage: (name, msgId) => authFetch(`/api/admin/users/${encodeURIComponent(name)}/messages/${encodeURIComponent(msgId)}`, { method: 'DELETE' }).then(r => r.json()),
+
   // Build / Import
   build: () => authFetch('/api/admin/build', { method: 'POST' }).then(r => r.json()),
   importCSV: (file) => {

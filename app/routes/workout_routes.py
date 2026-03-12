@@ -49,6 +49,23 @@ async def sync_all(req: SyncAllRequest, current_user: Annotated[dict, Depends(ge
     return {"ok": True, "synced": count}
 
 
+@router.get("/messages")
+async def get_messages(current_user: Annotated[dict, Depends(get_current_user)]):
+    user_key = current_user["name"]
+    user_data = load_user_data(user_key)
+    return user_data.get("messages", [])
+
+
+@router.post("/messages/mark-read")
+async def mark_messages_read(current_user: Annotated[dict, Depends(get_current_user)]):
+    user_key = current_user["name"]
+    user_data = load_user_data(user_key)
+    for msg in user_data.get("messages", []):
+        msg["read"] = True
+    save_user_data(user_key, user_data)
+    return {"ok": True}
+
+
 @router.post("/save-whoop")
 async def save_whoop(req: SaveWhoopRequest, current_user: Annotated[dict, Depends(get_current_user)]):
     user_key = current_user["name"]

@@ -8,6 +8,7 @@ const mainPages = [
   { id: 'users', icon: 'users', label: 'Users' },
   { id: 'programs', icon: 'programs', label: 'Programs' },
   { id: 'exercises', icon: 'exercises', label: 'Exercises' },
+  { id: 'messages', icon: 'messages', label: 'Messages' },
 ]
 
 const toolPages = [

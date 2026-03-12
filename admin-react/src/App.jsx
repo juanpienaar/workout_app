@@ -11,6 +11,7 @@ import Exercises from './pages/Exercises'
 import ImportCSV from './pages/ImportCSV'
 import AIBuilder from './pages/AIBuilder'
 import Deploy from './pages/Deploy'
+import Messages from './pages/Messages'
 
 function LoginPage() {
   const { login } = useAuth()
@@ -76,6 +77,7 @@ function AppInner() {
           <Route path="users" element={<Users />} />
           <Route path="programs" element={<Programs />} />
           <Route path="exercises" element={<Exercises />} />
+          <Route path="messages" element={<Messages />} />
           <Route path="ai-builder" element={<AIBuilder />} />
           <Route path="import" element={<ImportCSV />} />
           <Route path="deploy" element={<Deploy />} />

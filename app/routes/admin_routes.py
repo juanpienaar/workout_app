@@ -60,6 +60,12 @@ class AIModifyRequest(BaseModel):
     modification_prompt: str
     model: str = "sonnet"
 
+class SendMessageRequest(BaseModel):
+    message: str
+    day_key: str = ""           # e.g. "day_5" — links to specific workout
+    source: str = "coach"       # "coach" or "agent"
+    send_whatsapp: bool = False
+
 
 # ── Helpers ──────────────────────────────────────────────────────
 
@@ -542,3 +548,61 @@ async def deploy(body: dict, coach: Annotated[dict, Depends(require_coach)]):
         raise HTTPException(500, "Deploy timed out")
     except Exception as e:
         raise HTTPException(500, f"Deploy failed: {str(e)}")
+
+
+# ── Messages ─────────────────────────────────────────────────────
+
+@router.get("/users/{username}/messages")
+async def get_messages(username: str, coach: Annotated[dict, Depends(require_coach)]):
+    users = load_users()
+    if username not in users:
+        raise HTTPException(404, "User not found")
+    ud = load_user_data(username)
+    return ud.get("messages", [])
+
+
+@router.post("/users/{username}/messages")
+async def send_message(username: str, req: SendMessageRequest, coach: Annotated[dict, Depends(require_coach)]):
+    from datetime import datetime, timezone
+    users = load_users()
+    if username not in users:
+        raise HTTPException(404, "User not found")
+    ud = load_user_data(username)
+    msgs = ud.setdefault("messages", [])
+    msg = {
+        "id": f"msg_{int(datetime.now(timezone.utc).timestamp()*1000)}",
+        "text": req.message,
+        "day_key": req.day_key,
+        "source": req.source,
+        "from": coach["name"],
+        "sent_at": datetime.now(timezone.utc).isoformat() + "Z",
+        "read": False,
+    }
+    msgs.append(msg)
+    # Keep last 200 messages
+    if len(msgs) > 200:
+        ud["messages"] = msgs[-200:]
+    save_user_data(username, ud)
+
+    # WhatsApp via Twilio (optional, skip if not configured)
+    whatsapp_sent = False
+    if req.send_whatsapp:
+        try:
+            from ..whatsapp import send_whatsapp
+            phone = users[username].get("phone")
+            if phone:
+                send_whatsapp(phone, req.message)
+                whatsapp_sent = True
+        except Exception:
+            pass  # silently skip if not configured
+
+    return {"ok": True, "message": msg, "whatsapp_sent": whatsapp_sent}
+
+
+@router.delete("/users/{username}/messages/{msg_id}")
+async def delete_message(username: str, msg_id: str, coach: Annotated[dict, Depends(require_coach)]):
+    ud = load_user_data(username)
+    msgs = ud.get("messages", [])
+    ud["messages"] = [m for m in msgs if m.get("id") != msg_id]
+    save_user_data(username, ud)
+    return {"ok": True}
