@@ -1,7 +1,8 @@
-"""FastAPI application — replaces server.py."""
+"""FastAPI application entry point."""
 
+import json
 import shutil
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
@@ -45,9 +46,6 @@ async def health():
 
 
 # ---- Serve data files from volume (overrides static mount) ----
-import json
-from fastapi.responses import JSONResponse
-
 @app.get("/program.json")
 async def serve_program():
     # Load programs
@@ -119,13 +117,10 @@ async def startup():
 
 
 # ---- Static files ----
-# Admin dashboard at /admin — prefer dist/ (React build), fall back to raw admin/
+# Admin dashboard at /admin (React build output)
 admin_dist = config.APP_DIR / "admin" / "dist"
-admin_dir = config.APP_DIR / "admin"
 if admin_dist.exists():
     app.mount("/admin", StaticFiles(directory=str(admin_dist), html=True), name="admin-static")
-elif admin_dir.exists():
-    app.mount("/admin", StaticFiles(directory=str(admin_dir), html=True), name="admin-static")
 
 # Root serves index.html, program.json, exercises.json, etc. (LAST so API routes take priority)
 app.mount("/", StaticFiles(directory=str(config.APP_DIR), html=True), name="static")

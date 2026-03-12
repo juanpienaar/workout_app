@@ -5,6 +5,7 @@ import MuscleHeatmap from '../components/MuscleHeatmap'
 import { calculateMuscleLoad } from '../utils/muscleLoad'
 import { PROGRAM_TYPES, MODEL_COSTS } from '../utils/constants'
 import { Icon } from '../components/Icons'
+import HelpTip from '../components/HelpTip'
 
 const STRENGTH_GOALS = ['Hypertrophy', 'Strength', 'Endurance', 'Power']
 const STRENGTH_SPLITS = ['Push/Pull/Legs', 'Upper/Lower', 'Full Body', 'Bro Split']
@@ -222,7 +223,7 @@ export default function AIBuilder() {
       {/* Step 1: Select types */}
       {step === 1 && (
         <div className="card">
-          <h3 style={{ marginBottom: 16 }}>Select Program Type(s)</h3>
+          <h3 style={{ marginBottom: 16 }}>Select Program Type(s) <HelpTip text="Choose one or combine multiple types (e.g. Strength + Running) for a hybrid program. The AI will balance training volume across types." /></h3>
           <div className="type-grid">
             {PROGRAM_TYPES.map(t => (
               <div key={t.id} className={`type-card ${types.includes(t.id) ? 'selected' : ''}`} onClick={() => toggleType(t.id)}>
@@ -350,7 +351,7 @@ export default function AIBuilder() {
       {/* Step 3: Model selection */}
       {step === 3 && (
         <div className="card">
-          <h3 style={{ marginBottom: 16 }}>Select AI Model</h3>
+          <h3 style={{ marginBottom: 16 }}>Select AI Model <HelpTip text="Haiku is fast and cheap — good for simple programs. Sonnet balances quality and cost. Opus produces the most detailed programs but costs more." /></h3>
           {Object.entries(MODEL_COSTS).map(([key, m]) => (
             <div key={key} className={`model-option ${model === key ? 'selected' : ''}`} onClick={() => setModel(key)}>
               <div>
@@ -385,7 +386,7 @@ export default function AIBuilder() {
           </div>
           <div className="form-group">
             <label>Additional Notes (optional)</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. No deadlifts due to back injury, prefer morning sessions..." />
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. No deadlifts due to back injury, prefer morning sessions, focus on posterior chain..." />
           </div>
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={() => setStep(3)}>Back</button>
@@ -438,7 +439,7 @@ export default function AIBuilder() {
                 </div>
 
                 <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 12 }}>
-                  Click any value to edit. Showing first 2 of {(program.weeks || []).length} weeks.
+                  Click any value to edit inline. Use the text bar above to describe changes in plain English (e.g. "make week 2 harder" or "swap bench press for incline press"). Showing first 2 of {(program.weeks || []).length} weeks — save to library to view the full program.
                 </p>
 
                 {(program.weeks || []).slice(0, 2).map((week, wi) => (
@@ -461,9 +462,9 @@ export default function AIBuilder() {
                               <span>Exercise</span>
                               <span>Sets</span>
                               <span>Reps</span>
-                              <span>Tempo</span>
+                              <span>Tempo <HelpTip text="Eccentric-Pause-Concentric-Pause in seconds. E.g. 3-1-2-0 = 3s down, 1s hold, 2s up, 0s top." style={{ fontSize: 7 }} /></span>
                               <span>Rest</span>
-                              <span>RPE</span>
+                              <span>RPE <HelpTip text="Rate of Perceived Exertion (1-10). 7 = 3 reps left in the tank. 9 = could do 1 more. 10 = max effort." style={{ fontSize: 7 }} /></span>
                             </div>
                             {(day.exerciseGroups || []).map((group, gi) => (
                               <div key={gi}>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { API } from '../api'
 import { useToast } from '../components/Toast'
 import { Icon } from '../components/Icons'
+import HelpTip from '../components/HelpTip'
 
 export default function Deploy() {
   const toast = useToast()
@@ -36,7 +37,7 @@ export default function Deploy() {
 
   return (
     <div>
-      <div className="page-title"><Icon name="deploy" size={22} style={{ color: 'var(--accent2)' }} /> Deploy</div>
+      <div className="page-title"><Icon name="deploy" size={22} style={{ color: 'var(--accent2)' }} /> Deploy <HelpTip text="Pushes changes (programs, exercises, app updates) to the live server. Athletes will see updates after their next sync." /></div>
 
       <div className="card">
         <div className="card-header">
@@ -72,7 +73,7 @@ export default function Deploy() {
       <div className="card">
         <h3 style={{ marginBottom: 16 }}>Deploy</h3>
         <p style={{ color: 'var(--text-dim)', marginBottom: 12, fontSize: 13 }}>
-          This will run build.py, then git add, commit, and push.
+          This will rebuild program data, save all changes, and push to the live server. <HelpTip text="Steps: 1) Rebuild program.json from CSV if present. 2) Stage all changed files. 3) Commit with your message. 4) Push to remote — triggers automatic deployment." />
         </p>
         <div className="form-group">
           <label>Commit Message</label>

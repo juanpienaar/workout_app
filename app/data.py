@@ -1,4 +1,4 @@
-"""JSON file I/O — extracted from server.py. Keeps same logic, same file paths."""
+"""JSON file I/O for user data and configuration."""
 
 import json
 from pathlib import Path

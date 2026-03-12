@@ -4,6 +4,7 @@ import { API } from '../api'
 import { authFetch } from '../api'
 import { useToast } from '../components/Toast'
 import { Icon } from '../components/Icons'
+import HelpTip from '../components/HelpTip'
 
 /* ─── helpers ─────────────────────────────────────── */
 
@@ -260,7 +261,7 @@ export default function Dashboard() {
                   </div>
                   <div className="athlete-stat">
                     <div className="athlete-stat-val">{fmtTonnage(s.tonnage || 0)}</div>
-                    <div className="athlete-stat-lbl">Tonnage</div>
+                    <div className="athlete-stat-lbl">Tonnage <HelpTip text="Total weight × reps across all sets this week. Cardio exercises are excluded." /></div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
@@ -297,14 +298,14 @@ export default function Dashboard() {
           {/* Stats */}
           <div className="stats-row">
             <div className="stat-card"><div className="stat-value">{totalSessions}</div><div className="stat-label">Sessions</div></div>
-            <div className="stat-card"><div className="stat-value">{fmtTonnage(totalTonnage)}</div><div className="stat-label">Total Tonnage</div></div>
+            <div className="stat-card"><div className="stat-value">{fmtTonnage(totalTonnage)}</div><div className="stat-label">Total Tonnage <HelpTip text="Total weight × reps across all logged sessions. Higher = more training volume." /></div></div>
             <div className="stat-card">
               <div className="stat-value" style={{ color: avgCompletion >= 80 ? 'var(--teal)' : avgCompletion >= 50 ? 'var(--nn-gold)' : 'var(--accent)' }}>
                 {avgCompletion}%
               </div>
-              <div className="stat-label">Avg Completion</div>
+              <div className="stat-label">Avg Completion <HelpTip text="Green (80%+) = on track. Gold (50-79%) = needs attention. Purple (<50%) = falling behind." /></div>
             </div>
-            <div className="stat-card"><div className="stat-value">{latestWhoop ? Math.round(latestWhoop.recovery_score || 0) + '%' : '—'}</div><div className="stat-label">Recovery</div></div>
+            <div className="stat-card"><div className="stat-value">{latestWhoop ? Math.round(latestWhoop.recovery_score || 0) + '%' : '—'}</div><div className="stat-label">Recovery <HelpTip text="From Whoop integration. Shows the athlete's latest recovery score. '—' means Whoop is not connected." /></div></div>
           </div>
 
           {/* Chart */}

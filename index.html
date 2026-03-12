@@ -1029,6 +1029,20 @@ body {
 .exercise-collapse-body { display: none; }
 .exercise-collapse-body.open { display: block; }
 
+/* Exercise autocomplete */
+.ex-autocomplete { position: relative; }
+.ex-autocomplete-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+  background: var(--card); border: 1px solid var(--card-border); border-radius: 8px;
+  max-height: 200px; overflow-y: auto; margin-top: 2px; display: none;
+}
+.ex-autocomplete-list.open { display: block; }
+.ex-autocomplete-item {
+  padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--card-border);
+}
+.ex-autocomplete-item:hover, .ex-autocomplete-item.selected { background: rgba(124,110,240,0.1); }
+.ex-autocomplete-item .ex-ac-cat { font-size: 10px; color: var(--text-muted); }
+
 /* Focus mode: when exercise is opened, everything else hides */
 .workout-content.focus-mode .group-container { display: none; }
 .workout-content.focus-mode .group-container.focus-active { display: block; }
@@ -1168,6 +1182,28 @@ body {
 .metric-history-entry:last-child { border-bottom: none; }
 
 .hidden { display: none !important; }
+
+/* --- Help Tooltips --- */
+.help-tip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.3);
+  color: var(--accent2, #a78bfa); font-size: 9px; font-weight: 700;
+  cursor: help; user-select: none; flex-shrink: 0;
+  font-family: 'Space Mono', monospace; position: relative;
+  vertical-align: middle; margin-left: 4px;
+}
+.help-tip::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: rgba(20,20,35,0.97); border: 1px solid rgba(167,139,250,0.25);
+  border-radius: 8px; padding: 8px 12px; font-size: 11px; line-height: 1.5;
+  color: #f0f0f8; white-space: normal; width: max-content; max-width: 240px;
+  pointer-events: none; opacity: 0; transition: opacity 0.15s;
+  z-index: 999; font-weight: 400; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.help-tip:hover::after, .help-tip:focus::after { opacity: 1; }
+.help-tip:active::after { opacity: 1; }
 </style>
 </head>
 <body>
@@ -1772,8 +1808,12 @@ function selectUser(name) {
     viewMode = 'week';
   }
 
+  // Load cached target weights
+  try { window._targetWeights = JSON.parse(localStorage.getItem(`target_weights_${currentUser}`) || '{}'); } catch { window._targetWeights = {}; }
+
   archiveView = 'current';
   showWorkout();
+  loadExercisesDB(); // Pre-load exercise library for autocomplete
   initWhoop();
   if (program) {
     pullDataFromServer().then(() => syncAllToServer());
@@ -2101,7 +2141,7 @@ function renderDay() {
     </div>
     <div class="day-detail-stat">
       <div class="dds-value">${formatTonnage(tonnage)}</div>
-      <div class="dds-label">Tonnage</div>
+      <div class="dds-label">Tonnage <span class="help-tip" data-tip="Total weight × reps for completed sets. Only strength exercises count — cardio is excluded.">?</span></div>
     </div>`;
 
   const disabled = isViewOnly ? 'disabled' : '';
@@ -2112,17 +2152,52 @@ function renderDay() {
   let customExercises = [];
   try { customExercises = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
 
-  // Add custom exercises as a group if any exist
+  // Add custom exercises as individual groups (one per exercise for independent collapse)
   const allGroups = [...day.exerciseGroups];
   if (customExercises.length > 0) {
-    allGroups.push({
-      type: 'single',
-      _isCustom: true,
-      exercises: customExercises.map(ce => ({
-        order: ce.order, name: ce.name, sets: ce.sets, reps: String(ce.reps),
-        tempo: '—', rest: '', rpe: '', instruction: 'Custom exercise',
-      })),
+    for (const ce of customExercises) {
+      allGroups.push({
+        type: 'single',
+        _isCustom: true,
+        exercises: [{
+          order: ce.order, name: ce.name, sets: ce.sets, reps: String(ce.reps),
+          tempo: ce.tempo || '—', rest: ce.rest || '', rpe: '', instruction: 'Custom exercise',
+        }],
+      });
+    }
+  }
+
+  // Apply saved exercise order (reorder single-type groups)
+  const orderKey = `exercise_order_${currentUser}_day${currentDayIndex}`;
+  let savedOrder = [];
+  try { savedOrder = JSON.parse(localStorage.getItem(orderKey) || '[]'); } catch {}
+  if (savedOrder.length > 0) {
+    // Reorder single-exercise groups based on saved order
+    const singles = allGroups.filter(g => g.type === 'single' && !g._isCustom);
+    const nonSingles = allGroups.filter(g => g.type !== 'single' || g._isCustom);
+    const customs = allGroups.filter(g => g._isCustom);
+    const others = nonSingles.filter(g => !g._isCustom);
+    // Build exercise key → group map
+    const keyToGroup = {};
+    singles.forEach(g => {
+      if (g.exercises.length === 1) {
+        const ex = g.exercises[0];
+        keyToGroup[ex.order + '_' + ex.name.replace(/\s+/g, '_')] = g;
+      }
     });
+    // Rebuild single groups in saved order
+    const reordered = [];
+    for (const key of savedOrder) {
+      if (keyToGroup[key]) {
+        reordered.push(keyToGroup[key]);
+        delete keyToGroup[key];
+      }
+    }
+    // Add any remaining singles not in saved order
+    Object.values(keyToGroup).forEach(g => reordered.push(g));
+    // Reassemble: others (supersets/circuits) + reordered singles + customs
+    allGroups.length = 0;
+    allGroups.push(...others, ...reordered, ...customs);
   }
 
   let exerciseIndex = 0;
@@ -2130,7 +2205,7 @@ function renderDay() {
     html += '<div class="group-container">';
 
     if (group._isCustom) {
-      html += '<span class="group-label" style="background:var(--accent);color:#fff;">Custom Exercises</span>';
+      // No group header — badge shown on exercise name instead
     } else if (group.type === 'superset') {
       html += '<span class="group-label superset">Superset</span>';
     } else if (group.type === 'circuit') {
@@ -2151,20 +2226,28 @@ function renderDay() {
       const isSkipped = !!skippedExercises[exKey];
       const completionLabel = setsCompleted > 0 ? `${setsCompleted}/${ex.sets}` : '';
       html += `<div class="exercise-collapse-header ${cardClass} ${isSkipped ? 'skipped-header' : ''}" onclick="toggleExerciseCollapse('${collapseId}')">
+        ${!isViewOnly ? `<div style="display:flex;flex-direction:column;gap:1px;margin-right:2px;" onclick="event.stopPropagation()">
+          <button onclick="moveExercise(${currentExIndex},-1)" style="background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;padding:0;line-height:1;">▲</button>
+          <button onclick="moveExercise(${currentExIndex},1)" style="background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;padding:0;line-height:1;">▼</button>
+        </div>` : ''}
         <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === ex.sets ? 'background:var(--green);color:#fff;' : ''}">${setsCompleted === ex.sets ? '✓' : '+'}</div>
         <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;">
           ${getEquipmentIcon(ex.name)} ${ex.name}
+          ${group._isCustom ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">CUSTOM</span>' : ''}
           ${isSkipped ? `<span class="skip-badge">Skipped</span>` : ''}
         </div>
         <div class="exercise-collapse-meta" id="meta_${collapseId}">${isSkipped ? skippedExercises[exKey].reason : (completionLabel || summaryText)}</div>
+        ${!isViewOnly && !isSkipped ? `<button onclick="event.stopPropagation();completeAllSets('${exKey}',${ex.sets})" title="Complete all sets" style="background:none;border:1px solid var(--card-border);border-radius:6px;padding:2px 8px;color:var(--text-dim);font-size:11px;cursor:pointer;white-space:nowrap;">${setsCompleted === ex.sets ? 'Undo' : 'All ✓'}</button>` : ''}
       </div>
       <div class="exercise-collapse-body" id="${collapseId}">
       <div class="exercise-card ${cardClass}" style="margin-top:-2px;border-top-left-radius:0;border-top-right-radius:0;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div class="exercise-name" style="cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;" onclick="showWeightHistory('${ex.name.replace(/'/g, "\\'")}')">
+          <div class="exercise-name" style="display:flex;align-items:center;gap:8px;flex:1;">
             ${getEquipmentIcon(ex.name)} ${ex.name}
+            ${group._isCustom ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">CUSTOM</span>' : ''}
             ${skippedExercises[exKey] ? `<span class="skip-badge">Skipped — ${skippedExercises[exKey].reason}</span>` : ''}
           </div>
+          <button onclick="event.stopPropagation();showWeightHistory('${ex.name.replace(/'/g, "\\'")}')" title="Weight history" style="background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;padding:4px;">📊</button>
           ${!isViewOnly && !skippedExercises[exKey] ? `<button class="skip-btn" onclick="event.stopPropagation();openSkipModal('${exKey}',${currentExIndex})" title="Skip exercise">✕</button>` : ''}
         </div>
         <div class="exercise-meta">
@@ -2222,13 +2305,23 @@ function renderDay() {
         html += `<div class="sets-log-header">
             <div>Set</div><div style="text-align:center">Weight</div><div style="text-align:center">Reps</div><div></div>
           </div>`;
-        for (let s = 1; s <= ex.sets; s++) {
+        // Include extra sets beyond program definition
+        const extraSetNums = Object.keys(exData).filter(k => k.startsWith('set')).map(k => parseInt(k.replace('set',''))).filter(n => n > ex.sets);
+        const maxSet = Math.max(ex.sets, ...extraSetNums, 0);
+        // Check for coach target weights
+        const tw = (window._targetWeights || {})[ex.name] || {};
+        for (let s = 1; s <= maxSet; s++) {
           const setData = exData['set' + s] || {};
+          const isExtra = s > ex.sets;
+          const targetW = tw['set' + s];
+          const weightVal = setData.weight || (targetW ? targetW : '');
+          const isCoachWeight = !setData.weight && targetW;
           html += `<div class="set-row">
-            <div class="set-num">${s}</div>
+            <div class="set-num" ${isExtra ? 'style="color:var(--accent);"' : ''}>${s}${isExtra ? '+' : ''}</div>
             <input class="set-input" type="number" inputmode="decimal" placeholder="kg"
               data-key="${exKey}" data-set="${s}" data-field="weight"
-              value="${setData.weight || ''}" onchange="onSetChange(this)" ${disabled}>
+              value="${weightVal}" ${isCoachWeight ? 'style="color:var(--nn-warm);"' : ''}
+              onchange="onSetChange(this)" ${disabled}>
             <input class="set-input" type="number" inputmode="numeric" placeholder="${ex.reps} reps"
               data-key="${exKey}" data-set="${s}" data-field="reps"
               value="${setData.reps || ''}" onchange="onSetChange(this)" ${disabled}>
@@ -2240,6 +2333,7 @@ function renderDay() {
       }
 
       html += `</div>
+        ${!isViewOnly ? `<button onclick="addExtraSet('${exKey}','${ex.name.replace(/'/g, "\\'")}')" style="width:100%;padding:6px;border:1px dashed var(--card-border);border-radius:6px;background:none;color:var(--text-dim);font-size:12px;cursor:pointer;margin-top:4px;">+ Add Set</button>` : ''}
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <div class="exercise-notes" style="flex:1;min-width:150px;">
             <textarea class="notes-input" placeholder="${isViewOnly ? 'No notes' : 'Notes...'}"
@@ -2316,11 +2410,15 @@ function renderDay() {
   // ---- Add Exercise / Activity ----
   if (!isViewOnly) {
     html += `<div class="group-container" style="margin-top:16px;">
-      <span class="group-label" style="background:var(--accent);color:#fff;">Add to Today</span>
+      <span class="group-label" style="background:var(--accent);color:#fff;">Add to Today <span class="help-tip" data-tip="Add custom exercises or cardio activities. Search the library by typing, or enter a new exercise name. New exercises are added to the library automatically." style="background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.4);color:#fff;">?</span></span>
       <div class="exercise-card">
         <div style="font-weight:600;margin-bottom:8px;font-size:14px;">Strength Exercise</div>
-        <input id="customExName" type="text" placeholder="Exercise name"
-          style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;margin-bottom:8px;">
+        <div class="ex-autocomplete">
+          <input id="customExName" type="text" placeholder="Search or type exercise name" autocomplete="off"
+            style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;margin-bottom:8px;"
+            oninput="onExerciseNameInput(this)" onfocus="onExerciseNameInput(this)">
+          <div id="exAutocompleteList" class="ex-autocomplete-list"></div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <div>
             <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Sets</label>
@@ -2330,6 +2428,16 @@ function renderDay() {
           <div>
             <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Reps</label>
             <input id="customExReps" type="number" inputmode="numeric" placeholder="10" value="10"
+              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Tempo</label>
+            <input id="customExTempo" type="text" placeholder="e.g. 3-1-2-0"
+              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Rest (sec)</label>
+            <input id="customExRest" type="text" inputmode="numeric" placeholder="60"
               style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
           </div>
         </div>
@@ -2381,21 +2489,151 @@ function saveCardio() {
   }
 }
 
+// ==================== EXERCISE LIBRARY SEARCH ====================
+let exerciseLibrary = []; // Flat list: [{name, category, equipment}]
+
+function buildExerciseLibrary() {
+  exerciseLibrary = [];
+  if (!window._exercisesData) return;
+  for (const [category, equipGroups] of Object.entries(window._exercisesData)) {
+    if (typeof equipGroups !== 'object') continue;
+    for (const [equip, exercises] of Object.entries(equipGroups)) {
+      if (!Array.isArray(exercises)) continue;
+      for (const ex of exercises) {
+        exerciseLibrary.push({name: ex.name, category, equipment: ex.equipment || equip});
+      }
+    }
+  }
+}
+
+function fuzzyMatch(query, text) {
+  const q = query.toLowerCase();
+  const t = text.toLowerCase();
+  if (t.includes(q)) return true;
+  // Simple word-start matching
+  const words = q.split(/\s+/);
+  return words.every(w => t.includes(w));
+}
+
+function onExerciseNameInput(input) {
+  const query = input.value.trim();
+  const list = document.getElementById('exAutocompleteList');
+  if (!list) return;
+  if (query.length < 2) { list.classList.remove('open'); return; }
+
+  if (exerciseLibrary.length === 0) buildExerciseLibrary();
+
+  const matches = exerciseLibrary.filter(ex => fuzzyMatch(query, ex.name)).slice(0, 10);
+  if (matches.length === 0) { list.classList.remove('open'); return; }
+
+  list.innerHTML = matches.map(m =>
+    `<div class="ex-autocomplete-item" onclick="selectExerciseFromLibrary('${m.name.replace(/'/g, "\\'")}')">
+      ${m.name} <span class="ex-ac-cat">${m.category} · ${m.equipment}</span>
+    </div>`
+  ).join('');
+  list.classList.add('open');
+}
+
+function selectExerciseFromLibrary(name) {
+  document.getElementById('customExName').value = name;
+  document.getElementById('exAutocompleteList').classList.remove('open');
+}
+
+// Close autocomplete on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.ex-autocomplete')) {
+    const list = document.getElementById('exAutocompleteList');
+    if (list) list.classList.remove('open');
+  }
+});
+
+function addToExerciseLibraryIfNew(name) {
+  // Check if exercise already exists in library
+  if (exerciseLibrary.length === 0) buildExerciseLibrary();
+  const exists = exerciseLibrary.some(ex => ex.name.toLowerCase() === name.toLowerCase());
+  if (exists) return;
+
+  // Add to local exercises data under "Custom" category
+  if (!window._exercisesData) return;
+  if (!window._exercisesData['Custom']) window._exercisesData['Custom'] = {};
+  if (!window._exercisesData['Custom']['Other']) window._exercisesData['Custom']['Other'] = [];
+  window._exercisesData['Custom']['Other'].push({name, equipment: 'Other'});
+  exerciseLibrary.push({name, category: 'Custom', equipment: 'Other'});
+
+  // Persist to server
+  if (serverAvailable !== false) {
+    authFetch(`${SERVER_URL}/api/admin/exercises`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(window._exercisesData),
+    }).catch(e => console.warn('[sync] exercise library update failed:', e));
+  }
+}
+
+// ==================== EXTRA SETS ====================
+function addExtraSet(exKey, exName) {
+  if (isViewOnly) return;
+  // Save current state first
+  saveCurrentDay();
+  // Find the highest set number for this exercise in saved data
+  const savedData = loadDayData(currentDayIndex);
+  const exData = savedData[exKey] || {};
+  const existingNums = Object.keys(exData).filter(k => k.startsWith('set')).map(k => parseInt(k.replace('set','')) || 0);
+  // Also count DOM rows
+  const domRows = document.querySelectorAll(`.set-check[data-key="${exKey}"]`);
+  const maxExisting = Math.max(0, ...existingNums, domRows.length);
+  const newSetNum = maxExisting + 1;
+
+  // Add new set row to the DOM (inside the sets-log for this exercise)
+  const setsLog = document.querySelector(`[data-key="${exKey}"][data-set="1"]`)?.closest('.sets-log');
+  if (setsLog) {
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.innerHTML = `
+      <div class="set-num" style="color:var(--accent);">${newSetNum}+</div>
+      <input class="set-input" type="number" inputmode="decimal" placeholder="kg"
+        data-key="${exKey}" data-set="${newSetNum}" data-field="weight"
+        onchange="onSetChange(this)">
+      <input class="set-input" type="number" inputmode="numeric" placeholder="reps"
+        data-key="${exKey}" data-set="${newSetNum}" data-field="reps"
+        onchange="onSetChange(this)">
+      <button class="set-check"
+        data-key="${exKey}" data-set="${newSetNum}"
+        onclick="toggleSet(this)">✓</button>`;
+    // Insert before the "+ Add Set" button
+    const addBtn = setsLog.nextElementSibling;
+    setsLog.appendChild(row);
+  }
+  updateDayDetailStats();
+}
+
 // ==================== CUSTOM EXERCISE ====================
 function addCustomExercise() {
-  const name = document.getElementById('customExName').value.trim();
+  const nameInput = document.getElementById('customExName');
+  const name = nameInput.value.trim();
   const sets = parseInt(document.getElementById('customExSets').value) || 3;
   const reps = parseInt(document.getElementById('customExReps').value) || 10;
+  const tempo = document.getElementById('customExTempo')?.value.trim() || '';
+  const rest = document.getElementById('customExRest')?.value.trim() || '';
   if (!name) { alert('Enter an exercise name'); return; }
+
+  // Save current workout state before re-render to prevent data loss
+  saveCurrentDay();
 
   // Store custom exercises in localStorage
   const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
   let customs = [];
   try { customs = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
-  customs.push({name, sets, reps, order: `C${customs.length + 1}`});
+  customs.push({name, sets, reps, tempo, rest, order: `C${customs.length + 1}`});
   localStorage.setItem(customKey, JSON.stringify(customs));
 
-  // Re-render
+  // Also add to exercise library if not already there
+  addToExerciseLibraryIfNew(name);
+
+  // Clear form and re-render
+  nameInput.value = '';
+  if (document.getElementById('customExTempo')) document.getElementById('customExTempo').value = '';
+  if (document.getElementById('customExRest')) document.getElementById('customExRest').value = '';
   renderDay();
 }
 
@@ -2500,7 +2738,8 @@ async function loadExercisesDB() {
   try {
     const r = await fetch('exercises.json?v=' + Date.now());
     exercisesDB = await r.json();
-  } catch { exercisesDB = {}; }
+    window._exercisesData = exercisesDB; // Shared with exercise library search
+  } catch { exercisesDB = {}; window._exercisesData = {}; }
   return exercisesDB;
 }
 
@@ -2805,6 +3044,11 @@ async function pullDataFromServer() {
     const resp = await authFetch(`${SERVER_URL}/api/data`);
     if (!resp.ok) return;
     const serverData = await resp.json();
+    // Store coach target weights if present
+    if (serverData.target_weights) {
+      window._targetWeights = serverData.target_weights;
+      localStorage.setItem(`target_weights_${currentUser}`, JSON.stringify(serverData.target_weights));
+    }
     const logs = serverData.workout_logs || {};
     let merged = 0;
     for (const [dayKey, entry] of Object.entries(logs)) {
@@ -2903,6 +3147,53 @@ function onSetChange(input) {
   }
 }
 function onNotesChange(ta) { saveCurrentDay(); }
+function completeAllSets(exKey, totalSets) {
+  if (isViewOnly) return;
+  const rows = document.querySelectorAll(`.set-check[data-key="${exKey}"]`);
+  const allDone = [...rows].every(btn => btn.classList.contains('done'));
+  rows.forEach(btn => {
+    if (allDone) {
+      // Undo all
+      btn.classList.remove('done');
+    } else if (!btn.classList.contains('done')) {
+      // Complete remaining sets — fill reps from placeholder if empty
+      const row = btn.closest('.set-row');
+      if (row) {
+        const repsInput = row.querySelector('.set-input[data-field="reps"]');
+        if (repsInput && !repsInput.value && repsInput.placeholder) {
+          repsInput.value = repsInput.placeholder;
+        }
+      }
+      btn.classList.add('done');
+    }
+  });
+  saveCurrentDay();
+  updateDayDetailStats();
+  // Update the header toggle and meta for this exercise
+  updateExerciseHeader(exKey, totalSets);
+}
+
+function updateExerciseHeader(exKey, totalSets) {
+  const collapseId = `collapse_${exKey}`;
+  const toggle = document.getElementById(`toggle_${collapseId}`);
+  const meta = document.getElementById(`meta_${collapseId}`);
+  if (!toggle) return;
+  const rows = document.querySelectorAll(`.set-check[data-key="${exKey}"]`);
+  let done = 0;
+  rows.forEach(btn => { if (btn.classList.contains('done')) done++; });
+  const total = rows.length;
+  if (done === total && total > 0) {
+    toggle.style.background = 'var(--green)';
+    toggle.style.color = '#fff';
+    toggle.textContent = '✓';
+  } else {
+    toggle.style.background = 'var(--card-border)';
+    toggle.style.color = 'var(--text)';
+    toggle.textContent = '+';
+  }
+  if (meta) meta.textContent = done > 0 ? `${done}/${total}` : '';
+}
+
 function toggleSet(btn) {
   if (isViewOnly) return;
   btn.classList.toggle('done');
@@ -2918,6 +3209,8 @@ function toggleSet(btn) {
   }
   saveCurrentDay();
   updateDayDetailStats();
+  // Update exercise header completion indicator
+  if (btn.dataset.key) updateExerciseHeader(btn.dataset.key);
 }
 
 function updateDayDetailStats() {
@@ -2926,12 +3219,27 @@ function updateDayDetailStats() {
   if (!day || day.isRest) return;
   const data = collectCurrentData();
   let totalSets = 0, doneSets = 0, tonnage = 0;
-  for (const group of day.exerciseGroups) {
+
+  // Include custom exercises in live stats update
+  const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+  let customEx = [];
+  try { customEx = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
+  const allExGroups = [...day.exerciseGroups];
+  if (customEx.length > 0) {
+    for (const ce of customEx) {
+      allExGroups.push({exercises: [{order: ce.order, name: ce.name, sets: ce.sets, reps: String(ce.reps)}]});
+    }
+  }
+
+  // Also count extra sets from DOM (dynamically added sets beyond program)
+  for (const group of allExGroups) {
     for (const ex of group.exercises) {
       const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
       const exData = data[exKey] || {};
       const isCardio = !!getCardioType(ex.name);
-      for (let s = 1; s <= ex.sets; s++) {
+      // Count all sets present in data (includes extra sets beyond ex.sets)
+      const maxSet = Math.max(ex.sets, ...Object.keys(exData).filter(k => k.startsWith('set')).map(k => parseInt(k.replace('set','')) || 0));
+      for (let s = 1; s <= maxSet; s++) {
         totalSets++;
         const sd = exData['set' + s] || {};
         if (sd.done) {
@@ -3446,6 +3754,56 @@ function exitFocusMode() {
   content.classList.remove('focus-mode');
   document.querySelectorAll('.group-container').forEach(g => g.classList.remove('focus-active'));
   document.querySelectorAll('.exercise-collapse-body').forEach(b => b.classList.remove('open'));
+}
+
+function moveExercise(exerciseIndex, direction) {
+  // Save current data before reorder
+  saveCurrentDay();
+  const day = allDays[currentDayIndex];
+  if (!day) return;
+
+  // Build a flat list of all exercises with their group info
+  const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+  let customExercises = [];
+  try { customExercises = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
+
+  // Count total exercises (program + custom)
+  let totalProgramExercises = 0;
+  for (const g of day.exerciseGroups) totalProgramExercises += g.exercises.length;
+
+  const isCustomIndex = exerciseIndex >= totalProgramExercises;
+
+  if (isCustomIndex) {
+    // Reorder within custom exercises
+    const ci = exerciseIndex - totalProgramExercises;
+    const newCi = ci + direction;
+    if (newCi < 0 || newCi >= customExercises.length) return;
+    [customExercises[ci], customExercises[newCi]] = [customExercises[newCi], customExercises[ci]];
+    // Re-assign order keys
+    customExercises.forEach((ce, i) => ce.order = `C${i + 1}`);
+    localStorage.setItem(customKey, JSON.stringify(customExercises));
+  } else {
+    // Reorder within program exercises using a saved order override
+    const orderKey = `exercise_order_${currentUser}_day${currentDayIndex}`;
+    let order = [];
+    try { order = JSON.parse(localStorage.getItem(orderKey) || '[]'); } catch {}
+
+    // If no saved order, build from current
+    if (order.length === 0) {
+      for (const g of day.exerciseGroups) {
+        for (const ex of g.exercises) {
+          order.push(ex.order + '_' + ex.name.replace(/\\s+/g, '_'));
+        }
+      }
+    }
+
+    const newIdx = exerciseIndex + direction;
+    if (newIdx < 0 || newIdx >= order.length) return;
+    [order[exerciseIndex], order[newIdx]] = [order[newIdx], order[exerciseIndex]];
+    localStorage.setItem(orderKey, JSON.stringify(order));
+  }
+
+  renderDay();
 }
 
 async function initWhoop() {

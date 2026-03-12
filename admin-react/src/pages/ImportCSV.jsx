@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import { API } from '../api'
 import { useToast } from '../components/Toast'
 import { Icon } from '../components/Icons'
+import HelpTip from '../components/HelpTip'
 
 export default function ImportCSV() {
   const toast = useToast()
@@ -27,8 +28,8 @@ export default function ImportCSV() {
     <div>
       <div className="page-title"><Icon name="import" size={22} style={{ color: 'var(--accent2)' }} /> Import CSV</div>
       <div className="card">
-        <p style={{ color: 'var(--text-dim)', marginBottom: 16 }}>Upload a program CSV file. It will replace the current program.csv and rebuild program.json.</p>
-        <p style={{ color: 'var(--text-dim)', marginBottom: 16, fontSize: 13 }}>Required columns: Program, Week, Day, Order, Exercise, Sets, Reps, Tempo, Rest, RPE, Instruction</p>
+        <p style={{ color: 'var(--text-dim)', marginBottom: 16 }}>Upload a program CSV file. It will replace the current program.csv and rebuild program.json. <HelpTip text="This overwrites all existing programs built from CSV. Programs created via the AI Builder are stored separately and won't be affected." /></p>
+        <p style={{ color: 'var(--text-dim)', marginBottom: 16, fontSize: 13 }}>Required columns: Program, Week, Day, Order, Exercise, Sets, Reps, Tempo, Rest, RPE, Instruction <HelpTip text="Each row is one exercise. Week and Day are numbers (1, 2, 3...). Order sets the sequence within a day (A1, A2, B1...). Tempo is eccentric-pause-concentric (e.g. 3-1-2). RPE is 1-10 effort scale." /></p>
 
         <div
           className={`drop-zone ${dragOver ? 'dragover' : ''}`}

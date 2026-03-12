@@ -15,12 +15,15 @@ Design system: **Obsidian Flow** — purple `#7c6ef0` → lavender `#a78bfa` →
 ```
 /
 ├── index.html              # Athlete app (monolithic PWA)
-├── program.json            # Generated program data (from CSV or AI)
+├── run.py                  # Entry point (uvicorn launcher)
+├── build.py                # CSV → program.json builder (CLI + called by admin)
+├── update.sh               # Git helper: rebuild from CSV and push
 ├── app/                    # FastAPI backend
-│   ├── main.py             # App entry, CORS, rate limiting
+│   ├── main.py             # App entry, CORS, rate limiting, static mounts
 │   ├── config.py           # All config + env vars + file paths
 │   ├── auth.py             # JWT auth, password hashing
 │   ├── data.py             # JSON file I/O for user data
+│   ├── encryption.py       # Fernet encryption for wearable tokens
 │   ├── ai_builder.py       # Claude AI program generation
 │   ├── models.py           # Pydantic request models
 │   └── routes/
@@ -29,7 +32,8 @@ Design system: **Obsidian Flow** — purple `#7c6ef0` → lavender `#a78bfa` →
 │       ├── workout_routes.py   # save-day, sync-all, save-whoop
 │       ├── metrics_routes.py   # Body metrics
 │       ├── whoop_routes.py     # Whoop OAuth + data sync
-│       └── coach_routes.py     # Coach-facing user list
+│       ├── coach_routes.py     # Coach-facing user list
+│       └── verify_routes.py    # Email verification
 ├── admin-react/            # React admin dashboard source
 │   ├── src/
 │   │   ├── App.jsx         # Routing (HashRouter)
@@ -41,7 +45,20 @@ Design system: **Obsidian Flow** — purple `#7c6ef0` → lavender `#a78bfa` →
 │   └── vite.config.js
 ├── admin/dist/             # Built dashboard (committed, served by FastAPI)
 ├── user_data/              # Per-athlete JSON files (on Railway volume)
+├── tests/                  # pytest tests for FastAPI backend
+│   ├── conftest.py         # Fixtures: isolated data dir, test client, seed users
+│   ├── test_health.py      # Smoke tests
+│   ├── test_auth.py        # Login, refresh, auth guards
+│   └── test_workout.py     # save-day, sync-all, data retrieval
+├── program.json            # Generated program data (from CSV or AI)
+├── program.csv             # Source program spreadsheet
+├── exercises.json          # Exercise database
 ├── requirements.txt        # Python dependencies
+├── requirements-dev.txt    # Dev/test dependencies (pytest, httpx)
+├── pytest.ini              # pytest config
+├── Procfile                # Railway/Heroku: web: python run.py
+├── nixpacks.toml           # Railway build config
+├── .claudeignore           # Files Claude Code should skip
 ├── .env.example            # Env var template
 └── CLAUDE.md
 ```
@@ -94,6 +111,12 @@ cd admin-react
 npm install
 npm run dev          # Vite dev server (proxied)
 npm run build        # Build to ../admin/dist/
+```
+
+### Run tests
+```bash
+pip install -r requirements-dev.txt
+pytest -v
 ```
 
 ### Deploy

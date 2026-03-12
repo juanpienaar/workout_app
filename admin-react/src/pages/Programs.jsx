@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast'
 import MuscleHeatmap from '../components/MuscleHeatmap'
 import { calculateMuscleLoad } from '../utils/muscleLoad'
 import { Icon } from '../components/Icons'
+import HelpTip from '../components/HelpTip'
 
 function exerciseSummary(week) {
   const names = []
@@ -120,7 +121,7 @@ export default function Programs() {
       <div className="page-title"><Icon name="programs" size={22} style={{ color: 'var(--accent2)' }} /> Programs</div>
       <div className="toolbar">
         <div />
-        <button className="btn btn-secondary btn-sm" onClick={rebuild}>Rebuild JSON</button>
+        <button className="btn btn-secondary btn-sm" onClick={rebuild}>Rebuild JSON <HelpTip text="Regenerates program.json from program.csv. Only needed after manually editing the CSV file." /></button>
       </div>
 
       {programs.map(p => (
@@ -196,7 +197,7 @@ export default function Programs() {
                                         </div>
                                       )}
                                       <div className="exercise-row exercise-row-header">
-                                        <span>#</span><span>Exercise</span><span>Sets</span><span>Reps</span><span>Tempo</span><span>Rest</span><span>RPE</span>
+                                        <span>#</span><span>Exercise</span><span>Sets</span><span>Reps</span><span>Tempo <HelpTip text="Ecc-Pause-Con-Pause in seconds. E.g. 3-1-2-0" style={{ fontSize: 7 }} /></span><span>Rest</span><span>RPE <HelpTip text="1-10 effort scale. 7 = 3 reps in reserve." style={{ fontSize: 7 }} /></span>
                                       </div>
                                       {group.exercises.map((ex, ei) => (
                                         <div key={ei} className="exercise-row">

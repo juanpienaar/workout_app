@@ -167,6 +167,25 @@ async def get_user_full_data(username: str, coach: Annotated[dict, Depends(requi
     return data
 
 
+@router.get("/users/{username}/target-weights")
+async def get_target_weights(username: str, coach: Annotated[dict, Depends(require_coach)]):
+    """Get coach-set target weights for an athlete."""
+    data = load_user_data(username)
+    return {"target_weights": data.get("target_weights", {})}
+
+
+@router.put("/users/{username}/target-weights")
+async def set_target_weights(username: str, body: dict, coach: Annotated[dict, Depends(require_coach)]):
+    """Set target weights for an athlete. Body: {target_weights: {exercise: {set1: weight, ...}}}"""
+    users = load_users()
+    if username not in users:
+        raise HTTPException(404, "User not found")
+    data = load_user_data(username)
+    data["target_weights"] = body.get("target_weights", {})
+    save_user_data(username, data)
+    return {"ok": True}
+
+
 @router.get("/debug/data-status")
 async def debug_data_status(coach: Annotated[dict, Depends(require_coach)]):
     """Debug endpoint — shows what data files exist and their sizes."""
@@ -477,7 +496,7 @@ async def deploy_status(coach: Annotated[dict, Depends(require_coach)]):
 @router.post("/deploy")
 async def deploy(body: dict, coach: Annotated[dict, Depends(require_coach)]):
     """Run build, git add, commit, and push."""
-    message = body.get("message", "Update from admin dashboard")
+    message = body.get("commit_msg") or body.get("message", "Update from admin dashboard")
 
     try:
         steps = []
