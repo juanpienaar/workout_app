@@ -18,7 +18,7 @@ export default function Messages() {
 
   useEffect(() => {
     API.listUsers().then(u => {
-      const athletes = Object.entries(u).filter(([,v]) => v.role !== 'coach').map(([name, info]) => ({ name, ...info }))
+      const athletes = (u.users || []).filter(v => v.role !== 'coach').map(v => ({ name: v.username, ...v }))
       setUsers(athletes)
     }).catch(() => toast('Failed to load users', 'error'))
   }, [])
