@@ -32,6 +32,7 @@ class UpdateUserRequest(BaseModel):
     startDate: Optional[str] = None
     role: Optional[str] = None
     password: Optional[str] = None
+    phone: Optional[str] = None
 
 class ExerciseItem(BaseModel):
     name: str
@@ -142,6 +143,8 @@ async def update_user(username: str, req: UpdateUserRequest, coach: Annotated[di
         users[username]["role"] = req.role
     if req.password is not None:
         users[username]["passwordHash"] = hash_password(req.password)
+    if req.phone is not None:
+        users[username]["phone"] = req.phone
     save_users(users)
     return {"ok": True}
 
