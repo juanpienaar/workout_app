@@ -6,7 +6,6 @@ import { ToastProvider } from './components/Toast'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Programs from './pages/Programs'
-import Deploy from './pages/Deploy'
 
 function LoginPage() {
   const { login } = useAuth()
@@ -70,7 +69,6 @@ function AppInner() {
         <Route element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="programs" element={<Programs />} />
-          <Route path="deploy" element={<Deploy />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Route>
       </Routes>

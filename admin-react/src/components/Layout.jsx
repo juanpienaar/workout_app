@@ -8,9 +8,7 @@ const mainPages = [
   { id: 'programs', icon: 'programs', label: 'Programs' },
 ]
 
-const toolPages = [
-  { id: 'deploy', icon: 'deploy', label: 'Deploy' },
-]
+const toolPages = []
 
 export default function Layout() {
   const navigate = useNavigate()
