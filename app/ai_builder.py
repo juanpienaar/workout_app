@@ -403,9 +403,8 @@ def csv_rows_to_program(rows: list[dict], program_name: str) -> dict:
 
     weeks_data = {}
     skipped_rows = 0
-    current_week = 1
-    current_day = 0
-    last_week = 0
+    last_week = 1
+    last_day = 1
 
     # Log the keys from the first row to help debug column mapping issues
     if rows:
@@ -429,20 +428,16 @@ def csv_rows_to_program(rows: list[dict], program_name: str) -> dict:
         except (ValueError, TypeError):
             day = None
 
-        # Fallback: infer week/day if parsing failed
+        # Fallback: if parsing failed, keep the last known week/day
+        # (multiple exercises on the same day share the same Week/Day)
         if week is None:
-            # If we have a valid day and it's <= last day we saw, assume next week
-            week = current_week
+            week = last_week
         if day is None:
-            # Auto-increment day within the current week
-            current_day += 1
-            day = current_day
+            day = last_day
 
-        # Track week transitions
-        if week != last_week:
-            last_week = week
-            current_week = week
-            current_day = day
+        # Track last known values
+        last_week = week
+        last_day = day
 
         order = row.get("Order", "").strip()
         if week not in weeks_data:
