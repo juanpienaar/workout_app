@@ -59,6 +59,7 @@ function ProgramsTab() {
   const [assignModal, setAssignModal] = useState(null) // { programName }
   const [athletes, setAthletes] = useState([])
   const [selectedAthletes, setSelectedAthletes] = useState([])
+  const [assignStartDate, setAssignStartDate] = useState('')
   const [assigning, setAssigning] = useState(false)
 
   const load = async () => {
@@ -70,6 +71,7 @@ function ProgramsTab() {
   async function openAssign(programName) {
     setAssignModal({ programName })
     setSelectedAthletes([])
+    setAssignStartDate(new Date().toISOString().slice(0, 10))
     try {
       const d = await API.listUsers()
       setAthletes(d.users || [])
@@ -77,11 +79,13 @@ function ProgramsTab() {
   }
 
   async function doAssign() {
-    if (selectedAthletes.length === 0) { toast('Select at least one athlete', 'error'); return }
+    if (selectedAthletes.length === 0) { toast('Select at least one user', 'error'); return }
     setAssigning(true)
     try {
+      const body = { program: assignModal.programName }
+      if (assignStartDate) body.startDate = assignStartDate
       await Promise.all(selectedAthletes.map(name =>
-        API.updateUser(name, { program: assignModal.programName })
+        API.updateUser(name, body)
       ))
       toast(`Assigned to ${selectedAthletes.length} user(s)`)
       setAssignModal(null)
@@ -242,6 +246,10 @@ function ProgramsTab() {
           { label: 'Cancel', cls: 'btn-secondary', onClick: () => setAssignModal(null) },
           { label: assigning ? 'Assigning...' : 'Assign', cls: 'btn-primary', onClick: doAssign },
         ]}>
+          <div className="form-group" style={{ marginBottom: 12 }}>
+            <label>Start Date</label>
+            <input type="date" value={assignStartDate} onChange={e => setAssignStartDate(e.target.value)} />
+          </div>
           <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 12 }}>Select users to assign this program to:</p>
           {athletes.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>No users found.</p>}
           <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
