@@ -72,7 +72,7 @@ function ProgramsTab() {
     setSelectedAthletes([])
     try {
       const d = await API.listUsers()
-      setAthletes((d.users || []).filter(u => u.role !== 'coach'))
+      setAthletes(d.users || [])
     } catch { toast('Failed to load athletes', 'error') }
   }
 
@@ -83,7 +83,7 @@ function ProgramsTab() {
       await Promise.all(selectedAthletes.map(name =>
         API.updateUser(name, { program: assignModal.programName })
       ))
-      toast(`Assigned to ${selectedAthletes.length} athlete(s)`)
+      toast(`Assigned to ${selectedAthletes.length} user(s)`)
       setAssignModal(null)
     } catch { toast('Assign failed', 'error') }
     setAssigning(false)
@@ -242,14 +242,15 @@ function ProgramsTab() {
           { label: 'Cancel', cls: 'btn-secondary', onClick: () => setAssignModal(null) },
           { label: assigning ? 'Assigning...' : 'Assign', cls: 'btn-primary', onClick: doAssign },
         ]}>
-          <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 12 }}>Select athletes to assign this program to:</p>
-          {athletes.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>No athletes found.</p>}
+          <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 12 }}>Select users to assign this program to:</p>
+          {athletes.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>No users found.</p>}
           <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {athletes.map(u => (
               <label key={u.username} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: selectedAthletes.includes(u.username) ? 'rgba(124,110,240,0.1)' : 'var(--input-bg)', cursor: 'pointer', fontSize: 14 }}>
                 <input type="checkbox" checked={selectedAthletes.includes(u.username)}
                   onChange={e => setSelectedAthletes(prev => e.target.checked ? [...prev, u.username] : prev.filter(n => n !== u.username))} />
                 <span>{u.username}</span>
+                {u.role === 'coach' && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(52,211,153,0.15)', color: 'var(--teal)' }}>COACH</span>}
                 <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 'auto' }}>{u.program || 'No program'}</span>
               </label>
             ))}
