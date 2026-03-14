@@ -844,9 +844,6 @@ function ExercisesTab() {
         </div>
       </div>
       <div className="toolbar" style={{ marginTop: 16 }}>
-        <select value={newOlympicCategory} onChange={e => setNewOlympicCategory(e.target.value)} style={{ width: 'auto' }}>
-          {Object.keys(olympicLifts).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-        </select>
         <input
           type="text"
           className="search-input"
@@ -855,7 +852,7 @@ function ExercisesTab() {
           onChange={e => setNewOlympicName(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter' && newOlympicName.trim()) {
-              setCustomOlympic([...customOlympic, { category: newOlympicCategory, name: newOlympicName.trim() }])
+              setCustomOlympic([...customOlympic, { name: newOlympicName.trim() }])
               setNewOlympicName('')
               toast('Olympic lift added')
             }
@@ -863,41 +860,45 @@ function ExercisesTab() {
         />
         <button className="btn btn-primary btn-sm" onClick={() => {
           if (newOlympicName.trim()) {
-            setCustomOlympic([...customOlympic, { category: newOlympicCategory, name: newOlympicName.trim() }])
+            setCustomOlympic([...customOlympic, { name: newOlympicName.trim() }])
             setNewOlympicName('')
             toast('Olympic lift added')
           }
         }}>+ Add Lift</button>
       </div>
       <div style={{ marginTop: 16 }}>
-        {Object.entries(olympicLifts).map(([category, lifts]) => {
-          const customInCat = customOlympic.filter(c => c.category === category)
-          return (
-            <div key={category} style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
-                {category}
-              </div>
-              {lifts.map(lift => (
-                <div key={lift} className="exercise-item" style={{ marginBottom: 8 }}>
-                  <span>{lift}</span>
-                  <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Olympic</div>
-                </div>
-              ))}
-              {customInCat.map((item, idx) => (
-                <div key={`custom-${item.name}`} className="exercise-item" style={{ marginBottom: 8 }}>
-                  <span>{item.name}</span>
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: 'var(--accent2)', fontWeight: 600 }}>CUSTOM</span>
-                    <button className="btn-icon" style={{ fontSize: 14 }} onClick={() => {
-                      setCustomOlympic(customOlympic.filter(c => !(c.category === category && c.name === item.name)))
-                      toast('Lift removed')
-                    }}><Icon name="delete" size={14} /></button>
-                  </div>
-                </div>
-              ))}
+        {Object.entries(olympicLifts).map(([category, lifts]) => (
+          <div key={category} style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+              {category}
             </div>
-          )
-        })}
+            {lifts.map(lift => (
+              <div key={lift} className="exercise-item" style={{ marginBottom: 8 }}>
+                <span>{lift}</span>
+                <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Olympic</div>
+              </div>
+            ))}
+          </div>
+        ))}
+        {customOlympic.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+              Custom
+            </div>
+            {customOlympic.map((item, idx) => (
+              <div key={`custom-${item.name}`} className="exercise-item" style={{ marginBottom: 8 }}>
+                <span>{item.name}</span>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: 'var(--accent2)', fontWeight: 600 }}>CUSTOM</span>
+                  <button className="btn-icon" style={{ fontSize: 14 }} onClick={() => {
+                    setCustomOlympic(customOlympic.filter((_, i) => i !== idx))
+                    toast('Lift removed')
+                  }}><Icon name="delete" size={14} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
