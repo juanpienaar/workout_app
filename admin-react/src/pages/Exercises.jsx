@@ -78,7 +78,7 @@ export default function Exercises() {
 
       {/* Context banner */}
       <div className="info-banner">
-        <div className="info-banner-icon">ℹ️</div>
+        <div className="info-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
         <div>
           <div className="info-banner-title">Used by the AI Program Builder</div>
           <div className="info-banner-text">
@@ -135,7 +135,7 @@ export default function Exercises() {
                           <button className="btn-icon" title="Move to another muscle group"
                             style={{ fontSize: 12, padding: '4px 6px' }}
                             onClick={() => setMoveModal({ name: ex.name, fromGroup: group, equipment: equip })}>
-                            ↗️
+                            Move
                           </button>
                           <button className="btn-icon" style={{ fontSize: 14 }} onClick={() => remove(group, ex.name)}><Icon name="delete" size={14} /></button>
                         </div>

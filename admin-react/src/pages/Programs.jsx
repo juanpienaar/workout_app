@@ -291,6 +291,15 @@ function ExercisesTab() {
   })
   const [workoutMovement, setWorkoutMovement] = useState({ movement: '', reps: '', distance: '' })
 
+  // Custom exercises state
+  const [customCardio, setCustomCardio] = useState([])
+  const [newCardioName, setNewCardioName] = useState('')
+  const [customOlympic, setCustomOlympic] = useState([])
+  const [newOlympicName, setNewOlympicName] = useState('')
+  const [newOlympicCategory, setNewOlympicCategory] = useState('Snatch Variations')
+  const [customCrossfitMoves, setCustomCrossfitMoves] = useState([])
+  const [newCrossfitMove, setNewCrossfitMove] = useState('')
+
   const load = async () => {
     try { setData(await API.getExercises()) } catch { toast('Failed to load', 'error') }
   }
@@ -407,7 +416,7 @@ function ExercisesTab() {
   const renderStrengthCategory = () => (
     <div>
       <div className="info-banner">
-        <div className="info-banner-icon">ℹ️</div>
+        <div className="info-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
         <div>
           <div className="info-banner-title">Used by the AI Program Builder</div>
           <div className="info-banner-text">
@@ -452,7 +461,7 @@ function ExercisesTab() {
                         <span>{ex.name}</span>
                         <div style={{ display: 'flex', gap: 4 }}>
                           <button className="btn-icon" title="Move to another muscle group" style={{ fontSize: 12, padding: '4px 6px' }}
-                            onClick={() => setMoveModal({ name: ex.name, fromGroup: group, equipment: equip })}>↗️</button>
+                            onClick={() => setMoveModal({ name: ex.name, fromGroup: group, equipment: equip })}><Icon name="move" size={12} /></button>
                           <button className="btn-icon" style={{ fontSize: 14 }} onClick={() => remove(group, ex.name)}><Icon name="delete" size={14} /></button>
                         </div>
                       </div>
@@ -471,7 +480,7 @@ function ExercisesTab() {
   const renderCardioCategory = () => (
     <div>
       <div className="info-banner">
-        <div className="info-banner-icon">🏃</div>
+        <div className="info-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2"><path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 7.65l.78.77L12 20.65l7.64-7.65.78-.77a5.4 5.4 0 0 0 0-7.65z"/></svg></div>
         <div>
           <div className="info-banner-title">Cardio Exercises</div>
           <div className="info-banner-text">
@@ -479,11 +488,46 @@ function ExercisesTab() {
           </div>
         </div>
       </div>
+      <div className="toolbar" style={{ marginTop: 16 }}>
+        <input
+          type="text"
+          className="search-input"
+          placeholder="New cardio exercise..."
+          value={newCardioName}
+          onChange={e => setNewCardioName(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && newCardioName.trim()) {
+              setCustomCardio([...customCardio, newCardioName.trim()])
+              setNewCardioName('')
+              toast('Cardio exercise added')
+            }
+          }}
+        />
+        <button className="btn btn-primary btn-sm" onClick={() => {
+          if (newCardioName.trim()) {
+            setCustomCardio([...customCardio, newCardioName.trim()])
+            setNewCardioName('')
+            toast('Cardio exercise added')
+          }
+        }}>+ Add Exercise</button>
+      </div>
       <div style={{ marginTop: 16 }}>
         {cardioExercises.map(ex => (
           <div key={ex} className="exercise-item" style={{ marginBottom: 8 }}>
             <span>{ex}</span>
             <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Default</div>
+          </div>
+        ))}
+        {customCardio.map((ex, idx) => (
+          <div key={`custom-${ex}`} className="exercise-item" style={{ marginBottom: 8 }}>
+            <span>{ex}</span>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: 'var(--accent2)', fontWeight: 600 }}>CUSTOM</span>
+              <button className="btn-icon" style={{ fontSize: 14 }} onClick={() => {
+                setCustomCardio(customCardio.filter((_, i) => i !== idx))
+                toast('Exercise removed')
+              }}><Icon name="delete" size={14} /></button>
+            </div>
           </div>
         ))}
       </div>
@@ -494,7 +538,7 @@ function ExercisesTab() {
   const renderCrossfitCategory = () => (
     <div>
       <div className="info-banner">
-        <div className="info-banner-icon">⚡</div>
+        <div className="info-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
         <div>
           <div className="info-banner-title">CrossFit Library</div>
           <div className="info-banner-text">
@@ -518,6 +562,29 @@ function ExercisesTab() {
 
       {crossfitTab === 'movements' && (
         <div style={{ marginTop: 16 }}>
+          <div className="toolbar" style={{ marginBottom: 16 }}>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="New CrossFit movement..."
+              value={newCrossfitMove}
+              onChange={e => setNewCrossfitMove(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && newCrossfitMove.trim()) {
+                  setCustomCrossfitMoves([...customCrossfitMoves, newCrossfitMove.trim()])
+                  setNewCrossfitMove('')
+                  toast('Movement added')
+                }
+              }}
+            />
+            <button className="btn btn-primary btn-sm" onClick={() => {
+              if (newCrossfitMove.trim()) {
+                setCustomCrossfitMoves([...customCrossfitMoves, newCrossfitMove.trim()])
+                setNewCrossfitMove('')
+                toast('Movement added')
+              }
+            }}>+ Add Movement</button>
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {crossfitMovements.map(mov => (
               <div
@@ -533,6 +600,15 @@ function ExercisesTab() {
                 }}
               >
                 {mov}
+              </div>
+            ))}
+            {customCrossfitMoves.map((mov, idx) => (
+              <div key={`custom-${mov}`} style={{ padding: '8px 12px', borderRadius: 12, background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)', color: 'var(--accent2)', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {mov}
+                <button style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, padding: 0 }} onClick={() => {
+                  setCustomCrossfitMoves(customCrossfitMoves.filter((_, i) => i !== idx))
+                  toast('Movement removed')
+                }}>x</button>
               </div>
             ))}
           </div>
@@ -615,7 +691,7 @@ function ExercisesTab() {
                     style={{ flex: 1 }}
                   >
                     <option value="">Select movement...</option>
-                    {crossfitMovements.map(m => <option key={m} value={m}>{m}</option>)}
+                    {[...crossfitMovements, ...customCrossfitMoves].map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                   <input
                     type="text"
@@ -701,7 +777,7 @@ function ExercisesTab() {
   const renderOlympicCategory = () => (
     <div>
       <div className="info-banner">
-        <div className="info-banner-icon">🏋️</div>
+        <div className="info-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="2"><path d="M6.5 6.5h11M6.5 17.5h11M2 10v4M22 10v4M4 8v8M20 8v8"/></svg></div>
         <div>
           <div className="info-banner-title">Olympic Lifting</div>
           <div className="info-banner-text">
@@ -709,20 +785,61 @@ function ExercisesTab() {
           </div>
         </div>
       </div>
+      <div className="toolbar" style={{ marginTop: 16 }}>
+        <select value={newOlympicCategory} onChange={e => setNewOlympicCategory(e.target.value)} style={{ width: 'auto' }}>
+          {Object.keys(olympicLifts).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+        </select>
+        <input
+          type="text"
+          className="search-input"
+          placeholder="New Olympic lift..."
+          value={newOlympicName}
+          onChange={e => setNewOlympicName(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && newOlympicName.trim()) {
+              setCustomOlympic([...customOlympic, { category: newOlympicCategory, name: newOlympicName.trim() }])
+              setNewOlympicName('')
+              toast('Olympic lift added')
+            }
+          }}
+        />
+        <button className="btn btn-primary btn-sm" onClick={() => {
+          if (newOlympicName.trim()) {
+            setCustomOlympic([...customOlympic, { category: newOlympicCategory, name: newOlympicName.trim() }])
+            setNewOlympicName('')
+            toast('Olympic lift added')
+          }
+        }}>+ Add Lift</button>
+      </div>
       <div style={{ marginTop: 16 }}>
-        {Object.entries(olympicLifts).map(([category, lifts]) => (
-          <div key={category} style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
-              {category}
-            </div>
-            {lifts.map(lift => (
-              <div key={lift} className="exercise-item" style={{ marginBottom: 8 }}>
-                <span>{lift}</span>
-                <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Olympic</div>
+        {Object.entries(olympicLifts).map(([category, lifts]) => {
+          const customInCat = customOlympic.filter(c => c.category === category)
+          return (
+            <div key={category} style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+                {category}
               </div>
-            ))}
-          </div>
-        ))}
+              {lifts.map(lift => (
+                <div key={lift} className="exercise-item" style={{ marginBottom: 8 }}>
+                  <span>{lift}</span>
+                  <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Olympic</div>
+                </div>
+              ))}
+              {customInCat.map((item, idx) => (
+                <div key={`custom-${item.name}`} className="exercise-item" style={{ marginBottom: 8 }}>
+                  <span>{item.name}</span>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: 'var(--accent2)', fontWeight: 600 }}>CUSTOM</span>
+                    <button className="btn-icon" style={{ fontSize: 14 }} onClick={() => {
+                      setCustomOlympic(customOlympic.filter(c => !(c.category === category && c.name === item.name)))
+                      toast('Lift removed')
+                    }}><Icon name="delete" size={14} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -1240,7 +1357,7 @@ function SettingsTab() {
           disabled={loading}
           style={{ opacity: saved ? 0.7 : 1 }}
         >
-          {loading ? 'Saving...' : saved ? '✓ Saved' : 'Save Philosophy'}
+          {loading ? 'Saving...' : saved ? 'Saved' : 'Save Philosophy'}
         </button>
       </div>
     </div>
@@ -1521,7 +1638,7 @@ function ImportCSVTab() {
               {result?.ok ? (
                 <>
                   <div style={{ color: 'var(--green)', marginBottom: 8, fontWeight: 500 }}>
-                    ✓ {result.isDirectImport ? 'Direct import' : 'Transformed CSV'} successful!
+                    {result.isDirectImport ? 'Direct import' : 'Transformed CSV'} successful!
                   </div>
                   <pre
                     style={{

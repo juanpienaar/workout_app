@@ -15,13 +15,15 @@ export default function Layout() {
   const location = useLocation()
   const { logout } = useAuth()
   const [resetKey, setResetKey] = useState(0)
-  const currentPath = location.pathname.replace('/admin/', '').replace('/admin', '') || 'dashboard'
+  const currentPath = location.pathname.replace(/^\//, '') || 'dashboard'
 
   function handleNav(pageId) {
     if (currentPath === pageId) {
       // Already on this page — force remount to reset to default view
       setResetKey(k => k + 1)
     } else {
+      // Navigate and also bump resetKey to ensure fresh mount at first tab
+      setResetKey(k => k + 1)
       navigate(pageId)
     }
   }

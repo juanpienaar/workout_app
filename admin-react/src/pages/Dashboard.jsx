@@ -209,7 +209,7 @@ function TargetWeightsModal({ username, onClose }) {
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal" style={{ width: 600, maxWidth: '95vw' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 18 }}>🏋️</span> Target Weights — {username}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="2"><path d="M6.5 6.5h11M6.5 17.5h11M2 10v4M22 10v4M4 8v8M20 8v8"/></svg> Target Weights — {username}
         </h3>
         <p style={{ color: 'var(--text-dim)', fontSize: 12, marginBottom: 16 }}>
           Set target weights per exercise. Athletes see these as pre-filled values in lavender until they log their own weights.
@@ -778,13 +778,13 @@ export default function Dashboard() {
                                           <div style={{ color: 'var(--muted2)', fontSize: 10 }}>SET</div>
                                           <div style={{ color: 'var(--muted2)', fontSize: 10 }}>{cardio ? 'DIST/LAPS' : 'WEIGHT'}</div>
                                           <div style={{ color: 'var(--muted2)', fontSize: 10 }}>{cardio ? 'TIME' : 'REPS'}</div>
-                                          <div style={{ color: 'var(--muted2)', fontSize: 10 }}>✓</div>
+                                          <div style={{ color: 'var(--muted2)', fontSize: 10 }}>DONE</div>
                                           {sets.map(s => (
                                             <React.Fragment key={s.num}>
                                               <div style={{ color: 'var(--text-dim)' }}>{s.num}</div>
                                               <div>{s.weight || '—'}{s.weight && !cardio ? ' kg' : ''}</div>
                                               <div>{s.reps || s.actualReps || '—'}</div>
-                                              <div style={{ color: s.done ? 'var(--teal)' : 'var(--text-dim)' }}>{s.done ? '✓' : '–'}</div>
+                                              <div style={{ color: s.done ? 'var(--teal)' : 'var(--text-dim)' }}>{s.done ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> : '–'}</div>
                                             </React.Fragment>
                                           ))}
                                         </div>
@@ -840,13 +840,13 @@ export default function Dashboard() {
                   <td style={{ color: 'var(--text-dim)', fontSize: 12 }}>{(u.coaches || []).length > 0 ? u.coaches.join(', ') : '—'}</td>
                   <td style={{ color: 'var(--text-dim)' }}>{u.startDate || '—'}</td>
                   <td><span className={`badge ${u.role === 'coach' ? 'badge-coach' : 'badge-athlete'}`}>{u.role}</span></td>
-                  <td>{u.email_verified ? '✓' : '—'}</td>
+                  <td>{u.email_verified ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> : '—'}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {u.role === 'athlete' && (
                       <button className="btn-icon" title="Target weights" onClick={() => setTwUser(u.username)}
-                        style={{ fontSize: 14 }}>🏋️</button>
+                        style={{ fontSize: 14 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6.5 6.5h11M6.5 17.5h11M2 10v4M22 10v4M4 8v8M20 8v8"/></svg></button>
                     )}
-                    <button className="btn-icon" onClick={() => openEdit(u)}>✏️</button>
+                    <button className="btn-icon" onClick={() => openEdit(u)}><Icon name="edit" size={14} /></button>
                     <button className="btn-icon" onClick={() => remove(u.username)}><Icon name="delete" size={14} /></button>
                   </td>
                 </tr>
@@ -971,7 +971,7 @@ export default function Dashboard() {
                                     color: isAthlete ? '#3b82f6' : 'var(--accent2)',
                                   }}>{isAthlete ? 'ATHLETE' : 'COACH'}</span>
                                   {formatMessageDate(msg.sent_at)}
-                                  {msg.day_key && <span style={{ marginLeft: 8, color: isAthlete ? '#3b82f6' : 'var(--accent2)' }}>📋 {msg.day_key.replace('_', ' ')}</span>}
+                                  {msg.day_key && <span style={{ marginLeft: 8, color: isAthlete ? '#3b82f6' : 'var(--accent2)' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{display:'inline',verticalAlign:'middle',marginRight:4}}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>{msg.day_key.replace('_', ' ')}</span>}
                                   {!msg.read && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 600 }}>● Unread</span>}
                                 </div>
                                 <button className="btn-icon" onClick={() => deleteMsg(msg.id)} style={{ fontSize: 12 }}><Icon name="delete" size={12} /></button>

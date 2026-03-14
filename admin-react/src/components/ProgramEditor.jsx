@@ -177,7 +177,7 @@ export default function ProgramEditor({ program, onSave }) {
       </DndContext>
 
       <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
-        <button className="btn btn-primary" onClick={doSave}>💾 Save Changes</button>
+        <button className="btn btn-primary" onClick={doSave}>Save Changes</button>
       </div>
     </div>
   )

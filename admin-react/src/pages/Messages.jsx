@@ -132,7 +132,7 @@ export default function Messages() {
                               color: msg.source === 'agent' ? 'var(--accent2)' : 'var(--green)',
                             }}>{msg.source === 'agent' ? 'AGENT' : 'COACH'}</span>
                             {formatDate(msg.sent_at)}
-                            {msg.day_key && <span style={{ marginLeft: 8, color: 'var(--accent2)' }}>📋 {msg.day_key.replace('_', ' ')}</span>}
+                            {msg.day_key && <span style={{ marginLeft: 8, color: 'var(--accent2)' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{display:'inline',verticalAlign:'middle',marginRight:'4px'}}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>{msg.day_key.replace('_', ' ')}</span>}
                             {!msg.read && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 600 }}>● Unread</span>}
                           </div>
                           <button className="btn-icon" onClick={() => deleteMsg(msg.id)} style={{ fontSize: 12 }}><Icon name="delete" size={12} /></button>

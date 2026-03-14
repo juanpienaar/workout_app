@@ -357,8 +357,8 @@ async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depen
 
     program_data = copy.deepcopy(programs[req.program])
 
-    # 2. Load user data
-    user_key = req.athlete.lower().replace(" ", "_")
+    # 2. Load user data (use raw name — get_user_file handles sanitization)
+    user_key = req.athlete
     user_data = load_user_data(user_key)
 
     # 3. Preserve existing workout logs
