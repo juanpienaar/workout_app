@@ -6,7 +6,7 @@ export default function Settings() {
   const [theme, setTheme] = useState(() => localStorage.getItem('admin-theme') || 'dark')
   const [logs, setLogs] = useState([])
   const [logsLoading, setLogsLoading] = useState(false)
-  const [logsExpanded, setLogsExpanded] = useState(new Set())
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -23,19 +23,22 @@ export default function Settings() {
 
   useEffect(() => { loadLogs() }, [])
 
-  function toggleLog(idx) {
-    setLogsExpanded(prev => {
-      const next = new Set(prev)
-      next.has(idx) ? next.delete(idx) : next.add(idx)
-      return next
-    })
+  function formatLogsText() {
+    return logs.map(log => {
+      const ts = new Date(log.timestamp).toLocaleString()
+      let line = `[${ts}] ${log.type} | ${log.status} | ${log.message}`
+      if (log.details) {
+        line += '\n' + JSON.stringify(log.details, null, 2)
+      }
+      return line
+    }).join('\n\n---\n\n')
   }
 
-  const statusColor = (s) => {
-    if (s === 'success' || s === 'api_complete') return 'var(--green)'
-    if (s === 'error') return '#dc2626'
-    if (s === 'started') return '#fbbf24'
-    return 'var(--text-dim)'
+  function copyLogs() {
+    navigator.clipboard.writeText(formatLogsText()).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
   return (
@@ -82,59 +85,33 @@ export default function Settings() {
       <div className="card" style={{ marginTop: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3>Activity Logs</h3>
-          <button className="btn btn-secondary" onClick={loadLogs} disabled={logsLoading}
-            style={{ fontSize: 12, padding: '6px 14px' }}>
-            {logsLoading ? 'Loading...' : 'Refresh'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-secondary" onClick={copyLogs} disabled={logs.length === 0}
+              style={{ fontSize: 12, padding: '6px 14px' }}>
+              {copied ? 'Copied!' : 'Copy All'}
+            </button>
+            <button className="btn btn-secondary" onClick={loadLogs} disabled={logsLoading}
+              style={{ fontSize: 12, padding: '6px 14px' }}>
+              {logsLoading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
         </div>
 
         {logs.length === 0 && !logsLoading && (
           <div style={{ color: 'var(--text-dim)', fontSize: 13, fontStyle: 'italic' }}>No logs yet.</div>
         )}
 
-        <div style={{ maxHeight: 500, overflowY: 'auto' }}>
-          {logs.map((log, idx) => (
-            <div key={idx} style={{
-              padding: '10px 14px', marginBottom: 6,
-              background: 'var(--surface2)', borderRadius: 8,
-              border: '1px solid var(--glass-border)',
-              cursor: log.details ? 'pointer' : 'default',
-            }} onClick={() => log.details && toggleLog(idx)}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{
-                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: statusColor(log.status),
-                }} />
-                <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace", minWidth: 130 }}>
-                  {new Date(log.timestamp).toLocaleString()}
-                </span>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
-                  background: 'rgba(167,139,250,0.12)', color: 'var(--accent2)', textTransform: 'uppercase',
-                }}>{log.type}</span>
-                <span style={{
-                  fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 3,
-                  background: log.status === 'error' ? 'rgba(220,38,38,0.12)' : 'transparent',
-                  color: statusColor(log.status),
-                }}>{log.status}</span>
-                <span style={{ fontSize: 13, flex: 1 }}>{log.message}</span>
-                {log.details && (
-                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{logsExpanded.has(idx) ? '−' : '+'}</span>
-                )}
-              </div>
-              {logsExpanded.has(idx) && log.details && (
-                <pre style={{
-                  marginTop: 8, padding: 10, background: 'var(--surface)',
-                  borderRadius: 6, fontSize: 11, overflow: 'auto', maxHeight: 300,
-                  color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace",
-                  whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                }}>
-                  {JSON.stringify(log.details, null, 2)}
-                </pre>
-              )}
-            </div>
-          ))}
-        </div>
+        {logs.length > 0 && (
+          <pre style={{
+            padding: 14, background: 'var(--surface2)', borderRadius: 10,
+            border: '1px solid var(--glass-border)',
+            fontSize: 11, overflow: 'auto', maxHeight: 600,
+            color: 'var(--text)', fontFamily: "'Space Mono', monospace",
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.6,
+          }}>
+            {formatLogsText()}
+          </pre>
+        )}
       </div>
     </div>
   )
