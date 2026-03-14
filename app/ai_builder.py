@@ -344,6 +344,9 @@ def parse_ai_csv(response_text: str) -> list[dict]:
         log_event("csv_parse", "warning", f"Standard CSV parse failed: {str(e)}")
 
     if rows:
+        # Strip trailing incomplete rows (from truncated AI output)
+        while rows and not rows[-1].get("Exercise", "").strip() and not rows[-1].get("Order", "").strip():
+            rows.pop()
         log_event("csv_parse", "success", f"Standard CSV parse: {len(rows)} rows")
         return rows
 
@@ -554,7 +557,7 @@ def call_claude(prompt: str, model_key: str = "sonnet") -> tuple[Optional[str], 
 
     message = client.messages.create(
         model=model_info["id"],
-        max_tokens=16384,
+        max_tokens=64000,
         system=PROGRAM_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -756,7 +759,7 @@ Apply the changes and return the complete modified program as valid JSON."""
     try:
         message = client.messages.create(
             model=model_info["id"],
-            max_tokens=16384,
+            max_tokens=64000,
             system=MODIFY_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
         )
