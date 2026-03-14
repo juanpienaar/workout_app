@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from . import config
 
-LOG_FILE = config.DATA_DIR / "ai_logs.json"
+LOG_FILE = config.AI_LOGS_FILE
 
 
 def _load_logs() -> list:

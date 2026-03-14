@@ -675,10 +675,13 @@ async def ai_modify(req: AIModifyRequest, coach: Annotated[dict, Depends(require
             model_key=req.model,
         )
     except json.JSONDecodeError as e:
+        log_event("ai_modify", "error", f"Route: Invalid JSON: {str(e)}")
         raise HTTPException(500, f"AI returned invalid JSON: {str(e)}")
     except ValueError as e:
+        log_event("ai_modify", "error", f"Route: ValueError: {str(e)}")
         raise HTTPException(400, str(e))
     except Exception as e:
+        log_event("ai_modify", "error", f"Route: Exception: {str(e)}", {"error_type": type(e).__name__})
         raise HTTPException(500, f"AI modification failed: {str(e)}")
 
     return {"ok": True, "program": modified, "cost": cost_info}
@@ -845,3 +848,12 @@ async def get_admin_logs(coach: Annotated[dict, Depends(require_coach)], limit: 
     """Get recent application logs."""
     logs = get_logs(limit=limit, event_type=type)
     return {"logs": logs}
+
+@router.get("/logs/raw")
+async def get_raw_logs(coach: Annotated[dict, Depends(require_coach)]):
+    """Download raw logs JSON file — useful for automated agents."""
+    from fastapi.responses import FileResponse
+    log_path = config.DATA_ROOT / "ai_logs.json"
+    if not log_path.exists():
+        return {"logs": []}
+    return FileResponse(log_path, media_type="application/json", filename="ai_logs.json")

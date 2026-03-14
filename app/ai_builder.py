@@ -534,11 +534,45 @@ RULES:
 - If asked to swap exercises, replace with appropriate alternatives."""
 
 
+def _extract_json(text: str) -> str:
+    """Extract JSON from a response that may contain markdown fences or extra text."""
+    text = text.strip()
+    # Strip ```json or ``` fences
+    if text.startswith("```"):
+        lines = text.split("\n")
+        # Remove first line (```json or ```)
+        lines = lines[1:]
+        # Remove last line if it's ```
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+
+    # If still not valid JSON, try to find the outermost { }
+    if not text.startswith("{"):
+        start = text.find("{")
+        if start >= 0:
+            # Find matching closing brace
+            depth = 0
+            for i, c in enumerate(text[start:], start):
+                if c == "{": depth += 1
+                elif c == "}": depth -= 1
+                if depth == 0:
+                    text = text[start:i+1]
+                    break
+    return text
+
+
 def modify_program(program: dict, modification_prompt: str, model_key: str = "sonnet") -> tuple[dict, dict]:
     """
     Modify an existing program via Claude using natural language instructions.
     Returns (modified_program, cost_info).
     """
+    log_event("ai_modify", "started", f"Modifying program: {modification_prompt[:100]}", {
+        "prompt": modification_prompt, "model": model_key,
+        "program_name": program.get("name", "unknown"),
+        "weeks_count": len(program.get("weeks", [])),
+    })
+
     import os
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
@@ -550,6 +584,7 @@ def modify_program(program: dict, modification_prompt: str, model_key: str = "so
                     break
 
     if not api_key:
+        log_event("ai_modify", "error", "No ANTHROPIC_API_KEY found")
         raise ValueError("No ANTHROPIC_API_KEY found in environment or .env file")
 
     import anthropic
@@ -564,12 +599,16 @@ Coach's modification request: {modification_prompt}
 
 Apply the changes and return the complete modified program as valid JSON."""
 
-    message = client.messages.create(
-        model=model_info["id"],
-        max_tokens=16384,
-        system=MODIFY_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
+    try:
+        message = client.messages.create(
+            model=model_info["id"],
+            max_tokens=16384,
+            system=MODIFY_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+    except Exception as e:
+        log_event("ai_modify", "error", f"Claude API call failed: {str(e)}", {"model": model_key})
+        raise
 
     input_tokens = message.usage.input_tokens
     output_tokens = message.usage.output_tokens
@@ -577,12 +616,29 @@ Apply the changes and return the complete modified program as valid JSON."""
 
     response_text = message.content[0].text.strip()
 
-    # Strip markdown fences if present
-    if response_text.startswith("```"):
-        lines = response_text.split("\n")
-        response_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+    log_event("ai_modify", "api_complete", f"Got response ({output_tokens} tokens)", {
+        "input_tokens": input_tokens, "output_tokens": output_tokens,
+        "cost_usd": round(cost, 6), "model": model_key,
+        "response_preview": response_text[:500],
+    })
 
-    modified = json.loads(response_text)
+    # Extract and parse JSON
+    json_text = _extract_json(response_text)
+    try:
+        modified = json.loads(json_text)
+    except json.JSONDecodeError as e:
+        log_event("ai_modify", "error", f"JSON parse failed: {str(e)}", {
+            "json_error": str(e),
+            "response_preview": response_text[:1000],
+            "extracted_json_preview": json_text[:500],
+        })
+        raise
+
+    log_event("ai_modify", "success", f"Program modified successfully", {
+        "weeks_count": len(modified.get("weeks", [])),
+        "input_tokens": input_tokens, "output_tokens": output_tokens,
+        "cost_usd": round(cost, 6),
+    })
 
     return modified, {
         "input_tokens": input_tokens,
