@@ -284,12 +284,14 @@ function ExercisesTab() {
   const [crossfitTab, setCrossfitTab] = useState('movements')
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
   const [workoutForm, setWorkoutForm] = useState({
+    name: '',
     format: 'AMRAP',
     timeCap: '15',
     rounds: '3',
     movements: []
   })
   const [workoutMovement, setWorkoutMovement] = useState({ movement: '', reps: '', distance: '' })
+  const [savedWorkouts, setSavedWorkouts] = useState([...crossfitOpenWods])
 
   // Custom exercises state
   const [customCardio, setCustomCardio] = useState([])
@@ -648,6 +650,10 @@ function ExercisesTab() {
           {showWorkoutBuilder && (
             <div style={{ borderRadius: 8, border: '1px solid var(--border)', padding: 16, background: 'rgba(167,139,250,0.04)' }}>
               <div className="form-group">
+                <label>Workout Name</label>
+                <input type="text" value={workoutForm.name} onChange={e => setWorkoutForm({ ...workoutForm, name: e.target.value })} placeholder="e.g. The Grinder" />
+              </div>
+              <div className="form-group">
                 <label>Workout Format</label>
                 <select value={workoutForm.format} onChange={e => setWorkoutForm({ ...workoutForm, format: e.target.value })}>
                   <option>AMRAP</option>
@@ -754,13 +760,20 @@ function ExercisesTab() {
                 <button
                   className="btn btn-primary"
                   onClick={() => {
-                    if (workoutForm.movements.length > 0) {
-                      toast('Workout saved to library')
-                      setShowWorkoutBuilder(false)
-                      setWorkoutForm({ format: 'AMRAP', timeCap: '15', rounds: '3', movements: [] })
-                    } else {
-                      toast('Add at least one movement', 'error')
+                    if (!workoutForm.name.trim()) { toast('Enter a workout name', 'error'); return }
+                    if (workoutForm.movements.length === 0) { toast('Add at least one movement', 'error'); return }
+                    const workout = {
+                      name: workoutForm.name.trim(),
+                      format: workoutForm.format,
+                      timeCap: workoutForm.timeCap,
+                      rounds: workoutForm.rounds,
+                      movements: [...workoutForm.movements],
+                      isCustom: true
                     }
+                    setSavedWorkouts([...savedWorkouts, workout])
+                    toast('Workout saved!')
+                    setShowWorkoutBuilder(false)
+                    setWorkoutForm({ name: '', format: 'AMRAP', timeCap: '15', rounds: '3', movements: [] })
                   }}
                 >
                   Save Workout
@@ -768,6 +781,51 @@ function ExercisesTab() {
               </div>
             </div>
           )}
+
+          {/* Saved Workouts */}
+          <div style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
+              Saved Workouts ({savedWorkouts.length})
+            </div>
+            {savedWorkouts.map((wod, idx) => (
+              <div key={`${wod.name}-${idx}`} className="muscle-group" style={{ marginBottom: 12 }}>
+                <div className="muscle-group-header" onClick={() => toggleGroup(`saved-wod-${wod.name}`)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className="drill-toggle drill-toggle-sm">{openGroups.has(`saved-wod-${wod.name}`) ? '−' : '+'}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--accent2)' }}>{wod.name}</span>
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: wod.isCustom ? 'rgba(167,139,250,0.15)' : 'rgba(45,212,191,0.15)', color: wod.isCustom ? 'var(--accent2)' : 'var(--teal)', fontWeight: 600 }}>
+                      {wod.isCustom ? 'CUSTOM' : wod.year ? `OPEN ${wod.year}` : 'OPEN'}
+                    </span>
+                  </div>
+                  {wod.isCustom && (
+                    <button className="btn-icon" style={{ fontSize: 14 }} onClick={e => {
+                      e.stopPropagation()
+                      setSavedWorkouts(savedWorkouts.filter((_, i) => i !== idx))
+                      toast('Workout removed')
+                    }}><Icon name="delete" size={14} /></button>
+                  )}
+                </div>
+                {openGroups.has(`saved-wod-${wod.name}`) && (
+                  <div className="muscle-group-body" style={{ display: 'block', padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Format: <strong style={{ color: 'var(--text)' }}>{wod.format}</strong></span>
+                      {wod.timeCap && <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Time: <strong style={{ color: 'var(--text)' }}>{wod.timeCap} min</strong></span>}
+                      {wod.rounds && wod.format !== 'AMRAP' && wod.format !== 'For Time' && <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Rounds: <strong style={{ color: 'var(--text)' }}>{wod.rounds}</strong></span>}
+                    </div>
+                    {wod.movements && wod.movements.length > 0 ? (
+                      <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.8 }}>
+                        {wod.movements.map((m, mi) => (
+                          <div key={mi}>{m.reps} {m.movement}</div>
+                        ))}
+                      </div>
+                    ) : wod.description ? (
+                      <p style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.5 }}>{wod.description}</p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -918,6 +976,65 @@ const STRENGTH_SPLITS = ['Push/Pull/Legs', 'Upper/Lower', 'Full Body', 'Bro Spli
 const EQUIPMENT = ['Full Gym', 'Barbell + Dumbbells', 'Dumbbells Only', 'Bodyweight']
 const fmt = v => (!v || v === 'NA' || v === 'N/A' || v === 'na') ? '-' : v
 
+const crossfitOpenWods = [
+  { name: '24.1', year: '2024', format: 'AMRAP', timeCap: '15', movements: [
+    { movement: 'Dumbbell Snatches', reps: '21' }, { movement: 'Lateral Burpees over DB', reps: '21' },
+    { movement: 'Dumbbell Snatches', reps: '15' }, { movement: 'Lateral Burpees over DB', reps: '15' },
+    { movement: 'Dumbbell Snatches', reps: '9' }, { movement: 'Lateral Burpees over DB', reps: '9' }
+  ]},
+  { name: '24.2', year: '2024', format: 'For Time', timeCap: '20', movements: [
+    { movement: 'Rowing', reps: '300m' }, { movement: 'Deadlifts', reps: '10' }, { movement: 'Bar Muscle-Ups', reps: '5' },
+    { movement: 'Rowing', reps: '300m' }, { movement: 'Deadlifts', reps: '10' }, { movement: 'Bar Muscle-Ups', reps: '5' },
+    { movement: 'Rowing', reps: '300m' }, { movement: 'Deadlifts', reps: '10' }, { movement: 'Bar Muscle-Ups', reps: '5' }
+  ]},
+  { name: '24.3', year: '2024', format: 'For Time', timeCap: '15', movements: [
+    { movement: 'Thrusters', reps: '10 (65/45 lb)' }, { movement: 'Chest-to-Bar Pull-Ups', reps: '10' },
+    { movement: 'Thrusters', reps: '10 (85/55 lb)' }, { movement: 'Chest-to-Bar Pull-Ups', reps: '10' },
+    { movement: 'Thrusters', reps: '10 (115/75 lb)' }, { movement: 'Bar Muscle-Ups', reps: '10' }
+  ]},
+  { name: '23.1', year: '2023', format: 'AMRAP', timeCap: '14', movements: [
+    { movement: 'Shuttle Runs', reps: '60 ft' }, { movement: 'Single-Arm DB Hang Clean & Jerk', reps: '6' },
+    { movement: 'Shuttle Runs', reps: '60 ft' }, { movement: 'Single-Arm DB Hang Clean & Jerk', reps: '9' }
+  ]},
+  { name: '23.2A', year: '2023', format: 'For Time', timeCap: '15', movements: [
+    { movement: 'Rowing', reps: '5 min max distance' }
+  ]},
+  { name: '23.2B', year: '2023', format: 'For Time', timeCap: '10', movements: [
+    { movement: 'Thrusters', reps: '21 (75/55 lb)' }, { movement: 'Pull-Ups', reps: '21' },
+    { movement: 'Thrusters', reps: '15 (95/65 lb)' }, { movement: 'Pull-Ups', reps: '15' },
+    { movement: 'Thrusters', reps: '9 (115/80 lb)' }, { movement: 'Pull-Ups', reps: '9' }
+  ]},
+  { name: '23.3', year: '2023', format: 'For Time', timeCap: '6', movements: [
+    { movement: 'Wall Balls', reps: '5' }, { movement: 'Cleans', reps: '5' },
+    { movement: 'Wall Balls', reps: '5' }, { movement: 'Cleans', reps: '5' },
+    { movement: 'Wall Balls', reps: '5' }, { movement: 'Cleans', reps: '5' }
+  ]},
+  { name: '22.1', year: '2022', format: 'AMRAP', timeCap: '15', movements: [
+    { movement: 'Wall Balls', reps: '3' }, { movement: 'Double Unders', reps: '3' },
+    { movement: 'Wall Balls', reps: '6' }, { movement: 'Double Unders', reps: '6' },
+    { movement: 'Wall Balls', reps: '9' }, { movement: 'Double Unders', reps: '9' }
+  ]},
+  { name: '22.2', year: '2022', format: 'For Time', timeCap: '10', movements: [
+    { movement: 'Deadlifts', reps: '1' }, { movement: 'Bar Muscle-Ups', reps: '1' },
+    { movement: 'Deadlifts', reps: '3' }, { movement: 'Bar Muscle-Ups', reps: '3' },
+    { movement: 'Deadlifts', reps: '6' }, { movement: 'Bar Muscle-Ups', reps: '6' }
+  ]},
+  { name: '22.3', year: '2022', format: 'For Time', timeCap: '12', movements: [
+    { movement: 'Wall Walks', reps: '2' }, { movement: 'Dumbbell Snatches', reps: '10' },
+    { movement: 'Wall Walks', reps: '4' }, { movement: 'Dumbbell Snatches', reps: '20' }
+  ]},
+  { name: '21.1', year: '2021', format: 'For Time', timeCap: '15', movements: [
+    { movement: 'Wall Walks', reps: '1' }, { movement: 'Double Unders', reps: '10' },
+    { movement: 'Wall Walks', reps: '3' }, { movement: 'Double Unders', reps: '30' },
+    { movement: 'Wall Walks', reps: '6' }, { movement: 'Double Unders', reps: '60' }
+  ]},
+  { name: '20.1', year: '2020', format: 'For Time', timeCap: '15', movements: [
+    { movement: 'Ground to Overhead', reps: '10' }, { movement: 'Bar-Facing Burpees', reps: '15' },
+    { movement: 'Ground to Overhead', reps: '20' }, { movement: 'Bar-Facing Burpees', reps: '15' },
+    { movement: 'Ground to Overhead', reps: '30' }, { movement: 'Bar-Facing Burpees', reps: '15' }
+  ]}
+]
+
 function AIBuilderTab() {
   const toast = useToast()
   const [step, setStep] = useState(1)
@@ -940,6 +1057,11 @@ function AIBuilderTab() {
   const [selectedAthlete, setSelectedAthlete] = useState('')
   const [athletes, setAthletes] = useState([])
   const [athleteStartDate, setAthleteStartDate] = useState(new Date().toISOString().slice(0, 10))
+  const [dayPlan, setDayPlan] = useState({
+    Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: []
+  })
+  const [dayPickerOpen, setDayPickerOpen] = useState(null)
+  const [exerciseLib, setExerciseLib] = useState({ strength: {}, cardio: [], crossfit: [], olympic: {} })
 
   const program = editedProgram || result?.program
 
@@ -957,12 +1079,37 @@ function AIBuilderTab() {
     }
   }, [buildForAthlete])
 
+  // Load exercise library
+  useEffect(() => {
+    API.getExercises().then(data => {
+      const strengthNames = []
+      for (const [group, equips] of Object.entries(data)) {
+        for (const exList of Object.values(equips)) {
+          for (const ex of exList) {
+            if (!strengthNames.includes(ex.name)) strengthNames.push(ex.name)
+          }
+        }
+      }
+      setExerciseLib({
+        strength: strengthNames,
+        cardio: ['Stairmaster', 'Treadmill', 'Rowing Machine', 'Ski Erg', 'Assault Bike', 'Spin Bike'],
+        crossfit: ['Muscle Ups', 'Box Jumps', 'Walking Lunges', 'Thrusters', 'Double Unders', 'Wall Walks', 'Snatches', 'Clean & Jerk', 'Toes to Bar', 'Handstand Push Ups', 'Rope Climbs', 'Burpees', 'Kettlebell Swings', 'Pull Ups', 'Ring Dips', 'Pistol Squats', 'Wall Balls'],
+        olympic: ['Snatch', 'Power Snatch', 'Hang Snatch', 'Clean', 'Power Clean', 'Hang Clean', 'Push Jerk', 'Split Jerk', 'Push Press', 'Front Squat']
+      })
+    }).catch(() => {})
+  }, [])
+
   async function generate() {
     if (!name.trim()) { toast('Enter a program name', 'error'); return }
     if (types.length === 0) { toast('Select at least one type', 'error'); return }
     setLoading(true); setResult(null); setEditedProgram(null)
     try {
       const reqBody = { types, typeConfig: config, model, weeks, name: name.trim(), notes, daysPerWeek, sessionTime }
+      // Add day plan if any days have items
+      const hasAnyDayPlan = Object.values(dayPlan).some(items => items.length > 0)
+      if (hasAnyDayPlan) {
+        reqBody.dayPlan = dayPlan
+      }
       // Add athlete data if building for specific athlete
       if (buildForAthlete && selectedAthlete) {
         const athlete = athletes.find(a => a.username === selectedAthlete)
@@ -1148,6 +1295,81 @@ function AIBuilderTab() {
               <div className="form-group"><label>Goal</label><input type="text" value={config.swimming?.goal || ''} onChange={e => updateConfig('swimming', 'goal', e.target.value)} placeholder="e.g. Triathlon prep, Technique" /></div>
             </div>
           )}
+
+          {/* Day-by-day movement planner */}
+          <div style={{ marginTop: 24, padding: 16, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
+            <h4 style={{ color: 'var(--accent2)', marginBottom: 4 }}>Day Planner (optional)</h4>
+            <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
+              Assign specific movements to days. The AI will use these preferences when building the program.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+              {Object.entries(dayPlan).map(([day, items]) => (
+                <div key={day} style={{ background: 'var(--input-bg)', borderRadius: 8, padding: 10, border: '1px solid var(--border)', minHeight: 100 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>{day}</div>
+                  {items.map((item, idx) => (
+                    <div key={idx} style={{ fontSize: 11, padding: '3px 6px', marginBottom: 4, background: 'rgba(167,139,250,0.1)', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text)' }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
+                      <button style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 10, padding: '0 2px', flexShrink: 0 }}
+                        onClick={() => setDayPlan(prev => ({ ...prev, [day]: prev[day].filter((_, i) => i !== idx) }))}>
+                        x
+                      </button>
+                    </div>
+                  ))}
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      style={{ width: '100%', padding: '4px', background: 'none', border: '1px dashed var(--border)', borderRadius: 4, color: 'var(--text-dim)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+                      onClick={() => setDayPickerOpen(dayPickerOpen === day ? null : day)}
+                    >+</button>
+                    {dayPickerOpen === day && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                        {exerciseLib.strength && exerciseLib.strength.length > 0 && (
+                          <>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent2)', padding: '6px 8px 2px', textTransform: 'uppercase' }}>Strength</div>
+                            {exerciseLib.strength.slice(0, 20).map(ex => (
+                              <div key={ex} style={{ padding: '5px 8px', fontSize: 11, cursor: 'pointer', color: 'var(--text)' }}
+                                onMouseEnter={e => e.target.style.background = 'rgba(167,139,250,0.15)'}
+                                onMouseLeave={e => e.target.style.background = 'transparent'}
+                                onClick={() => { setDayPlan(prev => ({ ...prev, [day]: [...prev[day], ex] })); setDayPickerOpen(null) }}>
+                                {ex}
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--teal)', padding: '6px 8px 2px', textTransform: 'uppercase' }}>Cardio</div>
+                        {exerciseLib.cardio.map(ex => (
+                          <div key={ex} style={{ padding: '5px 8px', fontSize: 11, cursor: 'pointer', color: 'var(--text)' }}
+                            onMouseEnter={e => e.target.style.background = 'rgba(45,212,191,0.15)'}
+                            onMouseLeave={e => e.target.style.background = 'transparent'}
+                            onClick={() => { setDayPlan(prev => ({ ...prev, [day]: [...prev[day], ex] })); setDayPickerOpen(null) }}>
+                            {ex}
+                          </div>
+                        ))}
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent2)', padding: '6px 8px 2px', textTransform: 'uppercase' }}>CrossFit</div>
+                        {exerciseLib.crossfit.map(ex => (
+                          <div key={ex} style={{ padding: '5px 8px', fontSize: 11, cursor: 'pointer', color: 'var(--text)' }}
+                            onMouseEnter={e => e.target.style.background = 'rgba(167,139,250,0.15)'}
+                            onMouseLeave={e => e.target.style.background = 'transparent'}
+                            onClick={() => { setDayPlan(prev => ({ ...prev, [day]: [...prev[day], ex] })); setDayPickerOpen(null) }}>
+                            {ex}
+                          </div>
+                        ))}
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent2)', padding: '6px 8px 2px', textTransform: 'uppercase' }}>Olympic</div>
+                        {exerciseLib.olympic.map(ex => (
+                          <div key={ex} style={{ padding: '5px 8px', fontSize: 11, cursor: 'pointer', color: 'var(--text)' }}
+                            onMouseEnter={e => e.target.style.background = 'rgba(167,139,250,0.15)'}
+                            onMouseLeave={e => e.target.style.background = 'transparent'}
+                            onClick={() => { setDayPlan(prev => ({ ...prev, [day]: [...prev[day], ex] })); setDayPickerOpen(null) }}>
+                            {ex}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
             <button className="btn btn-primary" onClick={() => setStep(3)}>Next</button>
