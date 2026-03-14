@@ -1715,11 +1715,20 @@ function AIBuilderTab() {
                   </div>
                 )}
 
-                {/* Rest day button */}
-                <div className="muscle-group" style={{ marginBottom: 10 }}>
-                  <div className="muscle-group-header" style={{ cursor: 'pointer' }}
+                {/* Rest day button — disabled if exercises already assigned */}
+                <div className="muscle-group" style={{ marginBottom: 10, opacity: dayPlan[dayPickerOpen].length > 0 && !dayPlan[dayPickerOpen].includes('Rest Day') ? 0.4 : 1 }}>
+                  <div className="muscle-group-header" style={{ cursor: dayPlan[dayPickerOpen].length > 0 && !dayPlan[dayPickerOpen].includes('Rest Day') ? 'not-allowed' : 'pointer' }}
                     onClick={() => {
-                      setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], 'Rest Day'] }))
+                      const items = dayPlan[dayPickerOpen]
+                      if (items.length > 0 && !items.includes('Rest Day')) {
+                        toast('Remove exercises first to mark as Rest Day')
+                        return
+                      }
+                      if (items.includes('Rest Day')) {
+                        toast('Already marked as Rest Day')
+                        return
+                      }
+                      setDayPlan(prev => ({ ...prev, [dayPickerOpen]: ['Rest Day'] }))
                       toast(`Marked ${dayPickerOpen} as Rest Day`)
                     }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1729,8 +1738,8 @@ function AIBuilderTab() {
                   </div>
                 </div>
 
-                {/* Category groups — matching Exercises tab structure */}
-                {[
+                {/* Category groups — hidden when Rest Day is selected */}
+                {!dayPlan[dayPickerOpen].includes('Rest Day') && [
                   { key: 'strength', label: 'Strength' },
                   { key: 'cardio', label: 'Cardio' },
                   { key: 'crossfit', label: 'CrossFit' },
@@ -1758,27 +1767,41 @@ function AIBuilderTab() {
                       {isOpen && (
                         <div className="muscle-group-body" style={{ display: 'block' }}>
 
-                          {/* STRENGTH: show sub-groups (Back, Biceps, etc.) */}
-                          {cat.key === 'strength' && Object.entries(lib || {}).sort(([a], [b]) => a.localeCompare(b)).map(([group, exercises]) => (
+                          {/* STRENGTH: show sub-groups (Back, Biceps, etc.) with tick to add whole group */}
+                          {cat.key === 'strength' && Object.entries(lib || {}).sort(([a], [b]) => a.localeCompare(b)).map(([group, exercises]) => {
+                            const groupTag = `[Strength: ${group}]`
+                            const isGroupSelected = dayPlan[dayPickerOpen].includes(groupTag)
+                            return (
                             <div key={group} style={{ marginBottom: 8 }}>
                               <div className="muscle-group" style={{ marginBottom: 4, border: '1px solid var(--glass-border)' }}>
                                 <div className="muscle-group-header" style={{ padding: '10px 14px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1 }}
+                                  {/* Tick to select whole group */}
+                                  <div style={{
+                                    width: 20, height: 20, borderRadius: 4, cursor: 'pointer', flexShrink: 0,
+                                    border: isGroupSelected ? '2px solid var(--accent2)' : '2px solid var(--border)',
+                                    background: isGroupSelected ? 'var(--accent2)' : 'transparent',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }} onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (isGroupSelected) {
+                                      setDayPlan(prev => ({ ...prev, [dayPickerOpen]: prev[dayPickerOpen].filter(i => i !== groupTag) }))
+                                      toast(`Removed "${group}" group from ${dayPickerOpen}`)
+                                    } else {
+                                      setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], groupTag] }))
+                                      toast(`Added "${group}" group to ${dayPickerOpen} — AI will choose exercises`)
+                                    }
+                                  }}>
+                                    {isGroupSelected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1, marginLeft: 8 }}
                                     onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`str-${group}`) }}>
-                                    <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>
-                                      {dayPlannerOpenGroups.has(`str-${group}`) ? '−' : '+'}
-                                    </span>
                                     <span style={{ fontSize: 13 }}>{group}</span>
                                     <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>({exercises.length})</span>
                                   </div>
-                                  <button style={{
-                                    background: 'rgba(167,139,250,0.12)', border: '1px solid var(--accent2)', borderRadius: 4,
-                                    color: 'var(--accent2)', fontSize: 11, padding: '3px 10px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap'
-                                  }} onClick={(e) => {
-                                    e.stopPropagation()
-                                    setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], `[Strength: ${group}]`] }))
-                                    toast(`Added "${group}" group to ${dayPickerOpen} - AI will choose exercises`)
-                                  }}>Add Group</button>
+                                  <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12, cursor: 'pointer' }}
+                                    onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`str-${group}`) }}>
+                                    {dayPlannerOpenGroups.has(`str-${group}`) ? '−' : '+'}
+                                  </span>
                                 </div>
                                 {dayPlannerOpenGroups.has(`str-${group}`) && (
                                   <div style={{ padding: '6px 14px 10px' }}>
@@ -1796,7 +1819,7 @@ function AIBuilderTab() {
                                 )}
                               </div>
                             </div>
-                          ))}
+                          )})}
 
                           {/* CARDIO: flat list */}
                           {cat.key === 'cardio' && (Array.isArray(lib) ? lib : []).map(ex => (
