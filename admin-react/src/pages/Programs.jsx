@@ -56,12 +56,38 @@ function ProgramsTab() {
   const [openWeeks, setOpenWeeks] = useState(new Set())
   const [openDays, setOpenDays] = useState(new Set())
   const [expandAllWeek, setExpandAllWeek] = useState(null)
+  const [assignModal, setAssignModal] = useState(null) // { programName }
+  const [athletes, setAthletes] = useState([])
+  const [selectedAthletes, setSelectedAthletes] = useState([])
+  const [assigning, setAssigning] = useState(false)
 
   const load = async () => {
     try { const d = await API.listPrograms(); setPrograms(d.programs) }
     catch { toast('Failed to load', 'error') }
   }
   useEffect(() => { load() }, [])
+
+  async function openAssign(programName) {
+    setAssignModal({ programName })
+    setSelectedAthletes([])
+    try {
+      const d = await API.listUsers()
+      setAthletes((d.users || []).filter(u => u.role !== 'coach'))
+    } catch { toast('Failed to load athletes', 'error') }
+  }
+
+  async function doAssign() {
+    if (selectedAthletes.length === 0) { toast('Select at least one athlete', 'error'); return }
+    setAssigning(true)
+    try {
+      await Promise.all(selectedAthletes.map(name =>
+        API.updateUser(name, { program: assignModal.programName })
+      ))
+      toast(`Assigned to ${selectedAthletes.length} athlete(s)`)
+      setAssignModal(null)
+    } catch { toast('Assign failed', 'error') }
+    setAssigning(false)
+  }
 
   async function toggleProgram(name) {
     if (expanded === name) { setExpanded(null); setDetail(null); setOpenWeeks(new Set()); setOpenDays(new Set()); return }
@@ -121,6 +147,7 @@ function ProgramsTab() {
               <span className="meta">{p.weeks} weeks · {p.days_per_week} days/week</span>
             </div>
             <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+              <button className="btn btn-primary btn-sm" onClick={() => openAssign(p.name)}>Assign</button>
               <button className="btn btn-secondary btn-sm" onClick={() => duplicate(p.name)}>Duplicate</button>
               <button className="btn btn-danger btn-sm" onClick={() => remove(p.name)}>Delete</button>
             </div>
@@ -209,6 +236,26 @@ function ProgramsTab() {
           )}
         </div>
       ))}
+
+      {assignModal && (
+        <Modal title={`Assign "${assignModal.programName}"`} onClose={() => setAssignModal(null)} actions={[
+          { label: 'Cancel', cls: 'btn-secondary', onClick: () => setAssignModal(null) },
+          { label: assigning ? 'Assigning...' : 'Assign', cls: 'btn-primary', onClick: doAssign },
+        ]}>
+          <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 12 }}>Select athletes to assign this program to:</p>
+          {athletes.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>No athletes found.</p>}
+          <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {athletes.map(u => (
+              <label key={u.username} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: selectedAthletes.includes(u.username) ? 'rgba(124,110,240,0.1)' : 'var(--input-bg)', cursor: 'pointer', fontSize: 14 }}>
+                <input type="checkbox" checked={selectedAthletes.includes(u.username)}
+                  onChange={e => setSelectedAthletes(prev => e.target.checked ? [...prev, u.username] : prev.filter(n => n !== u.username))} />
+                <span>{u.username}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 'auto' }}>{u.program || 'No program'}</span>
+              </label>
+            ))}
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

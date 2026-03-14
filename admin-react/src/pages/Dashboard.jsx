@@ -490,7 +490,7 @@ export default function Dashboard() {
         await API.createUser(form)
         toast('User created')
       } else {
-        const body = { email: form.email, program: form.program, startDate: form.startDate, role: form.role }
+        const body = { email: form.email, program: form.program, startDate: form.startDate, role: form.role, coaches: form.coaches || [] }
         if (form.password) body.password = form.password
         await API.updateUser(modal.user.username, body)
         toast('User updated')
@@ -830,13 +830,14 @@ export default function Dashboard() {
           </div>
 
           <table className="data-table">
-            <thead><tr><th>Name</th><th>Email</th><th>Program <HelpTip text="Assigned training program. Athletes without a program won't see any workouts." /></th><th>Start Date</th><th>Role <HelpTip text="Coaches can access this admin dashboard. Athletes can only use the workout app." /></th><th>Verified</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Program</th><th>Coaches</th><th>Start Date</th><th>Role</th><th>Verified</th><th></th></tr></thead>
             <tbody>
               {filtered.map(u => (
                 <tr key={u.username}>
                   <td><strong>{u.username}</strong></td>
                   <td style={{ color: 'var(--text-dim)' }}>{u.email}</td>
                   <td>{u.program || '—'}</td>
+                  <td style={{ color: 'var(--text-dim)', fontSize: 12 }}>{(u.coaches || []).length > 0 ? u.coaches.join(', ') : '—'}</td>
                   <td style={{ color: 'var(--text-dim)' }}>{u.startDate || '—'}</td>
                   <td><span className={`badge ${u.role === 'coach' ? 'badge-coach' : 'badge-athlete'}`}>{u.role}</span></td>
                   <td>{u.email_verified ? '✓' : '—'}</td>
@@ -892,6 +893,14 @@ export default function Dashboard() {
                   <option value="coach">Coach</option>
                 </select>
               </div>
+              {form.role === 'athlete' && (
+                <div className="form-group">
+                  <label>Coaches <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>(comma-separated usernames)</span></label>
+                  <input type="text" value={(form.coaches || []).join(', ')}
+                    onChange={e => setForm({ ...form, coaches: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                    placeholder="e.g. coach1, coach2" />
+                </div>
+              )}
             </Modal>
           )}
 
@@ -905,24 +914,26 @@ export default function Dashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 16, minHeight: 400 }}>
             {/* User list */}
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--card-border)', fontSize: 12, color: 'var(--text-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Athletes</div>
-              {athletes.filter(u => u.role !== 'coach').map(u => (
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--card-border)', fontSize: 12, color: 'var(--text-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Users</div>
+              {users.map(u => (
                 <div key={u.username} onClick={() => selectUserMessages(u.username)}
                   style={{
                     padding: '10px 16px', cursor: 'pointer', fontSize: 14,
                     background: selectedUser === u.username ? 'rgba(124,110,240,0.1)' : 'transparent',
                     borderLeft: selectedUser === u.username ? '3px solid var(--accent)' : '3px solid transparent',
                     color: selectedUser === u.username ? 'var(--accent2)' : 'var(--text)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   }}>
-                  {u.username}
+                  <span>{u.username}</span>
+                  {u.role === 'coach' && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(52,211,153,0.15)', color: 'var(--teal)' }}>COACH</span>}
                 </div>
               ))}
-              {athletes.filter(u => u.role !== 'coach').length === 0 && <div style={{ padding: 16, color: 'var(--text-dim)', fontSize: 13 }}>No athletes found</div>}
+              {users.length === 0 && <div style={{ padding: 16, color: 'var(--text-dim)', fontSize: 13 }}>No users found</div>}
             </div>
 
             {/* Message area */}
             <div className="card">
-              {!selectedUser && <p style={{ color: 'var(--text-dim)' }}>Select an athlete to view and send messages.</p>}
+              {!selectedUser && <p style={{ color: 'var(--text-dim)' }}>Select a user to view and send messages.</p>}
               {selectedUser && (
                 <>
                   <div className="card-header">

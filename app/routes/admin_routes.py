@@ -25,6 +25,7 @@ class CreateUserRequest(BaseModel):
     program: str = ""
     startDate: str = ""
     role: str = "athlete"
+    coaches: list[str] = []
 
 class UpdateUserRequest(BaseModel):
     email: Optional[str] = None
@@ -33,6 +34,7 @@ class UpdateUserRequest(BaseModel):
     role: Optional[str] = None
     password: Optional[str] = None
     phone: Optional[str] = None
+    coaches: Optional[list[str]] = None
 
 class ExerciseItem(BaseModel):
     name: str
@@ -108,6 +110,7 @@ async def list_users(coach: Annotated[dict, Depends(require_coach)]):
             "startDate": info.get("startDate", ""),
             "role": info.get("role", "athlete"),
             "email_verified": info.get("email_verified", False),
+            "coaches": info.get("coaches", []),
         })
     return {"users": result}
 
@@ -123,6 +126,7 @@ async def create_user(req: CreateUserRequest, coach: Annotated[dict, Depends(req
         "program": req.program,
         "startDate": req.startDate,
         "role": req.role,
+        "coaches": req.coaches,
     }
     save_users(users)
     return {"ok": True, "username": req.username}
@@ -145,6 +149,8 @@ async def update_user(username: str, req: UpdateUserRequest, coach: Annotated[di
         users[username]["passwordHash"] = hash_password(req.password)
     if req.phone is not None:
         users[username]["phone"] = req.phone
+    if req.coaches is not None:
+        users[username]["coaches"] = req.coaches
     save_users(users)
     return {"ok": True}
 
