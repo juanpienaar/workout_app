@@ -1123,6 +1123,9 @@ function AIBuilderTab() {
   const [dayPickerCategory, setDayPickerCategory] = useState(null) // which category is selected in picker
   const [dayPlannerOpenGroups, setDayPlannerOpenGroups] = useState(new Set())
   const [exerciseLib, setExerciseLib] = useState({ strength: {}, cardio: [], crossfit: { movements: [], benchmarks: [] }, olympic: {} })
+  const [dayPlanPrompt, setDayPlanPrompt] = useState('')
+  const [progressionStyle, setProgressionStyle] = useState('progressive') // 'progressive' or 'varied'
+  const [exerciseRoles, setExerciseRoles] = useState({}) // { exerciseName: 'main'|'accessory' }
 
   const program = editedProgram || result?.program
 
@@ -1182,7 +1185,17 @@ function AIBuilderTab() {
       // Add day plan if any days have items
       const hasAnyDayPlan = Object.values(dayPlan).some(items => items.length > 0)
       if (hasAnyDayPlan) {
-        reqBody.dayPlan = dayPlan
+        // Enrich day plan items with their roles (main/accessory)
+        const enrichedDayPlan = {}
+        for (const [day, items] of Object.entries(dayPlan)) {
+          enrichedDayPlan[day] = items.map(item => {
+            const isSpecial = item === 'Rest Day' || item.startsWith('[Strength:') || item.startsWith('WOD:') || item.startsWith('Open WOD:')
+            return { name: item, role: isSpecial ? null : (exerciseRoles[item] || 'main') }
+          })
+        }
+        reqBody.dayPlan = enrichedDayPlan
+        reqBody.progressionStyle = progressionStyle
+        if (dayPlanPrompt.trim()) reqBody.dayPlanPrompt = dayPlanPrompt.trim()
       }
       // Add athlete data if building for specific athlete
       if (buildForAthlete && selectedAthlete) {
@@ -1397,15 +1410,30 @@ function AIBuilderTab() {
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
                     {dayPickerOpen} — {dayPlan[dayPickerOpen].length} item{dayPlan[dayPickerOpen].length !== 1 ? 's' : ''} assigned
                   </div>
-                  {dayPlan[dayPickerOpen].map((item, idx) => (
-                    <div key={idx} className="exercise-item" style={{ marginBottom: 6 }}>
-                      <span>{item}</span>
+                  {dayPlan[dayPickerOpen].map((item, idx) => {
+                    const isSpecial = item === 'Rest Day' || item.startsWith('[Strength:') || item.startsWith('WOD:') || item.startsWith('Open WOD:')
+                    const role = exerciseRoles[item] || 'main'
+                    return (
+                    <div key={idx} className="exercise-item" style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {!isSpecial && (
+                        <button style={{
+                          fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 3, cursor: 'pointer',
+                          border: '1px solid',
+                          background: role === 'main' ? 'rgba(99,102,241,0.15)' : 'rgba(251,191,36,0.15)',
+                          borderColor: role === 'main' ? 'var(--accent)' : '#fbbf24',
+                          color: role === 'main' ? 'var(--accent)' : '#fbbf24',
+                          minWidth: 32, textAlign: 'center',
+                        }} onClick={() => setExerciseRoles(prev => ({ ...prev, [item]: role === 'main' ? 'accessory' : 'main' }))}>
+                          {role === 'main' ? 'MAIN' : 'ACC'}
+                        </button>
+                      )}
+                      <span style={{ flex: 1 }}>{item}</span>
                       <button className="btn-icon" style={{ fontSize: 14 }}
                         onClick={() => setDayPlan(prev => ({ ...prev, [dayPickerOpen]: prev[dayPickerOpen].filter((_, i) => i !== idx) }))}>
                         <Icon name="delete" size={14} />
                       </button>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
               {dayPlan[dayPickerOpen].length === 0 && (
@@ -1633,6 +1661,49 @@ function AIBuilderTab() {
               })}
             </div>
           )}
+
+          {/* Program duration */}
+          <div style={{ marginTop: 24, padding: 16, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Program Duration: <strong style={{ color: 'var(--accent2)' }}>{weeks} weeks</strong></label>
+              <input type="range" min="4" max="24" value={weeks} onChange={e => setWeeks(parseInt(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
+            </div>
+          </div>
+
+          {/* Progression philosophy */}
+          <div style={{ marginTop: 12, padding: 16, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
+            <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'block', color: 'var(--text)' }}>Week-by-Week Progression</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[
+                { id: 'progressive', label: 'Progressive Overload', desc: 'Keep exercises the same, increase load/volume each week' },
+                { id: 'varied', label: 'Varied Selection', desc: 'Rotate exercises week to week, keep main lifts and swap accessories' },
+              ].map(opt => (
+                <div key={opt.id} style={{
+                  flex: 1, padding: '12px 14px', borderRadius: 8, cursor: 'pointer',
+                  border: '2px solid', background: 'var(--surface)',
+                  borderColor: progressionStyle === opt.id ? 'var(--accent2)' : 'var(--glass-border)',
+                }} onClick={() => setProgressionStyle(opt.id)}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: progressionStyle === opt.id ? 'var(--accent2)' : 'var(--text)', marginBottom: 4 }}>{opt.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>{opt.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom coaching prompt */}
+          <div style={{ marginTop: 12, padding: 16, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
+            <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--text)' }}>Coaching Notes (optional)</label>
+            <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>
+              Override or supplement the coach philosophy. E.g. "Rotate accessories every 2 weeks", "Keep rep ranges 8-12 for hypertrophy", "Deload every 4th week".
+            </p>
+            <textarea
+              value={dayPlanPrompt}
+              onChange={e => setDayPlanPrompt(e.target.value)}
+              placeholder="Add specific instructions for how the AI should structure the program..."
+              rows={3}
+              style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', padding: 10, fontSize: 13, resize: 'vertical' }}
+            />
+          </div>
 
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={() => { setBuilderMode(null); setDayPickerOpen(null); setDayPickerCategory(null) }}>Back</button>

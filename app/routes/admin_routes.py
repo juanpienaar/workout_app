@@ -49,7 +49,7 @@ class DuplicateRequest(BaseModel):
     new_name: str
 
 class AIGenerateRequest(BaseModel):
-    types: list[str]
+    types: list[str] = []
     typeConfig: dict = {}
     model: str = "sonnet"
     weeks: int = 8
@@ -60,6 +60,9 @@ class AIGenerateRequest(BaseModel):
     experience: str = "intermediate"
     athlete_name: str = ""
     athlete_prompt: str = ""
+    dayPlan: dict = {}
+    progressionStyle: str = ""
+    dayPlanPrompt: str = ""
 
 class AIModifyRequest(BaseModel):
     program: dict
@@ -601,6 +604,16 @@ async def ai_generate(req: AIGenerateRequest, coach: Annotated[dict, Depends(req
         if req.athlete_name in users:
             athlete_prompt = users[req.athlete_name].get("athlete_prompt", "") or req.athlete_prompt
 
+    # Compute training days from dayPlan if provided
+    days_per_week = req.daysPerWeek
+    if req.dayPlan:
+        training_days = sum(1 for items in req.dayPlan.values() if items and not any(
+            (isinstance(i, str) and i == "Rest Day") or (isinstance(i, dict) and i.get("name") == "Rest Day")
+            for i in items
+        ))
+        if training_days > 0:
+            days_per_week = training_days
+
     try:
         program, cost_info = generate_program(
             types=req.types,
@@ -609,11 +622,14 @@ async def ai_generate(req: AIGenerateRequest, coach: Annotated[dict, Depends(req
             weeks=req.weeks,
             name=req.name,
             notes=req.notes,
-            days_per_week=req.daysPerWeek,
+            days_per_week=days_per_week,
             session_time=req.sessionTime,
             experience=req.experience,
             coach_philosophy=coach_philosophy,
             athlete_prompt=athlete_prompt,
+            day_plan=req.dayPlan,
+            progression_style=req.progressionStyle,
+            day_plan_prompt=req.dayPlanPrompt,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))

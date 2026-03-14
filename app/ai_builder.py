@@ -131,9 +131,12 @@ def build_prompt(
     experience: str = "intermediate",
     coach_philosophy: str = "",
     athlete_prompt: str = "",
+    day_plan: dict = None,
+    progression_style: str = "",
+    day_plan_prompt: str = "",
 ) -> str:
     """Build the user prompt for Claude based on selected program types and config."""
-    type_labels = " + ".join(t.title() for t in types)
+    type_labels = " + ".join(t.title() for t in types) if types else "Custom"
     is_combo = len(types) > 1
 
     # Start with coach philosophy if provided
@@ -222,6 +225,50 @@ SWIMMING:
 - Pool access: {cfg.get('access', '25m pool')}
 - Structure sessions as: warm-up → main set → cool-down.
 - Use Instruction field for stroke type; pace; rest intervals.""")
+
+    # Day plan section (from "By Day Plan" builder mode)
+    if day_plan and any(items for items in day_plan.values() if items):
+        dp_lines = ["DAY-BY-DAY EXERCISE PLAN:"]
+        dp_lines.append("The coach has assigned specific exercises/muscle groups to each day. Follow this plan as the foundation for EVERY week.")
+        for day_name, items in day_plan.items():
+            if not items:
+                continue
+            item_strs = []
+            for item in items:
+                if isinstance(item, dict):
+                    n = item.get("name", "")
+                    role = item.get("role")
+                    if role and role in ("main", "accessory"):
+                        item_strs.append(f"  - {n} [{role.upper()} movement]")
+                    else:
+                        item_strs.append(f"  - {n}")
+                else:
+                    item_strs.append(f"  - {item}")
+            dp_lines.append(f"\n{day_name}:")
+            dp_lines.extend(item_strs)
+
+        dp_lines.append("\nRULES FOR DAY PLAN:")
+        dp_lines.append("- Items marked [MAIN movement] are the primary lifts — keep these every week, apply progressive overload.")
+        dp_lines.append("- Items marked [ACCESSORY movement] are supplementary — these can be rotated or varied across weeks if the progression style is 'varied'.")
+        dp_lines.append("- Items like '[Strength: Back]' mean the coach wants exercises targeting that muscle group — YOU choose appropriate exercises.")
+        dp_lines.append("- 'Rest Day' means no training that day.")
+        dp_lines.append("- Open WOD items should be included as-is on that day.")
+
+        if progression_style == "progressive":
+            dp_lines.append("\nPROGRESSION STYLE: Progressive Overload")
+            dp_lines.append("- Keep the SAME exercises each week. Increase load, volume, or intensity over time.")
+            dp_lines.append("- Main movements: increase weight or add sets/reps each week.")
+            dp_lines.append("- Accessory movements: keep the same exercises but progress reps or load.")
+        elif progression_style == "varied":
+            dp_lines.append("\nPROGRESSION STYLE: Varied Selection")
+            dp_lines.append("- Keep MAIN movements the same each week with progressive overload.")
+            dp_lines.append("- ROTATE accessory movements week to week — swap in different exercises that target the same muscle group.")
+            dp_lines.append("- This keeps training fresh while still building on the main lifts.")
+
+        if day_plan_prompt:
+            dp_lines.append(f"\nADDITIONAL COACHING INSTRUCTIONS:\n{day_plan_prompt}")
+
+        prompt_parts.append("\n".join(dp_lines))
 
     # Exercise library context
     exercise_context = build_exercise_library_context()
@@ -411,6 +458,9 @@ def generate_program(
     experience: str = "intermediate",
     coach_philosophy: str = "",
     athlete_prompt: str = "",
+    day_plan: dict = None,
+    progression_style: str = "",
+    day_plan_prompt: str = "",
 ) -> tuple[dict, dict]:
     """
     Generate a program via Claude.
@@ -427,6 +477,9 @@ def generate_program(
         experience=experience,
         coach_philosophy=coach_philosophy,
         athlete_prompt=athlete_prompt,
+        day_plan=day_plan,
+        progression_style=progression_style,
+        day_plan_prompt=day_plan_prompt,
     )
 
     response_text, cost_info = call_claude(prompt, model)
