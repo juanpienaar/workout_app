@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from ..auth import require_coach, hash_password
 from ..data import load_users, save_users, load_user_data, save_user_data, get_user_file
 from ..ai_builder import generate_program, modify_program as ai_modify_program, load_costs as load_ai_costs, MODELS
+from ..logger import log_event, get_logs
 from .. import config
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -632,8 +633,10 @@ async def ai_generate(req: AIGenerateRequest, coach: Annotated[dict, Depends(req
             day_plan_prompt=req.dayPlanPrompt,
         )
     except ValueError as e:
+        log_event("ai_generate", "error", f"ValueError: {str(e)}", {"name": req.name})
         raise HTTPException(400, str(e))
     except Exception as e:
+        log_event("ai_generate", "error", f"Exception: {str(e)}", {"name": req.name, "error_type": type(e).__name__})
         raise HTTPException(500, f"AI generation failed: {str(e)}")
 
     # Save the generated program to program.json
@@ -831,3 +834,14 @@ async def delete_message(username: str, msg_id: str, coach: Annotated[dict, Depe
     ud["messages"] = [m for m in msgs if m.get("id") != msg_id]
     save_user_data(username, ud)
     return {"ok": True}
+
+
+# ══════════════════════════════════════════════════════════════════
+# LOGS
+# ══════════════════════════════════════════════════════════════════
+
+@router.get("/logs")
+async def get_admin_logs(coach: Annotated[dict, Depends(require_coach)], limit: int = 50, type: str = None):
+    """Get recent application logs."""
+    logs = get_logs(limit=limit, event_type=type)
+    return {"logs": logs}

@@ -90,4 +90,7 @@ export const API = {
   // Deploy
   getDeployStatus: () => authFetch('/api/admin/deploy/status').then(r => r.json()),
   deploy: (msg) => authFetch('/api/admin/deploy', { method: 'POST', body: JSON.stringify({ commit_msg: msg }) }).then(r => r.json()),
+
+  // Logs
+  getLogs: (limit = 50, type = null) => authFetch(`/api/admin/logs?limit=${limit}${type ? `&type=${type}` : ''}`).then(r => r.json()),
 }

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import config
+from .logger import log_event
 
 # ── Model definitions ────────────────────────────────────────────
 
@@ -482,13 +483,39 @@ def generate_program(
         day_plan_prompt=day_plan_prompt,
     )
 
-    response_text, cost_info = call_claude(prompt, model)
+    log_event("ai_generate", "started", f"Generating '{name}' ({weeks} weeks, model={model})", {
+        "types": types, "model": model, "weeks": weeks, "name": name,
+        "has_day_plan": bool(day_plan and any(v for v in day_plan.values() if v)),
+        "progression_style": progression_style,
+        "prompt_length": len(prompt),
+    })
+
+    try:
+        response_text, cost_info = call_claude(prompt, model)
+    except Exception as e:
+        log_event("ai_generate", "error", f"Claude API call failed: {str(e)}", {"name": name, "model": model})
+        raise
+
+    log_event("ai_generate", "api_complete", f"Got response ({cost_info.get('output_tokens', 0)} tokens)", {
+        "name": name, **cost_info, "response_preview": response_text[:500] if response_text else "EMPTY",
+    })
+
     rows = parse_ai_csv(response_text)
 
     if not rows:
+        log_event("ai_generate", "error", "Failed to parse AI response into CSV rows", {
+            "name": name, "response_preview": response_text[:1000] if response_text else "EMPTY",
+        })
         raise ValueError("Failed to parse AI response into valid CSV rows")
 
     program = csv_rows_to_program(rows, name)
+
+    log_event("ai_generate", "success", f"Program '{name}' generated: {len(program.get('weeks', []))} weeks", {
+        "name": name, "weeks_generated": len(program.get("weeks", [])),
+        "total_days": sum(len(w.get("days", [])) for w in program.get("weeks", [])),
+        **cost_info,
+    })
+
     return program, cost_info
 
 
