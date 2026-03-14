@@ -1039,6 +1039,7 @@ const crossfitOpenWods = [
 function AIBuilderTab() {
   const toast = useToast()
   const [step, setStep] = useState(1)
+  const [builderMode, setBuilderMode] = useState(null) // 'types' or 'dayplan'
   const [types, setTypes] = useState([])
   const [config, setConfig] = useState({})
   const [model, setModel] = useState('sonnet')
@@ -1235,7 +1236,51 @@ function AIBuilderTab() {
         </div>
       )}
 
-      {step === 1 && (
+      {step === 1 && !builderMode && (
+        <div className="card">
+          <h3 style={{ marginBottom: 16 }}>How do you want to build? <HelpTip text="Choose program types for AI to decide structure, or plan exercises by day yourself." /></h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div
+              style={{
+                background: 'var(--surface2)', border: '1px solid var(--glass-border)',
+                borderRadius: 14, padding: 24, textAlign: 'center', cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,110,240,0.4)'; e.currentTarget.style.background = 'rgba(124,110,240,0.08)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.background = 'var(--surface2)' }}
+              onClick={() => setBuilderMode('types')}
+            >
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--surface3)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <Icon name="programs" size={24} />
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>By Program Type</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                Choose types (Strength, CrossFit, etc.) and let the AI decide the structure and split.
+              </div>
+            </div>
+            <div
+              style={{
+                background: 'var(--surface2)', border: '1px solid var(--glass-border)',
+                borderRadius: 14, padding: 24, textAlign: 'center', cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,110,240,0.4)'; e.currentTarget.style.background = 'rgba(124,110,240,0.08)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.background = 'var(--surface2)' }}
+              onClick={() => setBuilderMode('dayplan')}
+            >
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--surface3)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <Icon name="dashboard" size={24} />
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>By Day Plan</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                Assign specific exercises to each day of the week. The AI fills in sets, reps, and progression.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step === 1 && builderMode === 'types' && (
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>Select Program Type(s) <HelpTip text="Choose one or combine multiple types for a hybrid program. The AI will balance training volume across types." /></h3>
           <div className="type-grid">
@@ -1247,7 +1292,234 @@ function AIBuilderTab() {
             ))}
           </div>
           <div className="modal-actions">
+            <button className="btn btn-secondary" onClick={() => setBuilderMode(null)}>Back</button>
             <button className="btn btn-primary" disabled={types.length === 0} onClick={() => setStep(2)}>Next</button>
+          </div>
+        </div>
+      )}
+
+      {step === 1 && builderMode === 'dayplan' && (
+        <div className="card">
+          <h3 style={{ marginBottom: 16 }}>Plan Your Week</h3>
+          <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
+            Assign exercises to each day. The AI will use this as the foundation and build sets, reps, tempo, and progression around it.
+          </p>
+
+          {/* Reuse the day planner UI */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+            {Object.entries(dayPlan).map(([day, items]) => (
+              <button
+                key={day}
+                style={{
+                  padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                  color: dayPickerOpen === day ? 'var(--accent2)' : 'var(--text-dim)',
+                  background: dayPickerOpen === day ? 'rgba(167,139,250,0.08)' : 'transparent',
+                  border: '1px solid',
+                  borderColor: dayPickerOpen === day ? 'var(--accent2)' : 'var(--border)',
+                  borderRadius: 6, position: 'relative',
+                }}
+                onClick={() => { setDayPickerOpen(dayPickerOpen === day ? null : day); setDayPickerCategory(null) }}
+              >
+                {day}
+                {items.length > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -6, right: -6,
+                    background: 'var(--accent)', color: '#fff',
+                    fontSize: 9, fontWeight: 700, width: 16, height: 16,
+                    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{items.length}</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {dayPickerOpen && (
+            <div>
+              {dayPlan[dayPickerOpen].length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+                    {dayPickerOpen} — {dayPlan[dayPickerOpen].length} item{dayPlan[dayPickerOpen].length !== 1 ? 's' : ''} assigned
+                  </div>
+                  {dayPlan[dayPickerOpen].map((item, idx) => (
+                    <div key={idx} className="exercise-item" style={{ marginBottom: 6 }}>
+                      <span>{item}</span>
+                      <button className="btn-icon" style={{ fontSize: 14 }}
+                        onClick={() => setDayPlan(prev => ({ ...prev, [dayPickerOpen]: prev[dayPickerOpen].filter((_, i) => i !== idx) }))}>
+                        <Icon name="delete" size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {dayPlan[dayPickerOpen].length === 0 && (
+                <div style={{ color: 'var(--text-dim)', fontSize: 13, marginBottom: 16, fontStyle: 'italic' }}>
+                  No exercises assigned to {dayPickerOpen} yet.
+                </div>
+              )}
+
+              {/* Rest day button */}
+              <div className="muscle-group" style={{ marginBottom: 10 }}>
+                <div className="muscle-group-header" style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], 'Rest Day'] }))
+                    toast(`Marked ${dayPickerOpen} as Rest Day`)
+                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: 'var(--text-dim)', fontSize: 13, fontWeight: 500 }}>Rest Day</span>
+                  </div>
+                  <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                </div>
+              </div>
+
+              {/* Category groups */}
+              {[
+                { key: 'strength', label: 'Strength' },
+                { key: 'cardio', label: 'Cardio' },
+                { key: 'crossfit', label: 'CrossFit' },
+                { key: 'olympic', label: 'Olympic Lifting' },
+              ].map(cat => {
+                const isOpen = dayPickerCategory === cat.key
+                const lib = exerciseLib[cat.key]
+                let count = 0
+                if (cat.key === 'cardio') count = Array.isArray(lib) ? lib.length : 0
+                else if (cat.key === 'strength') count = Object.values(lib || {}).reduce((s, arr) => s + arr.length, 0)
+                else if (cat.key === 'crossfit') count = (lib?.movements?.length || 0) + (lib?.benchmarks?.length || 0)
+                else if (cat.key === 'olympic') count = Object.values(lib || {}).reduce((s, arr) => s + arr.length, 0)
+                return (
+                  <div key={cat.key} className="muscle-group" style={{ marginBottom: 10 }}>
+                    <div className="muscle-group-header" onClick={() => setDayPickerCategory(isOpen ? null : cat.key)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="drill-toggle drill-toggle-sm">{isOpen ? '−' : '+'}</span>
+                        <span style={{ color: 'var(--accent2)' }}>{cat.label}</span>
+                      </div>
+                      <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>{count} exercises</span>
+                    </div>
+                    {isOpen && (
+                      <div className="muscle-group-body" style={{ display: 'block' }}>
+                        {cat.key === 'strength' && Object.entries(lib || {}).sort(([a], [b]) => a.localeCompare(b)).map(([group, exercises]) => (
+                          <div key={group} style={{ marginBottom: 8 }}>
+                            <div className="muscle-group" style={{ marginBottom: 4, border: '1px solid var(--glass-border)' }}>
+                              <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`str-${group}`) }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>
+                                    {dayPlannerOpenGroups.has(`str-${group}`) ? '−' : '+'}
+                                  </span>
+                                  <span style={{ fontSize: 13 }}>{group}</span>
+                                </div>
+                                <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{exercises.length}</span>
+                              </div>
+                              {dayPlannerOpenGroups.has(`str-${group}`) && (
+                                <div style={{ padding: '6px 14px 10px' }}>
+                                  {exercises.map(ex => (
+                                    <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                      onClick={() => {
+                                        setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], ex] }))
+                                        toast(`Added "${ex}" to ${dayPickerOpen}`)
+                                      }}>
+                                      <span style={{ fontSize: 13 }}>{ex}</span>
+                                      <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {cat.key === 'cardio' && (Array.isArray(lib) ? lib : []).map(ex => (
+                          <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                            onClick={() => {
+                              setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], ex] }))
+                              toast(`Added "${ex}" to ${dayPickerOpen}`)
+                            }}>
+                            <span style={{ fontSize: 13 }}>{ex}</span>
+                            <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                          </div>
+                        ))}
+                        {cat.key === 'crossfit' && (
+                          <>
+                            <div className="muscle-group" style={{ marginBottom: 8, border: '1px solid var(--glass-border)' }}>
+                              <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup('cf-movements') }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>{dayPlannerOpenGroups.has('cf-movements') ? '−' : '+'}</span>
+                                  <span style={{ fontSize: 13 }}>Movements</span>
+                                </div>
+                                <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{lib?.movements?.length || 0}</span>
+                              </div>
+                              {dayPlannerOpenGroups.has('cf-movements') && (
+                                <div style={{ padding: '6px 14px 10px' }}>
+                                  {(lib?.movements || []).map(ex => (
+                                    <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                      onClick={() => { setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], ex] })); toast(`Added "${ex}" to ${dayPickerOpen}`) }}>
+                                      <span style={{ fontSize: 13 }}>{ex}</span>
+                                      <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="muscle-group" style={{ marginBottom: 8, border: '1px solid var(--glass-border)' }}>
+                              <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup('cf-benchmarks') }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>{dayPlannerOpenGroups.has('cf-benchmarks') ? '−' : '+'}</span>
+                                  <span style={{ fontSize: 13 }}>Benchmark WODs</span>
+                                </div>
+                                <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{lib?.benchmarks?.length || 0}</span>
+                              </div>
+                              {dayPlannerOpenGroups.has('cf-benchmarks') && (
+                                <div style={{ padding: '6px 14px 10px' }}>
+                                  {(lib?.benchmarks || []).map(ex => (
+                                    <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                      onClick={() => { setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], `WOD: ${ex}`] })); toast(`Added "${ex}" to ${dayPickerOpen}`) }}>
+                                      <span style={{ fontSize: 13 }}>{ex}</span>
+                                      <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+                        {cat.key === 'olympic' && Object.entries(lib || {}).map(([group, lifts]) => (
+                          <div key={group} style={{ marginBottom: 8 }}>
+                            <div className="muscle-group" style={{ marginBottom: 4, border: '1px solid var(--glass-border)' }}>
+                              <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`oly-${group}`) }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>{dayPlannerOpenGroups.has(`oly-${group}`) ? '−' : '+'}</span>
+                                  <span style={{ fontSize: 13 }}>{group}</span>
+                                </div>
+                                <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{lifts.length}</span>
+                              </div>
+                              {dayPlannerOpenGroups.has(`oly-${group}`) && (
+                                <div style={{ padding: '6px 14px 10px' }}>
+                                  {lifts.map(ex => (
+                                    <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                      onClick={() => { setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], ex] })); toast(`Added "${ex}" to ${dayPickerOpen}`) }}>
+                                      <span style={{ fontSize: 13 }}>{ex}</span>
+                                      <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="modal-actions">
+            <button className="btn btn-secondary" onClick={() => { setBuilderMode(null); setDayPickerOpen(null); setDayPickerCategory(null) }}>Back</button>
+            <button className="btn btn-primary"
+              disabled={!Object.values(dayPlan).some(items => items.length > 0)}
+              onClick={() => setStep(2)}>Next</button>
           </div>
         </div>
       )}
@@ -1255,16 +1527,22 @@ function AIBuilderTab() {
       {step === 2 && (
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>Configure Program</h3>
+
+          {/* Schedule config — only show days-per-week if NOT using day plan */}
           <div className="config-schedule">
-            <div className="form-group">
-              <label>Training days per week: <strong style={{ color: 'var(--accent2)' }}>{daysPerWeek}</strong></label>
-              <input type="range" min="2" max="7" value={daysPerWeek} onChange={e => setDaysPerWeek(parseInt(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
-            </div>
+            {builderMode !== 'dayplan' && (
+              <div className="form-group">
+                <label>Training days per week: <strong style={{ color: 'var(--accent2)' }}>{daysPerWeek}</strong></label>
+                <input type="range" min="2" max="7" value={daysPerWeek} onChange={e => setDaysPerWeek(parseInt(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
+              </div>
+            )}
             <div className="form-group">
               <label>Session duration: <strong style={{ color: 'var(--accent2)' }}>{sessionTime} min</strong></label>
               <input type="range" min="30" max="120" step="5" value={sessionTime} onChange={e => setSessionTime(parseInt(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
             </div>
           </div>
+
+          {/* Strength config — hide Split when using day plan (exercises already assigned) */}
           {types.includes('strength') && (
             <div style={{ marginBottom: 20 }}>
               <h4 style={{ color: 'var(--accent2)', marginBottom: 8 }}>Strength</h4>
@@ -1272,10 +1550,12 @@ function AIBuilderTab() {
                 <select value={config.strength?.goal || ''} onChange={e => updateConfig('strength', 'goal', e.target.value)}>
                   <option value="">Select...</option>{STRENGTH_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select></div>
-              <div className="form-group"><label>Split</label>
-                <select value={config.strength?.split || ''} onChange={e => updateConfig('strength', 'split', e.target.value)}>
-                  <option value="">Select...</option>{STRENGTH_SPLITS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select></div>
+              {builderMode !== 'dayplan' && (
+                <div className="form-group"><label>Split</label>
+                  <select value={config.strength?.split || ''} onChange={e => updateConfig('strength', 'split', e.target.value)}>
+                    <option value="">Select...</option>{STRENGTH_SPLITS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select></div>
+              )}
               <div className="form-group"><label>Equipment</label>
                 <select value={config.strength?.equipment || ''} onChange={e => updateConfig('strength', 'equipment', e.target.value)}>
                   {EQUIPMENT.map(e => <option key={e} value={e}>{e}</option>)}
@@ -1312,8 +1592,8 @@ function AIBuilderTab() {
             </div>
           )}
 
-          {/* Day-by-day movement planner */}
-          <div style={{ marginTop: 24, padding: 16, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
+          {/* Day-by-day movement planner — only show if NOT using dayplan mode (they already picked exercises in step 1) */}
+          {builderMode !== 'dayplan' && <div style={{ marginTop: 24, padding: 16, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
             <h4 style={{ color: 'var(--accent2)', marginBottom: 4 }}>Day Planner (optional)</h4>
             <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
               Assign specific movements to days. The AI will use these preferences when building the program.
@@ -1377,6 +1657,20 @@ function AIBuilderTab() {
                     No exercises assigned to {dayPickerOpen} yet. Choose a category below to add.
                   </div>
                 )}
+
+                {/* Rest day button */}
+                <div className="muscle-group" style={{ marginBottom: 10 }}>
+                  <div className="muscle-group-header" style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], 'Rest Day'] }))
+                      toast(`Marked ${dayPickerOpen} as Rest Day`)
+                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: 'var(--text-dim)', fontSize: 13, fontWeight: 500 }}>Rest Day</span>
+                    </div>
+                    <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                  </div>
+                </div>
 
                 {/* Category groups — matching Exercises tab structure */}
                 {[
@@ -1547,7 +1841,7 @@ function AIBuilderTab() {
                 })}
               </div>
             )}
-          </div>
+          </div>}
 
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
