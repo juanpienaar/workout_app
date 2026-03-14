@@ -555,17 +555,23 @@ def call_claude(prompt: str, model_key: str = "sonnet") -> tuple[Optional[str], 
     model_info = MODELS.get(model_key, MODELS["sonnet"])
     client = anthropic.Anthropic(api_key=api_key)
 
-    message = client.messages.create(
+    # Use streaming to avoid timeout with high max_tokens
+    response_text = ""
+    input_tokens = 0
+    output_tokens = 0
+    with client.messages.stream(
         model=model_info["id"],
-        max_tokens=64000,
+        max_tokens=32000,
         system=PROGRAM_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
-    )
+    ) as stream:
+        for text in stream.text_stream:
+            response_text += text
+        final = stream.get_final_message()
+        input_tokens = final.usage.input_tokens
+        output_tokens = final.usage.output_tokens
 
-    input_tokens = message.usage.input_tokens
-    output_tokens = message.usage.output_tokens
     cost = track_usage(input_tokens, output_tokens, model_key, f"AI Builder: {prompt[:80]}")
-    response_text = message.content[0].text
 
     return response_text, {
         "input_tokens": input_tokens,
@@ -757,21 +763,28 @@ Coach's modification request: {modification_prompt}
 Apply the changes and return the complete modified program as valid JSON."""
 
     try:
-        message = client.messages.create(
+        # Use streaming to avoid timeout with high max_tokens
+        response_text = ""
+        input_tokens = 0
+        output_tokens = 0
+        with client.messages.stream(
             model=model_info["id"],
-            max_tokens=64000,
+            max_tokens=32000,
             system=MODIFY_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
-        )
+        ) as stream:
+            for text in stream.text_stream:
+                response_text += text
+            final = stream.get_final_message()
+            input_tokens = final.usage.input_tokens
+            output_tokens = final.usage.output_tokens
     except Exception as e:
         log_event("ai_modify", "error", f"Claude API call failed: {str(e)}", {"model": model_key})
         raise
 
-    input_tokens = message.usage.input_tokens
-    output_tokens = message.usage.output_tokens
     cost = track_usage(input_tokens, output_tokens, model_key, f"Modify program: {modification_prompt[:80]}")
 
-    response_text = message.content[0].text.strip()
+    response_text = response_text.strip()
 
     log_event("ai_modify", "api_complete", f"Got response ({output_tokens} tokens)", {
         "input_tokens": input_tokens, "output_tokens": output_tokens,
