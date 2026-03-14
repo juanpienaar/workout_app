@@ -27,7 +27,7 @@ async def save_metrics(entry: MetricEntry, current_user: Annotated[dict, Depends
     if "metrics" not in user_data:
         user_data["metrics"] = []
     entry_dict = entry.model_dump(exclude_none=True)
-    entry_dict["saved_at"] = datetime.now(timezone.utc).isoformat() + "Z"
+    entry_dict["saved_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     user_data["metrics"].append(entry_dict)
     save_user_data(user_key, user_data)
     return {"ok": True}

@@ -26,7 +26,7 @@ async def save_day(req: SaveDayRequest, current_user: Annotated[dict, Depends(ge
     user_data["workout_logs"][req.day_key] = {
         "data": req.data,
         "meta": req.meta,
-        "saved_at": datetime.now(timezone.utc).isoformat() + "Z",
+        "saved_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     save_user_data(user_key, user_data)
     return {"ok": True}
@@ -42,7 +42,7 @@ async def sync_all(req: SyncAllRequest, current_user: Annotated[dict, Depends(ge
             user_data["workout_logs"][day_key] = {
                 "data": day_info["data"],
                 "meta": day_info.get("meta", {}),
-                "saved_at": datetime.now(timezone.utc).isoformat() + "Z",
+                "saved_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             }
             count += 1
     save_user_data(user_key, user_data)
@@ -85,7 +85,7 @@ async def reply_message(req: AthleteReplyRequest, current_user: Annotated[dict, 
         "day_key": "",
         "source": "athlete",
         "from": user_key,
-        "sent_at": datetime.now(timezone.utc).isoformat() + "Z",
+        "sent_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "read": False,
         "reply_to": req.reply_to,
     }
@@ -101,7 +101,7 @@ async def save_whoop(req: SaveWhoopRequest, current_user: Annotated[dict, Depend
     user_key = current_user["name"]
     user_data = load_user_data(user_key)
     snapshot = req.snapshot
-    snapshot["saved_at"] = datetime.now(timezone.utc).isoformat() + "Z"
+    snapshot["saved_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     user_data.setdefault("whoop_snapshots", []).append(snapshot)
     user_data["whoop_snapshots"] = user_data["whoop_snapshots"][-90:]
     save_user_data(user_key, user_data)

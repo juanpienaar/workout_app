@@ -566,7 +566,10 @@ export default function Dashboard() {
 
   function formatMessageDate(iso) {
     try {
-      const d = new Date(iso)
+      if (!iso) return ''
+      const fixed = iso.replace(/\+00:00Z$/, 'Z')
+      const d = new Date(fixed)
+      if (isNaN(d.getTime())) return iso
       return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
     } catch { return iso }
   }

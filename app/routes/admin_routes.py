@@ -578,7 +578,7 @@ async def send_message(username: str, req: SendMessageRequest, coach: Annotated[
         "day_key": req.day_key,
         "source": req.source,
         "from": coach["name"],
-        "sent_at": datetime.now(timezone.utc).isoformat() + "Z",
+        "sent_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "read": False,
     }
     msgs.append(msg)
