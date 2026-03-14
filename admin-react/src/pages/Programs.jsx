@@ -1112,6 +1112,7 @@ function AIBuilderTab() {
   const [editValue, setEditValue] = useState('')
   const [nlPrompt, setNlPrompt] = useState('')
   const [nlLoading, setNlLoading] = useState(false)
+  const [generateError, setGenerateError] = useState(null)
   const [buildForAthlete, setBuildForAthlete] = useState(false)
   const [selectedAthlete, setSelectedAthlete] = useState('')
   const [athletes, setAthletes] = useState([])
@@ -1204,14 +1205,29 @@ function AIBuilderTab() {
         reqBody.athlete_prompt = athlete?.athlete_prompt || ''
       }
       const r = await API.generateProgram(reqBody)
-      if (r.error || r.detail) { toast(r.error || r.detail, 'error'); setLoading(false); return }
-      if (!r.program) { toast('Generation returned no program data', 'error'); setLoading(false); return }
-      if (!r.program.weeks || r.program.weeks.length === 0) { toast('Program generated but has no weeks', 'error'); setLoading(false); return }
+      if (r.error || r.detail) {
+        setGenerateError(r.error || r.detail)
+        toast(r.error || r.detail, 'error')
+        setLoading(false); return
+      }
+      if (!r.program) {
+        setGenerateError('Generation returned no program data. Check Settings > Activity Logs for details.')
+        toast('Generation returned no program data', 'error')
+        setLoading(false); return
+      }
+      if (!r.program.weeks || r.program.weeks.length === 0) {
+        setGenerateError('Program generated but has no weeks. The AI response could not be parsed. Check Settings > Activity Logs for details.')
+        toast('Program generated but has no weeks — check logs', 'error')
+        setLoading(false); return
+      }
+      setGenerateError(null)
       setResult(r); setStep(5)
       const msg = buildForAthlete ? `Program generated and assigned to ${selectedAthlete}! ${r.program.weeks.length} weeks` : `Program generated! ${r.program.weeks.length} weeks`
       toast(msg)
     } catch (e) {
-      toast(e.message === 'auth_expired' ? 'Session expired' : `Generation failed: ${e.message}`, 'error')
+      const errMsg = e.message === 'auth_expired' ? 'Session expired' : `Generation failed: ${e.message}`
+      setGenerateError(errMsg)
+      toast(errMsg, 'error')
     }
     setLoading(false)
   }
@@ -2166,9 +2182,25 @@ function AIBuilderTab() {
             </div>
           )}
 
+          {generateError && (
+            <div style={{
+              marginBottom: 16, padding: '14px 16px', background: 'rgba(220,38,38,0.08)',
+              border: '1px solid rgba(220,38,38,0.3)', borderRadius: 8,
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#dc2626', marginBottom: 6 }}>Generation Failed</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 10 }}>{generateError}</div>
+              <button className="btn btn-primary btn-sm" onClick={() => { setGenerateError(null); generate() }}
+                disabled={loading} style={{ fontSize: 12 }}>
+                {loading ? 'Retrying...' : 'Retry Generation'}
+              </button>
+            </div>
+          )}
+
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={() => setStep(3)}>Back</button>
-            <button className="btn btn-primary" onClick={generate}><Icon name="ai-builder" size={16} /> Generate Program</button>
+            <button className="btn btn-primary" onClick={() => { setGenerateError(null); generate() }} disabled={loading}>
+              {loading ? <><Icon name="ai-builder" size={16} /> Generating...</> : <><Icon name="ai-builder" size={16} /> Generate Program</>}
+            </button>
           </div>
         </div>
       )}

@@ -290,37 +290,105 @@ EXPECTED_COLS = ["Program", "Week", "Day", "Order", "Exercise",
                  "Sets", "Reps", "Tempo", "Rest", "RPE", "Instruction"]
 
 
+def _strip_fences(text: str) -> str:
+    """Strip markdown code fences (```csv, ```text, ```, etc.) from response."""
+    text = text.strip()
+    if text.startswith("```"):
+        lines = text.split("\n")
+        # Remove first line (```csv, ```text, ```, etc.)
+        lines = lines[1:]
+        # Remove last line if it's ```
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    return text
+
+
 def parse_ai_csv(response_text: str) -> list[dict]:
     """Parse Claude's CSV response into a list of row dicts."""
-    csv_text = response_text.strip()
+    csv_text = _strip_fences(response_text.strip())
 
-    # Strip markdown code fences
-    if csv_text.startswith("```"):
-        lines = csv_text.split("\n")
-        csv_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+    log_event("csv_parse", "started", f"Parsing CSV ({len(csv_text)} chars, {csv_text.count(chr(10))+1} lines)", {
+        "first_200_chars": csv_text[:200],
+    })
 
     # Try standard CSV parse first
+    rows = []
     try:
         reader = csv.DictReader(io.StringIO(csv_text))
-        if reader.fieldnames and list(reader.fieldnames) == EXPECTED_COLS:
-            return list(reader)
-    except Exception:
-        pass
+        if reader.fieldnames:
+            # Normalize fieldnames — strip whitespace and match case-insensitively
+            normalized = [f.strip() for f in reader.fieldnames]
+            if len(normalized) >= 10:  # At least the main columns
+                col_map = {}
+                for expected in EXPECTED_COLS:
+                    for i, actual in enumerate(normalized):
+                        if actual.lower() == expected.lower() and i not in col_map.values():
+                            col_map[expected] = actual
+                            break
+                if len(col_map) >= 10:  # Found at least 10 of 11 expected columns
+                    for csv_row in reader:
+                        row = {}
+                        for expected, actual in col_map.items():
+                            row[expected] = (csv_row.get(actual) or "").strip()
+                        # Fill missing columns
+                        for col in EXPECTED_COLS:
+                            if col not in row:
+                                row[col] = ""
+                        rows.append(row)
+    except Exception as e:
+        log_event("csv_parse", "warning", f"Standard CSV parse failed: {str(e)}")
 
-    # Fallback: parse line by line, handling extra commas in Instruction
+    if rows:
+        log_event("csv_parse", "success", f"Standard CSV parse: {len(rows)} rows")
+        return rows
+
+    # Fallback: use Python csv reader with different dialects
+    for delimiter in [",", "\t", ";"]:
+        try:
+            reader = csv.reader(io.StringIO(csv_text), delimiter=delimiter)
+            all_rows = list(reader)
+            if len(all_rows) > 1 and len(all_rows[0]) >= 10:
+                header = [h.strip() for h in all_rows[0]]
+                for data_row in all_rows[1:]:
+                    if not any(v.strip() for v in data_row):
+                        continue
+                    if len(data_row) >= 10:
+                        # Handle extra commas in last column (Instruction)
+                        if len(data_row) > len(header):
+                            data_row = data_row[:len(header)-1] + [delimiter.join(data_row[len(header)-1:])]
+                        row = {}
+                        for i, col in enumerate(EXPECTED_COLS):
+                            if i < len(header) and i < len(data_row):
+                                row[col] = data_row[i].strip().strip('"')
+                            else:
+                                row[col] = ""
+                        rows.append(row)
+                if rows:
+                    log_event("csv_parse", "success", f"Fallback CSV parse (delim={repr(delimiter)}): {len(rows)} rows")
+                    return rows
+        except Exception:
+            pass
+
+    # Last resort: line-by-line comma split
     lines = csv_text.strip().split("\n")
-    rows = []
     for line in lines[1:]:  # skip header
         if not line.strip():
             continue
         parts = line.split(",")
-        if len(parts) >= 11:
-            row = parts[:10] + [",".join(parts[10:])]
+        if len(parts) >= 10:
+            row = parts[:10] + [",".join(parts[10:])] if len(parts) > 10 else parts[:10] + [""]
             cleaned = [v.strip().strip('"') for v in row]
             rows.append(dict(zip(EXPECTED_COLS, cleaned)))
-        elif len(parts) == 11:
-            cleaned = [v.strip().strip('"') for v in parts]
-            rows.append(dict(zip(EXPECTED_COLS, cleaned)))
+
+    if rows:
+        log_event("csv_parse", "success", f"Last-resort line parse: {len(rows)} rows")
+    else:
+        log_event("csv_parse", "error", f"All parse methods failed", {
+            "response_length": len(csv_text),
+            "first_500_chars": csv_text[:500],
+            "line_count": len(lines),
+        })
 
     return rows
 
@@ -490,33 +558,60 @@ def generate_program(
         "prompt_length": len(prompt),
     })
 
-    try:
-        response_text, cost_info = call_claude(prompt, model)
-    except Exception as e:
-        log_event("ai_generate", "error", f"Claude API call failed: {str(e)}", {"name": name, "model": model})
-        raise
+    max_attempts = 2
+    last_error = None
+    total_cost = {"input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "model": model}
 
-    log_event("ai_generate", "api_complete", f"Got response ({cost_info.get('output_tokens', 0)} tokens)", {
-        "name": name, **cost_info, "response_preview": response_text[:500] if response_text else "EMPTY",
-    })
+    for attempt in range(1, max_attempts + 1):
+        try:
+            response_text, cost_info = call_claude(prompt, model)
+        except Exception as e:
+            log_event("ai_generate", "error", f"Claude API call failed (attempt {attempt}): {str(e)}", {"name": name, "model": model})
+            last_error = e
+            continue
 
-    rows = parse_ai_csv(response_text)
+        total_cost["input_tokens"] += cost_info.get("input_tokens", 0)
+        total_cost["output_tokens"] += cost_info.get("output_tokens", 0)
+        total_cost["cost_usd"] += cost_info.get("cost_usd", 0.0)
 
-    if not rows:
-        log_event("ai_generate", "error", "Failed to parse AI response into CSV rows", {
-            "name": name, "response_preview": response_text[:1000] if response_text else "EMPTY",
+        log_event("ai_generate", "api_complete", f"Got response (attempt {attempt}, {cost_info.get('output_tokens', 0)} tokens)", {
+            "name": name, "attempt": attempt, **cost_info,
+            "response_preview": response_text[:500] if response_text else "EMPTY",
         })
-        raise ValueError("Failed to parse AI response into valid CSV rows")
 
-    program = csv_rows_to_program(rows, name)
+        rows = parse_ai_csv(response_text)
 
-    log_event("ai_generate", "success", f"Program '{name}' generated: {len(program.get('weeks', []))} weeks", {
-        "name": name, "weeks_generated": len(program.get("weeks", [])),
-        "total_days": sum(len(w.get("days", [])) for w in program.get("weeks", [])),
-        **cost_info,
+        if not rows:
+            log_event("ai_generate", "warning", f"CSV parse failed (attempt {attempt}), {'retrying' if attempt < max_attempts else 'giving up'}", {
+                "name": name, "response_preview": response_text[:1000] if response_text else "EMPTY",
+            })
+            last_error = ValueError("Failed to parse AI response into valid CSV rows")
+            continue
+
+        program = csv_rows_to_program(rows, name)
+
+        if not program.get("weeks"):
+            log_event("ai_generate", "warning", f"Program has no weeks after conversion (attempt {attempt})", {
+                "name": name, "rows_parsed": len(rows),
+                "sample_rows": [rows[i] for i in range(min(3, len(rows)))],
+            })
+            last_error = ValueError("Program generated but has no weeks — CSV rows could not be converted to weeks")
+            continue
+
+        log_event("ai_generate", "success", f"Program '{name}' generated: {len(program.get('weeks', []))} weeks (attempt {attempt})", {
+            "name": name, "attempt": attempt,
+            "weeks_generated": len(program.get("weeks", [])),
+            "total_days": sum(len(w.get("days", [])) for w in program.get("weeks", [])),
+            **total_cost,
+        })
+
+        return program, total_cost
+
+    # All attempts failed
+    log_event("ai_generate", "error", f"All {max_attempts} attempts failed for '{name}'", {
+        "name": name, "last_error": str(last_error),
     })
-
-    return program, cost_info
+    raise last_error or ValueError("Program generation failed after all attempts")
 
 
 # ── Program modification via natural language ───────────────────
