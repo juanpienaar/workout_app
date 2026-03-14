@@ -1227,6 +1227,16 @@ function AIBuilderTab() {
     updated.weeks[weekIdx].days[dayIdx].exerciseGroups[groupIdx].exercises[exIdx][field] = editValue
     setEditedProgram(updated); setEditing(null)
   }
+  function moveExercise(weekIdx, dayIdx, groupIdx, exIdx, direction) {
+    const updated = JSON.parse(JSON.stringify(program))
+    const exercises = updated.weeks[weekIdx].days[dayIdx].exerciseGroups[groupIdx].exercises
+    const newIdx = exIdx + direction
+    if (newIdx < 0 || newIdx >= exercises.length) return
+    ;[exercises[exIdx], exercises[newIdx]] = [exercises[newIdx], exercises[exIdx]]
+    // Update order numbers
+    exercises.forEach((ex, i) => { ex.order = String(i + 1) })
+    setEditedProgram(updated)
+  }
   function removeExercise(weekIdx, dayIdx, groupIdx, exIdx) {
     const updated = JSON.parse(JSON.stringify(program))
     const group = updated.weeks[weekIdx].days[dayIdx].exerciseGroups[groupIdx]
@@ -2219,8 +2229,18 @@ function AIBuilderTab() {
                                 {renderEditableCell(wi, di, gi, ei, 'tempo', ex.tempo)}
                                 {renderEditableCell(wi, di, gi, ei, 'rest', ex.rest)}
                                 {renderEditableCell(wi, di, gi, ei, 'rpe', ex.rpe)}
+                                <div style={{ position: 'absolute', right: -56, top: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                  <button className="btn-icon" onClick={() => moveExercise(wi, di, gi, ei, -1)} title="Move up"
+                                    style={{ opacity: ei === 0 ? 0.25 : 1, padding: '1px 3px' }} disabled={ei === 0}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                                  </button>
+                                  <button className="btn-icon" onClick={() => moveExercise(wi, di, gi, ei, 1)} title="Move down"
+                                    style={{ opacity: ei === group.exercises.length - 1 ? 0.25 : 1, padding: '1px 3px' }} disabled={ei === group.exercises.length - 1}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                  </button>
+                                </div>
                                 <button className="btn-icon" onClick={() => removeExercise(wi, di, gi, ei)} title="Remove exercise"
-                                  style={{ position: 'absolute', right: -28, top: 2 }}>
+                                  style={{ position: 'absolute', right: -76, top: 2 }}>
                                   <Icon name="close" size={12} style={{ color: 'var(--red)' }} />
                                 </button>
                               </div>
