@@ -401,8 +401,17 @@ def csv_rows_to_program(rows: list[dict], program_name: str) -> dict:
     """Convert parsed CSV rows into the program.json structure."""
     from collections import OrderedDict
 
+    # Map day names to numbers (Claude often outputs "Mon", "Monday" etc. instead of 1-7)
+    DAY_NAME_MAP = {}
+    for i, names in enumerate([
+        ["mon", "monday"], ["tue", "tuesday", "tues"],
+        ["wed", "wednesday"], ["thu", "thursday", "thur", "thurs"],
+        ["fri", "friday"], ["sat", "saturday"], ["sun", "sunday"],
+    ], 1):
+        for n in names:
+            DAY_NAME_MAP[n] = i
+
     weeks_data = {}
-    skipped_rows = 0
     last_week = 1
     last_day = 1
 
@@ -418,15 +427,21 @@ def csv_rows_to_program(rows: list[dict], program_name: str) -> dict:
         week_raw = (row.get("Week") or "").strip()
         day_raw = (row.get("Day") or "").strip()
 
+        # Parse week number
+        week = None
         try:
             week = int(float(week_raw)) if week_raw else None
         except (ValueError, TypeError):
-            week = None
+            pass
 
+        # Parse day — try number first, then day name
+        day = None
         try:
             day = int(float(day_raw)) if day_raw else None
         except (ValueError, TypeError):
-            day = None
+            pass
+        if day is None and day_raw:
+            day = DAY_NAME_MAP.get(day_raw.lower())
 
         # Fallback: if parsing failed, keep the last known week/day
         # (multiple exercises on the same day share the same Week/Day)
