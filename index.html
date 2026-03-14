@@ -2498,55 +2498,75 @@ function renderDay() {
 
   // ---- Add Exercise / Activity ----
   if (!isViewOnly) {
-    html += `<div class="group-container" style="margin-top:16px;">
-      <span class="group-label" style="background:var(--accent);color:#fff;">Add to Today <span class="help-tip" data-tip="Add custom exercises or cardio activities. Search the library by typing, or enter a new exercise name. New exercises are added to the library automatically." style="background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.4);color:#fff;">?</span></span>
-      <div style="display:flex;gap:0;margin-bottom:0;">
-        <button id="addTabStrength" onclick="switchAddTab('strength')"
-          style="flex:1;padding:10px;border:1px solid var(--border);border-bottom:none;border-radius:8px 0 0 0;background:var(--accent);color:#fff;font-weight:600;font-size:13px;cursor:pointer;">💪 Strength</button>
-        <button id="addTabCardio" onclick="switchAddTab('cardio')"
-          style="flex:1;padding:10px;border:1px solid var(--border);border-bottom:none;border-radius:0 8px 0 0;background:var(--card);color:var(--text-dim);font-weight:600;font-size:13px;cursor:pointer;">🏃 Cardio</button>
-      </div>
-      <div id="addPanelStrength" class="exercise-card" style="border-top-left-radius:0;border-top-right-radius:0;margin-top:0;">
-        <div class="ex-autocomplete">
-          <input id="customExName" type="text" placeholder="Search or type exercise name" autocomplete="off"
-            style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;margin-bottom:8px;"
-            oninput="onExerciseNameInput(this)" onfocus="onExerciseNameInput(this)">
-          <div id="exAutocompleteList" class="ex-autocomplete-list"></div>
+    html += `<div style="margin-top:16px;text-align:center;">
+      <button id="addExToggleBtn" onclick="toggleAddExPanel()"
+        style="background:none;border:1px dashed var(--border);border-radius:10px;padding:10px 20px;color:var(--text-dim);font-size:13px;cursor:pointer;width:100%;transition:all 0.2s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Exercise
+      </button>
+    </div>
+    <div id="addExExpandedPanel" style="display:none;margin-top:8px;">
+      <div class="group-container">
+        <div style="display:flex;gap:0;margin-bottom:0;">
+          <button id="addTabStrength" onclick="switchAddTab('strength')"
+            style="flex:1;padding:10px;border:1px solid var(--border);border-bottom:none;border-radius:8px 0 0 0;background:var(--accent);color:#fff;font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6.5 6.5v11M17.5 6.5v11M2 9v6M22 9v6M6.5 12h11M2 12h4.5M17.5 12H22"/></svg> Strength
+          </button>
+          <button id="addTabCardio" onclick="switchAddTab('cardio')"
+            style="flex:1;padding:10px;border:1px solid var(--border);border-bottom:none;border-radius:0 8px 0 0;background:var(--card);color:var(--text-dim);font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Cardio
+          </button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <div>
-            <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Sets</label>
-            <input id="customExSets" type="number" inputmode="numeric" placeholder="3" value="3"
-              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+        <div id="addPanelStrength" class="exercise-card" style="border-top-left-radius:0;border-top-right-radius:0;margin-top:0;">
+          <div class="ex-autocomplete">
+            <input id="customExName" type="text" placeholder="Search or type exercise name" autocomplete="off"
+              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;margin-bottom:8px;"
+              oninput="onExerciseNameInput(this)" onfocus="onExerciseNameInput(this)">
+            <div id="exAutocompleteList" class="ex-autocomplete-list"></div>
           </div>
-          <div>
-            <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Reps</label>
-            <input id="customExReps" type="number" inputmode="numeric" placeholder="10" value="10"
-              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
+              <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Sets</label>
+              <input id="customExSets" type="number" inputmode="numeric" placeholder="3" value="3"
+                style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Reps</label>
+              <input id="customExReps" type="number" inputmode="numeric" placeholder="10" value="10"
+                style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Tempo</label>
+              <input id="customExTempo" type="text" placeholder="e.g. 3-1-2-0"
+                style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Rest (sec)</label>
+              <input id="customExRest" type="text" inputmode="numeric" placeholder="60"
+                style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+            </div>
           </div>
-          <div>
-            <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Tempo</label>
-            <input id="customExTempo" type="text" placeholder="e.g. 3-1-2-0"
-              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
-          </div>
-          <div>
-            <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Rest (sec)</label>
-            <input id="customExRest" type="text" inputmode="numeric" placeholder="60"
-              style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
-          </div>
+          <button onclick="addCustomExercise()"
+            style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;">+ Add Exercise</button>
         </div>
-        <button onclick="addCustomExercise()"
-          style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;">+ Add Exercise</button>
-      </div>
-      <div id="addPanelCardio" class="exercise-card" style="display:none;border-top-left-radius:0;border-top-right-radius:0;margin-top:0;">
-        <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">Select a cardio type to add a tracking section to today's workout.</p>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <button onclick="addCardioType('running')"
-            style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;text-align:left;font-weight:500;">🏃 Running <span style="color:var(--text-dim);font-size:12px;float:right;">Distance + Time</span></button>
-          <button onclick="addCardioType('cycling')"
-            style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;text-align:left;font-weight:500;">🚴 Cycling <span style="color:var(--text-dim);font-size:12px;float:right;">Distance + Time</span></button>
-          <button onclick="addCardioType('swimming')"
-            style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;text-align:left;font-weight:500;">🏊 Swimming <span style="color:var(--text-dim);font-size:12px;float:right;">Laps + Time</span></button>
+        <div id="addPanelCardio" class="exercise-card" style="display:none;border-top-left-radius:0;border-top-right-radius:0;margin-top:0;">
+          <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">Select a cardio type to add a tracking section.</p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button onclick="addCardioType('running')"
+              style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;text-align:left;font-weight:500;display:flex;align-items:center;gap:10px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2"/><path d="M4 20l3-8 3 2 4-6 4 4"/></svg>
+              Running <span style="color:var(--text-dim);font-size:12px;margin-left:auto;">Distance + Time</span>
+            </button>
+            <button onclick="addCardioType('cycling')"
+              style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;text-align:left;font-weight:500;display:flex;align-items:center;gap:10px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h3"/></svg>
+              Cycling <span style="color:var(--text-dim);font-size:12px;margin-left:auto;">Distance + Time</span>
+            </button>
+            <button onclick="addCardioType('swimming')"
+              style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;text-align:left;font-weight:500;display:flex;align-items:center;gap:10px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M2 20c2-1 4-1 6 0s4 1 6 0 4-1 6 0"/><path d="M2 16c2-1 4-1 6 0s4 1 6 0 4-1 6 0"/><circle cx="9" cy="8" r="2"/><path d="M15 8l-3 4"/></svg>
+              Swimming <span style="color:var(--text-dim);font-size:12px;margin-left:auto;">Laps + Time</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -2698,6 +2718,20 @@ function addExtraSet(exKey, exName) {
     setsLog.appendChild(row);
   }
   updateDayDetailStats();
+}
+
+// ==================== ADD EXERCISE PANEL TOGGLE ====================
+function toggleAddExPanel() {
+  const panel = document.getElementById('addExExpandedPanel');
+  const btn = document.getElementById('addExToggleBtn');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (btn) {
+    btn.style.borderStyle = isOpen ? 'dashed' : 'solid';
+    btn.style.borderColor = isOpen ? 'var(--border)' : 'var(--accent)';
+    btn.style.color = isOpen ? 'var(--text-dim)' : 'var(--accent)';
+  }
 }
 
 // ==================== ADD TAB SWITCH ====================
