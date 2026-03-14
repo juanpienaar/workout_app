@@ -83,8 +83,20 @@ export const API = {
   updateCoachSettings: (data) => authFetch('/api/admin/coach-settings', { method: 'PUT', body: JSON.stringify(data) }).then(r => r.json()),
 
   // AI Builder
-  generateProgram: (config) => authFetch('/api/admin/ai/generate', { method: 'POST', body: JSON.stringify(config) }).then(r => r.json()),
-  modifyProgram: (data) => authFetch('/api/admin/ai/modify-program', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
+  generateProgram: (config, timeoutMs = 300000) => {
+    const opts = { method: 'POST', body: JSON.stringify(config) }
+    if (timeoutMs && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+      opts.signal = AbortSignal.timeout(timeoutMs)
+    }
+    return authFetch('/api/admin/ai/generate', opts).then(r => r.json())
+  },
+  modifyProgram: (data, timeoutMs = 300000) => {
+    const opts = { method: 'POST', body: JSON.stringify(data) }
+    if (timeoutMs && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+      opts.signal = AbortSignal.timeout(timeoutMs)
+    }
+    return authFetch('/api/admin/ai/modify-program', opts).then(r => r.json())
+  },
   getCosts: () => authFetch('/api/admin/ai/costs').then(r => r.json()),
 
   // Deploy

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, Component } from 'react'
 import { API } from '../api'
 import { useToast } from '../components/Toast'
 import MuscleHeatmap from '../components/MuscleHeatmap'
@@ -7,6 +7,27 @@ import { PROGRAM_TYPES, MODEL_COSTS } from '../utils/constants'
 import Modal from '../components/Modal'
 import { Icon } from '../components/Icons'
 import HelpTip from '../components/HelpTip'
+
+/* ═══════════════════════════════════════════════════════════
+   ERROR BOUNDARY for program review
+   ═══════════════════════════════════════════════════════════ */
+class ProgramErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null } }
+  static getDerivedStateFromError(error) { return { hasError: true, error } }
+  componentDidCatch(error, info) { console.error('Program render error:', error, info) }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="card" style={{ padding: 20, textAlign: 'center' }}>
+          <div style={{ color: '#dc2626', fontWeight: 600, marginBottom: 8 }}>Program Render Error</div>
+          <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 12 }}>{this.state.error?.message || 'Unknown error'}</div>
+          <button className="btn btn-primary btn-sm" onClick={() => this.setState({ hasError: false, error: null })}>Retry</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════
    TAB STYLE (shared)
@@ -1205,7 +1226,7 @@ function AIBuilderTab() {
         reqBody.athlete_prompt = athlete?.athlete_prompt || ''
       }
       console.log('Generate request body:', JSON.stringify(reqBody, null, 2))
-      const r = await API.generateProgram(reqBody)
+      const r = await API.generateProgram(reqBody, 300000)
       console.log('Generate response:', JSON.stringify(r, null, 2))
       if (r.error || r.detail) {
         const errDetail = r.detail
@@ -2211,6 +2232,7 @@ function AIBuilderTab() {
       )}
 
       {step === 5 && program && (
+        <ProgramErrorBoundary>
         <div>
           {result?.cost && (
             <div className="stats-row" style={{ marginBottom: 16 }}>
@@ -2258,7 +2280,7 @@ function AIBuilderTab() {
                         </div>
                         {(day.exerciseGroups || []).map((group, gi) => (
                           <div key={gi}>
-                            {group.exercises.map((ex, ei) => (
+                            {(group.exercises || []).map((ex, ei) => (
                               <div key={ei} className="exercise-row" style={{ position: 'relative' }}>
                                 {renderEditableCell(wi, di, gi, ei, 'order', ex.order)}
                                 {renderEditableCell(wi, di, gi, ei, 'name', ex.name)}
@@ -2299,6 +2321,7 @@ function AIBuilderTab() {
             <button className="btn btn-secondary" onClick={() => { setStep(1); setResult(null); setEditedProgram(null) }}>New Program</button>
           </div>
         </div>
+        </ProgramErrorBoundary>
       )}
     </div>
   )
