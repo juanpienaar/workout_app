@@ -1033,6 +1033,63 @@ const crossfitOpenWods = [
     { movement: 'Ground to Overhead', reps: '10' }, { movement: 'Bar-Facing Burpees', reps: '15' },
     { movement: 'Ground to Overhead', reps: '20' }, { movement: 'Bar-Facing Burpees', reps: '15' },
     { movement: 'Ground to Overhead', reps: '30' }, { movement: 'Bar-Facing Burpees', reps: '15' }
+  ]},
+  { name: '20.2', year: '2020', format: 'AMRAP', timeCap: '20', movements: [
+    { movement: 'Dumbbell Thrusters', reps: '4 (50/35 lb)' }, { movement: 'Toes-to-Bar', reps: '6' },
+    { movement: 'Double-Unders', reps: '24' }
+  ]},
+  { name: '20.3', year: '2020', format: 'For Time', timeCap: '9', movements: [
+    { movement: 'Deadlifts', reps: '21 (225/155 lb)' }, { movement: 'Handstand Push-Ups', reps: '21' },
+    { movement: 'Deadlifts', reps: '15 (225/155 lb)' }, { movement: 'Handstand Push-Ups', reps: '15' },
+    { movement: 'Deadlifts', reps: '9 (225/155 lb)' }, { movement: 'Handstand Push-Ups', reps: '9' }
+  ]},
+  { name: '20.4', year: '2020', format: 'For Time', timeCap: '20', movements: [
+    { movement: 'Box Jumps', reps: '30 (24/20 in)' }, { movement: 'Clean & Jerks', reps: '15 (95/65 lb)' },
+    { movement: 'Box Jumps', reps: '30' }, { movement: 'Clean & Jerks', reps: '15 (135/85 lb)' },
+    { movement: 'Box Jumps', reps: '30' }, { movement: 'Clean & Jerks', reps: '10 (185/115 lb)' },
+    { movement: 'Pistols', reps: '30' }, { movement: 'Clean & Jerks', reps: '10 (225/145 lb)' }
+  ]},
+  { name: '20.5', year: '2020', format: 'For Time', timeCap: '20', movements: [
+    { movement: 'Ring Muscle-Ups', reps: '40' }, { movement: 'Rowing', reps: '80 cal' },
+    { movement: 'Wall Ball Shots', reps: '120 (20/14 lb)' }
+  ]},
+  { name: '21.2', year: '2021', format: 'For Time', timeCap: '20', movements: [
+    { movement: 'Dumbbell Snatches', reps: '10 (50/35 lb)' }, { movement: 'Burpee Box Jump-Overs', reps: '15 (24/20 in)' },
+    { movement: 'Dumbbell Snatches', reps: '20' }, { movement: 'Burpee Box Jump-Overs', reps: '15' },
+    { movement: 'Dumbbell Snatches', reps: '30' }, { movement: 'Burpee Box Jump-Overs', reps: '15' },
+    { movement: 'Dumbbell Snatches', reps: '40' }, { movement: 'Burpee Box Jump-Overs', reps: '15' },
+    { movement: 'Dumbbell Snatches', reps: '50' }, { movement: 'Burpee Box Jump-Overs', reps: '15' }
+  ]},
+  { name: '21.3', year: '2021', format: 'For Time', timeCap: '15', movements: [
+    { movement: 'Front Squats', reps: '15 (95/65 lb)' }, { movement: 'Toes-to-Bar', reps: '30' },
+    { movement: 'Thrusters', reps: '15 (95/65 lb)' }, { movement: 'Rest', reps: '1 min' },
+    { movement: 'Front Squats', reps: '15' }, { movement: 'Chest-to-Bar Pull-Ups', reps: '30' },
+    { movement: 'Thrusters', reps: '15' }, { movement: 'Rest', reps: '1 min' },
+    { movement: 'Front Squats', reps: '15' }, { movement: 'Bar Muscle-Ups', reps: '30' },
+    { movement: 'Thrusters', reps: '15' }
+  ]},
+  { name: '21.4', year: '2021', format: 'Max Load Complex', timeCap: '7', movements: [
+    { movement: 'Deadlift', reps: '1' }, { movement: 'Clean', reps: '1' },
+    { movement: 'Hang Clean', reps: '1' }, { movement: 'Jerk', reps: '1' }
+  ]},
+  { name: '25.1', year: '2025', format: 'AMRAP', timeCap: '15', movements: [
+    { movement: 'Burpees', reps: '3-6-9-12-15...' },
+    { movement: 'Dumbbell Hang Clean-to-Overhead', reps: '3-6-9-12-15... (50/35 lb)' },
+    { movement: 'Walking Lunges', reps: '30 ft (each round)' }
+  ]},
+  { name: '25.2', year: '2025', format: 'For Time', timeCap: '20', movements: [
+    { movement: 'Bent-Over Rows', reps: '21 (65/45 lb)' }, { movement: 'Jumping Jacks', reps: '42' },
+    { movement: 'Thrusters', reps: '21 (65/45 lb)' }, { movement: 'Jumping Pull-Ups', reps: '18' },
+    { movement: 'Double-Unders', reps: '36' }, { movement: 'Thrusters', reps: '18 (85/55 lb)' },
+    { movement: 'Chest-to-Bar Pull-Ups', reps: '15' }, { movement: 'Double-Unders', reps: '30' },
+    { movement: 'Thrusters', reps: '15 (105/65 lb)' }
+  ]},
+  { name: '25.3', year: '2025', format: 'For Time', timeCap: '20', movements: [
+    { movement: 'Wall Walks', reps: '5' }, { movement: 'Rowing', reps: '50 cal' },
+    { movement: 'Wall Walks', reps: '5' }, { movement: 'Deadlifts', reps: '25 (225/155 lb)' },
+    { movement: 'Wall Walks', reps: '5' }, { movement: 'Cleans', reps: '25 (135/85 lb)' },
+    { movement: 'Wall Walks', reps: '5' }, { movement: 'Snatches', reps: '25 (95/65 lb)' },
+    { movement: 'Wall Walks', reps: '5' }, { movement: 'Rowing', reps: '50 cal' }
   ]}
 ]
 
@@ -1686,7 +1743,7 @@ function AIBuilderTab() {
                   let count = 0
                   if (cat.key === 'cardio') count = Array.isArray(lib) ? lib.length : 0
                   else if (cat.key === 'strength') count = Object.values(lib || {}).reduce((s, arr) => s + arr.length, 0)
-                  else if (cat.key === 'crossfit') count = (lib?.movements?.length || 0) + (lib?.benchmarks?.length || 0)
+                  else if (cat.key === 'crossfit') count = (lib?.movements?.length || 0) + (lib?.benchmarks?.length || 0) + crossfitOpenWods.length
                   else if (cat.key === 'olympic') count = Object.values(lib || {}).reduce((s, arr) => s + arr.length, 0)
 
                   return (
@@ -1705,15 +1762,23 @@ function AIBuilderTab() {
                           {cat.key === 'strength' && Object.entries(lib || {}).sort(([a], [b]) => a.localeCompare(b)).map(([group, exercises]) => (
                             <div key={group} style={{ marginBottom: 8 }}>
                               <div className="muscle-group" style={{ marginBottom: 4, border: '1px solid var(--glass-border)' }}>
-                                <div className="muscle-group-header" style={{ padding: '10px 14px' }}
-                                  onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`str-${group}`) }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div className="muscle-group-header" style={{ padding: '10px 14px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1 }}
+                                    onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`str-${group}`) }}>
                                     <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>
                                       {dayPlannerOpenGroups.has(`str-${group}`) ? '−' : '+'}
                                     </span>
                                     <span style={{ fontSize: 13 }}>{group}</span>
+                                    <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>({exercises.length})</span>
                                   </div>
-                                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{exercises.length}</span>
+                                  <button style={{
+                                    background: 'rgba(167,139,250,0.12)', border: '1px solid var(--accent2)', borderRadius: 4,
+                                    color: 'var(--accent2)', fontSize: 11, padding: '3px 10px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap'
+                                  }} onClick={(e) => {
+                                    e.stopPropagation()
+                                    setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], `[Strength: ${group}]`] }))
+                                    toast(`Added "${group}" group to ${dayPickerOpen} - AI will choose exercises`)
+                                  }}>Add Group</button>
                                 </div>
                                 {dayPlannerOpenGroups.has(`str-${group}`) && (
                                   <div style={{ padding: '6px 14px 10px' }}>
@@ -1794,6 +1859,36 @@ function AIBuilderTab() {
                                           toast(`Added "${ex}" to ${dayPickerOpen}`)
                                         }}>
                                         <span style={{ fontSize: 13 }}>{ex}</span>
+                                        <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {/* Open WODs */}
+                              <div className="muscle-group" style={{ marginBottom: 8, border: '1px solid var(--glass-border)' }}>
+                                <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                  onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup('cf-open') }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>
+                                      {dayPlannerOpenGroups.has('cf-open') ? '−' : '+'}
+                                    </span>
+                                    <span style={{ fontSize: 13 }}>Open WODs</span>
+                                  </div>
+                                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{crossfitOpenWods.length}</span>
+                                </div>
+                                {dayPlannerOpenGroups.has('cf-open') && (
+                                  <div style={{ padding: '6px 14px 10px' }}>
+                                    {crossfitOpenWods.map(wod => (
+                                      <div key={wod.name} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                        onClick={() => {
+                                          setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], `Open WOD: ${wod.name} (${wod.format} ${wod.timeCap ? wod.timeCap + ' min' : ''})`] }))
+                                          toast(`Added "Open ${wod.name}" to ${dayPickerOpen}`)
+                                        }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                          <span style={{ fontSize: 13 }}>{wod.name}</span>
+                                          <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{wod.format}{wod.timeCap ? ` / ${wod.timeCap} min` : ''} — {wod.movements.map(m => m.movement).filter((v, i, a) => a.indexOf(v) === i).join(', ')}</span>
+                                        </div>
                                         <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
                                       </div>
                                     ))}
