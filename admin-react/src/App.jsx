@@ -6,6 +6,11 @@ import { ToastProvider } from './components/Toast'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Programs from './pages/Programs'
+import Settings from './pages/Settings'
+
+// Apply saved theme on load
+const savedTheme = localStorage.getItem('admin-theme') || 'dark'
+document.documentElement.setAttribute('data-theme', savedTheme)
 
 function LoginPage() {
   const { login } = useAuth()
@@ -69,6 +74,7 @@ function AppInner() {
         <Route element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="programs" element={<Programs />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Route>
       </Routes>

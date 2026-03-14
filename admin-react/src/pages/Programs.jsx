@@ -1063,12 +1063,16 @@ function AIBuilderTab() {
   })
   const [dayPickerOpen, setDayPickerOpen] = useState(null) // which day's picker is open
   const [dayPickerCategory, setDayPickerCategory] = useState(null) // which category is selected in picker
-  const [exerciseLib, setExerciseLib] = useState({ strength: [], cardio: [], crossfit: [], olympic: [] })
+  const [dayPlannerOpenGroups, setDayPlannerOpenGroups] = useState(new Set())
+  const [exerciseLib, setExerciseLib] = useState({ strength: {}, cardio: [], crossfit: { movements: [], benchmarks: [] }, olympic: {} })
 
   const program = editedProgram || result?.program
 
   function toggleType(id) { setTypes(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]) }
   function updateConfig(type, key, value) { setConfig(prev => ({ ...prev, [type]: { ...(prev[type] || {}), [key]: value } })) }
+  function toggleDayPlannerGroup(g) {
+    setDayPlannerOpenGroups(prev => { const next = new Set(prev); next.has(g) ? next.delete(g) : next.add(g); return next })
+  }
 
   // Load athletes when toggle is enabled
   useEffect(() => {
@@ -1081,22 +1085,32 @@ function AIBuilderTab() {
     }
   }, [buildForAthlete])
 
-  // Load exercise library
+  // Load exercise library for day planner
   useEffect(() => {
     API.getExercises().then(data => {
-      const strengthNames = []
+      // Keep the grouped structure for strength (muscle group -> exercises)
+      const strengthGroups = {}
       for (const [group, equips] of Object.entries(data)) {
+        const names = []
         for (const exList of Object.values(equips)) {
           for (const ex of exList) {
-            if (!strengthNames.includes(ex.name)) strengthNames.push(ex.name)
+            if (!names.includes(ex.name)) names.push(ex.name)
           }
         }
+        if (names.length > 0) strengthGroups[group] = names
       }
       setExerciseLib({
-        strength: strengthNames,
+        strength: strengthGroups,
         cardio: ['Stairmaster', 'Treadmill', 'Rowing Machine', 'Ski Erg', 'Assault Bike', 'Spin Bike', 'Outdoor Run', 'Cycling'],
-        crossfit: ['Muscle Ups', 'Box Jumps', 'Walking Lunges', 'Thrusters', 'Double Unders', 'Wall Walks', 'Snatches', 'Clean & Jerk', 'Toes to Bar', 'Handstand Push Ups', 'Rope Climbs', 'Burpees', 'Kettlebell Swings', 'Pull Ups', 'Ring Dips', 'Pistol Squats', 'Wall Balls'],
-        olympic: ['Snatch', 'Power Snatch', 'Hang Snatch', 'Clean', 'Power Clean', 'Hang Clean', 'Push Jerk', 'Split Jerk', 'Push Press', 'Front Squat']
+        crossfit: {
+          movements: ['Muscle Ups', 'Box Jumps', 'Walking Lunges', 'Thrusters', 'Double Unders', 'Wall Walks', 'Snatches', 'Clean & Jerk', 'Toes to Bar', 'Handstand Push Ups', 'Rope Climbs', 'Burpees', 'Kettlebell Swings', 'Pull Ups', 'Ring Dips', 'Pistol Squats', 'Wall Balls'],
+          benchmarks: ['Fran', 'Murph', 'Grace', 'Diane', 'Helen', 'Isabel', 'Jackie', 'Karen', 'Annie', 'Cindy', 'Fight Gone Bad', 'DT']
+        },
+        olympic: {
+          'Snatch Variations': ['Snatch', 'Power Snatch', 'Hang Snatch', 'Snatch Pull', 'Overhead Squat'],
+          'Clean & Jerk Variations': ['Clean', 'Power Clean', 'Hang Clean', 'Push Jerk', 'Split Jerk', 'Push Press'],
+          'Accessory': ['Front Squat', 'Back Squat', 'Romanian Deadlift', 'Good Morning']
+        }
       })
     }).catch(() => {})
   }, [])
@@ -1364,34 +1378,166 @@ function AIBuilderTab() {
                   </div>
                 )}
 
-                {/* Category groups — collapsible like muscle groups in Exercises tab */}
+                {/* Category groups — matching Exercises tab structure */}
                 {[
-                  { key: 'strength', label: 'Strength', color: 'var(--accent2)' },
-                  { key: 'cardio', label: 'Cardio', color: 'var(--teal)' },
-                  { key: 'crossfit', label: 'CrossFit', color: 'var(--accent2)' },
-                  { key: 'olympic', label: 'Olympic Lifting', color: 'var(--accent2)' },
+                  { key: 'strength', label: 'Strength' },
+                  { key: 'cardio', label: 'Cardio' },
+                  { key: 'crossfit', label: 'CrossFit' },
+                  { key: 'olympic', label: 'Olympic Lifting' },
                 ].map(cat => {
-                  const exercises = exerciseLib[cat.key] || []
                   const isOpen = dayPickerCategory === cat.key
+                  const lib = exerciseLib[cat.key]
+
+                  // Count exercises
+                  let count = 0
+                  if (cat.key === 'cardio') count = Array.isArray(lib) ? lib.length : 0
+                  else if (cat.key === 'strength') count = Object.values(lib || {}).reduce((s, arr) => s + arr.length, 0)
+                  else if (cat.key === 'crossfit') count = (lib?.movements?.length || 0) + (lib?.benchmarks?.length || 0)
+                  else if (cat.key === 'olympic') count = Object.values(lib || {}).reduce((s, arr) => s + arr.length, 0)
+
                   return (
                     <div key={cat.key} className="muscle-group" style={{ marginBottom: 10 }}>
                       <div className="muscle-group-header" onClick={() => setDayPickerCategory(isOpen ? null : cat.key)}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span className="drill-toggle drill-toggle-sm">{isOpen ? '−' : '+'}</span>
-                          <span style={{ color: cat.color }}>{cat.label}</span>
+                          <span style={{ color: 'var(--accent2)' }}>{cat.label}</span>
                         </div>
-                        <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>{exercises.length} exercises</span>
+                        <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>{count} exercises</span>
                       </div>
                       {isOpen && (
                         <div className="muscle-group-body" style={{ display: 'block' }}>
-                          {exercises.map(ex => (
-                            <div key={ex} className="exercise-item" style={{ cursor: 'pointer' }}
+
+                          {/* STRENGTH: show sub-groups (Back, Biceps, etc.) */}
+                          {cat.key === 'strength' && Object.entries(lib || {}).sort(([a], [b]) => a.localeCompare(b)).map(([group, exercises]) => (
+                            <div key={group} style={{ marginBottom: 8 }}>
+                              <div className="muscle-group" style={{ marginBottom: 4, border: '1px solid var(--glass-border)' }}>
+                                <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                  onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`str-${group}`) }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>
+                                      {dayPlannerOpenGroups.has(`str-${group}`) ? '−' : '+'}
+                                    </span>
+                                    <span style={{ fontSize: 13 }}>{group}</span>
+                                  </div>
+                                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{exercises.length}</span>
+                                </div>
+                                {dayPlannerOpenGroups.has(`str-${group}`) && (
+                                  <div style={{ padding: '6px 14px 10px' }}>
+                                    {exercises.map(ex => (
+                                      <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                        onClick={() => {
+                                          setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], ex] }))
+                                          toast(`Added "${ex}" to ${dayPickerOpen}`)
+                                        }}>
+                                        <span style={{ fontSize: 13 }}>{ex}</span>
+                                        <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* CARDIO: flat list */}
+                          {cat.key === 'cardio' && (Array.isArray(lib) ? lib : []).map(ex => (
+                            <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
                               onClick={() => {
                                 setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], ex] }))
                                 toast(`Added "${ex}" to ${dayPickerOpen}`)
                               }}>
-                              <span>{ex}</span>
-                              <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300, lineHeight: 1 }}>+</span>
+                              <span style={{ fontSize: 13 }}>{ex}</span>
+                              <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                            </div>
+                          ))}
+
+                          {/* CROSSFIT: sub-groups for Movements and Benchmarks */}
+                          {cat.key === 'crossfit' && (
+                            <>
+                              <div className="muscle-group" style={{ marginBottom: 8, border: '1px solid var(--glass-border)' }}>
+                                <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                  onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup('cf-movements') }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>
+                                      {dayPlannerOpenGroups.has('cf-movements') ? '−' : '+'}
+                                    </span>
+                                    <span style={{ fontSize: 13 }}>Movements</span>
+                                  </div>
+                                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{lib?.movements?.length || 0}</span>
+                                </div>
+                                {dayPlannerOpenGroups.has('cf-movements') && (
+                                  <div style={{ padding: '6px 14px 10px' }}>
+                                    {(lib?.movements || []).map(ex => (
+                                      <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                        onClick={() => {
+                                          setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], ex] }))
+                                          toast(`Added "${ex}" to ${dayPickerOpen}`)
+                                        }}>
+                                        <span style={{ fontSize: 13 }}>{ex}</span>
+                                        <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="muscle-group" style={{ marginBottom: 8, border: '1px solid var(--glass-border)' }}>
+                                <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                  onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup('cf-benchmarks') }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>
+                                      {dayPlannerOpenGroups.has('cf-benchmarks') ? '−' : '+'}
+                                    </span>
+                                    <span style={{ fontSize: 13 }}>Benchmark WODs</span>
+                                  </div>
+                                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{lib?.benchmarks?.length || 0}</span>
+                                </div>
+                                {dayPlannerOpenGroups.has('cf-benchmarks') && (
+                                  <div style={{ padding: '6px 14px 10px' }}>
+                                    {(lib?.benchmarks || []).map(ex => (
+                                      <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                        onClick={() => {
+                                          setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], `WOD: ${ex}`] }))
+                                          toast(`Added "${ex}" to ${dayPickerOpen}`)
+                                        }}>
+                                        <span style={{ fontSize: 13 }}>{ex}</span>
+                                        <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          {/* OLYMPIC: sub-groups (Snatch Variations, Clean & Jerk, etc.) */}
+                          {cat.key === 'olympic' && Object.entries(lib || {}).map(([group, lifts]) => (
+                            <div key={group} style={{ marginBottom: 8 }}>
+                              <div className="muscle-group" style={{ marginBottom: 4, border: '1px solid var(--glass-border)' }}>
+                                <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                  onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`oly-${group}`) }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>
+                                      {dayPlannerOpenGroups.has(`oly-${group}`) ? '−' : '+'}
+                                    </span>
+                                    <span style={{ fontSize: 13 }}>{group}</span>
+                                  </div>
+                                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{lifts.length}</span>
+                                </div>
+                                {dayPlannerOpenGroups.has(`oly-${group}`) && (
+                                  <div style={{ padding: '6px 14px 10px' }}>
+                                    {lifts.map(ex => (
+                                      <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                        onClick={() => {
+                                          setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], ex] }))
+                                          toast(`Added "${ex}" to ${dayPickerOpen}`)
+                                        }}>
+                                        <span style={{ fontSize: 13 }}>{ex}</span>
+                                        <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>

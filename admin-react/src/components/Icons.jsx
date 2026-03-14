@@ -52,6 +52,8 @@ export const CyclingIcon = (p) => <I {...p}><circle cx="6" cy="17" r="3"/><circl
 
 export const SwimmingIcon = (p) => <I {...p}><path d="M2 16c1.5-1 3-1.5 4.5 0s3 1 4.5 0 3-1.5 4.5 0 3 1 4.5 0"/><path d="M2 20c1.5-1 3-1.5 4.5 0s3 1 4.5 0 3-1.5 4.5 0 3 1 4.5 0"/><circle cx="12" cy="8" r="2"/><path d="M12 10v2"/></I>
 
+export const SettingsIcon = (p) => <I {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></I>
+
 // Sidebar logo
 export const LogoIcon = () => (
   <svg width="28" height="32" viewBox="0 0 28 32" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(167,139,250,0.5))' }}>
@@ -88,6 +90,7 @@ export const ICON_MAP = {
   send: SendIcon,
   search: SearchIcon,
   messages: MessagesIcon,
+  settings: SettingsIcon,
   strength: StrengthIcon,
   crossfit: CrossfitIcon,
   hyrox: HyroxIcon,

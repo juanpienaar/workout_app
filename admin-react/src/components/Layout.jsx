@@ -6,6 +6,7 @@ import { Icon, LogoIcon } from './Icons'
 const mainPages = [
   { id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
   { id: 'programs', icon: 'programs', label: 'Programs' },
+  { id: 'settings', icon: 'settings', label: 'Settings' },
 ]
 
 const toolPages = []
