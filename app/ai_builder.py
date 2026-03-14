@@ -319,14 +319,18 @@ def parse_ai_csv(response_text: str) -> list[dict]:
         if reader.fieldnames:
             # Normalize fieldnames — strip whitespace and match case-insensitively
             normalized = [f.strip() for f in reader.fieldnames]
-            if len(normalized) >= 10:  # At least the main columns
+            log_event("csv_parse", "info", f"CSV header columns: {normalized}")
+
+            if len(normalized) >= 5:  # Relaxed: at least 5 columns (was 10)
                 col_map = {}
                 for expected in EXPECTED_COLS:
                     for i, actual in enumerate(normalized):
                         if actual.lower() == expected.lower() and i not in col_map.values():
                             col_map[expected] = actual
                             break
-                if len(col_map) >= 10:  # Found at least 10 of 11 expected columns
+                log_event("csv_parse", "info", f"Column mapping: {col_map} ({len(col_map)}/{len(EXPECTED_COLS)} matched)")
+
+                if len(col_map) >= 5:  # Relaxed: at least 5 of 11 expected columns (was 10)
                     for csv_row in reader:
                         row = {}
                         for expected, actual in col_map.items():
@@ -348,12 +352,12 @@ def parse_ai_csv(response_text: str) -> list[dict]:
         try:
             reader = csv.reader(io.StringIO(csv_text), delimiter=delimiter)
             all_rows = list(reader)
-            if len(all_rows) > 1 and len(all_rows[0]) >= 10:
+            if len(all_rows) > 1 and len(all_rows[0]) >= 5:
                 header = [h.strip() for h in all_rows[0]]
                 for data_row in all_rows[1:]:
                     if not any(v.strip() for v in data_row):
                         continue
-                    if len(data_row) >= 10:
+                    if len(data_row) >= 5:
                         # Handle extra commas in last column (Instruction)
                         if len(data_row) > len(header):
                             data_row = data_row[:len(header)-1] + [delimiter.join(data_row[len(header)-1:])]
@@ -398,12 +402,47 @@ def csv_rows_to_program(rows: list[dict], program_name: str) -> dict:
     from collections import OrderedDict
 
     weeks_data = {}
-    for row in rows:
+    skipped_rows = 0
+    current_week = 1
+    current_day = 0
+    last_week = 0
+
+    # Log the keys from the first row to help debug column mapping issues
+    if rows:
+        log_event("csv_to_program", "started", f"Converting {len(rows)} rows, columns: {list(rows[0].keys())}", {
+            "first_row": rows[0],
+            "last_row": rows[-1] if len(rows) > 1 else None,
+        })
+
+    for row_idx, row in enumerate(rows):
+        # Try to parse Week — handle empty strings, missing keys, non-numeric values
+        week_raw = (row.get("Week") or "").strip()
+        day_raw = (row.get("Day") or "").strip()
+
         try:
-            week = int(float(row.get("Week", "1")))
-            day = int(float(row.get("Day", "1")))
+            week = int(float(week_raw)) if week_raw else None
         except (ValueError, TypeError):
-            continue
+            week = None
+
+        try:
+            day = int(float(day_raw)) if day_raw else None
+        except (ValueError, TypeError):
+            day = None
+
+        # Fallback: infer week/day if parsing failed
+        if week is None:
+            # If we have a valid day and it's <= last day we saw, assume next week
+            week = current_week
+        if day is None:
+            # Auto-increment day within the current week
+            current_day += 1
+            day = current_day
+
+        # Track week transitions
+        if week != last_week:
+            last_week = week
+            current_week = week
+            current_day = day
 
         order = row.get("Order", "").strip()
         if week not in weeks_data:
@@ -416,10 +455,15 @@ def csv_rows_to_program(rows: list[dict], program_name: str) -> dict:
             weeks_data[week][day]["restNote"] = row.get("Instruction", "").strip()
             continue
 
+        try:
+            sets_val = int(float(row.get("Sets", "0") or "0"))
+        except (ValueError, TypeError):
+            sets_val = 0
+
         exercise = {
             "order": order,
             "name": row.get("Exercise", "").strip(),
-            "sets": int(float(row.get("Sets", "0") or "0")),
+            "sets": sets_val,
             "reps": row.get("Reps", "").strip(),
             "tempo": row.get("Tempo", "").strip(),
             "rest": row.get("Rest", "").strip(),
@@ -427,6 +471,11 @@ def csv_rows_to_program(rows: list[dict], program_name: str) -> dict:
             "instruction": row.get("Instruction", "").strip(),
         }
         weeks_data[week][day]["exercises"].append(exercise)
+
+    log_event("csv_to_program", "info", f"Conversion done: {len(weeks_data)} weeks found from {len(rows)} rows", {
+        "week_numbers": sorted(weeks_data.keys()) if weeks_data else [],
+        "days_per_week": {str(w): len(d) for w, d in weeks_data.items()} if weeks_data else {},
+    })
 
     # Build sorted structure with exercise groups
     result = {"name": program_name, "weeks": []}
