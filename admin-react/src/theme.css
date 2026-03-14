@@ -264,13 +264,13 @@ textarea { resize: vertical; min-height: 80px; }
 .day-label { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 4px; }
 
 .exercise-row {
-  display: grid; grid-template-columns: 40px 1fr 50px 50px 70px 50px 50px;
+  display: grid; grid-template-columns: 40px 1fr 50px 50px 70px 50px 50px 70px;
   gap: 6px; align-items: center; padding: 4px 0; font-size: 13px;
 }
 .exercise-row .order { color: var(--accent); font-weight: 600; font-family: 'Space Mono', monospace; }
 .exercise-row .dim { color: var(--text-dim); font-family: 'Space Mono', monospace; font-size: 12px; }
 .exercise-row-header {
-  display: grid; grid-template-columns: 40px 1fr 50px 50px 70px 50px 50px;
+  display: grid; grid-template-columns: 40px 1fr 50px 50px 70px 50px 50px 70px;
   gap: 6px; align-items: center; padding: 4px 0; font-size: 10px;
   font-weight: 600; color: var(--muted2); text-transform: uppercase;
   letter-spacing: 0.08em; font-family: 'Space Mono', monospace;
