@@ -1136,7 +1136,7 @@ function AIBuilderTab() {
   useEffect(() => {
     if (buildForAthlete && athletes.length === 0) {
       API.listUsers().then(d => {
-        const athletesList = (d.users || []).filter(u => u.role === 'athlete')
+        const athletesList = (d.users || []).filter(u => u.role === 'athlete' || u.role === 'coach')
         setAthletes(athletesList)
         if (athletesList.length > 0) setSelectedAthlete(athletesList[0].username)
       }).catch(() => toast('Failed to load athletes', 'error'))
@@ -1175,7 +1175,7 @@ function AIBuilderTab() {
 
   async function generate() {
     if (!name.trim()) { toast('Enter a program name', 'error'); return }
-    if (types.length === 0) { toast('Select at least one type', 'error'); return }
+    if (builderMode !== 'dayplan' && types.length === 0) { toast('Select at least one type', 'error'); return }
     setLoading(true); setResult(null); setEditedProgram(null)
     try {
       const reqBody = { types, typeConfig: config, model, weeks, name: name.trim(), notes, daysPerWeek, sessionTime }
