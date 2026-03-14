@@ -1061,8 +1061,9 @@ function AIBuilderTab() {
   const [dayPlan, setDayPlan] = useState({
     Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: []
   })
-  const [dayPickerOpen, setDayPickerOpen] = useState(null)
-  const [exerciseLib, setExerciseLib] = useState({ strength: {}, cardio: [], crossfit: [], olympic: {} })
+  const [dayPickerOpen, setDayPickerOpen] = useState(null) // which day's picker is open
+  const [dayPickerCategory, setDayPickerCategory] = useState(null) // which category is selected in picker
+  const [exerciseLib, setExerciseLib] = useState({ strength: [], cardio: [], crossfit: [], olympic: [] })
 
   const program = editedProgram || result?.program
 
@@ -1093,7 +1094,7 @@ function AIBuilderTab() {
       }
       setExerciseLib({
         strength: strengthNames,
-        cardio: ['Stairmaster', 'Treadmill', 'Rowing Machine', 'Ski Erg', 'Assault Bike', 'Spin Bike'],
+        cardio: ['Stairmaster', 'Treadmill', 'Rowing Machine', 'Ski Erg', 'Assault Bike', 'Spin Bike', 'Outdoor Run', 'Cycling'],
         crossfit: ['Muscle Ups', 'Box Jumps', 'Walking Lunges', 'Thrusters', 'Double Unders', 'Wall Walks', 'Snatches', 'Clean & Jerk', 'Toes to Bar', 'Handstand Push Ups', 'Rope Climbs', 'Burpees', 'Kettlebell Swings', 'Pull Ups', 'Ring Dips', 'Pistol Squats', 'Wall Balls'],
         olympic: ['Snatch', 'Power Snatch', 'Hang Snatch', 'Clean', 'Power Clean', 'Hang Clean', 'Push Jerk', 'Split Jerk', 'Push Press', 'Front Squat']
       })
@@ -1303,72 +1304,134 @@ function AIBuilderTab() {
             <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
               Assign specific movements to days. The AI will use these preferences when building the program.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+
+            {/* Desktop: 7-column grid. Tablet: 3-4 cols. Mobile: stacked list */}
+            <div className="day-planner-grid">
               {Object.entries(dayPlan).map(([day, items]) => (
-                <div key={day} style={{ background: 'var(--input-bg)', borderRadius: 8, padding: 10, border: '1px solid var(--border)', minHeight: 100 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>{day}</div>
-                  {items.map((item, idx) => (
-                    <div key={idx} style={{ fontSize: 11, padding: '3px 6px', marginBottom: 4, background: 'rgba(167,139,250,0.1)', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text)' }}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
-                      <button style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 10, padding: '0 2px', flexShrink: 0 }}
-                        onClick={() => setDayPlan(prev => ({ ...prev, [day]: prev[day].filter((_, i) => i !== idx) }))}>
-                        x
-                      </button>
-                    </div>
-                  ))}
-                  <div style={{ position: 'relative' }}>
-                    <button
-                      style={{ width: '100%', padding: '4px', background: 'none', border: '1px dashed var(--border)', borderRadius: 4, color: 'var(--text-dim)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
-                      onClick={() => setDayPickerOpen(dayPickerOpen === day ? null : day)}
-                    >+</button>
-                    {dayPickerOpen === day && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-                        {exerciseLib.strength && exerciseLib.strength.length > 0 && (
-                          <>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent2)', padding: '6px 8px 2px', textTransform: 'uppercase' }}>Strength</div>
-                            {exerciseLib.strength.slice(0, 20).map(ex => (
-                              <div key={ex} style={{ padding: '5px 8px', fontSize: 11, cursor: 'pointer', color: 'var(--text)' }}
-                                onMouseEnter={e => e.target.style.background = 'rgba(167,139,250,0.15)'}
-                                onMouseLeave={e => e.target.style.background = 'transparent'}
-                                onClick={() => { setDayPlan(prev => ({ ...prev, [day]: [...prev[day], ex] })); setDayPickerOpen(null) }}>
-                                {ex}
-                              </div>
-                            ))}
-                          </>
-                        )}
-                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--teal)', padding: '6px 8px 2px', textTransform: 'uppercase' }}>Cardio</div>
-                        {exerciseLib.cardio.map(ex => (
-                          <div key={ex} style={{ padding: '5px 8px', fontSize: 11, cursor: 'pointer', color: 'var(--text)' }}
-                            onMouseEnter={e => e.target.style.background = 'rgba(45,212,191,0.15)'}
-                            onMouseLeave={e => e.target.style.background = 'transparent'}
-                            onClick={() => { setDayPlan(prev => ({ ...prev, [day]: [...prev[day], ex] })); setDayPickerOpen(null) }}>
-                            {ex}
-                          </div>
-                        ))}
-                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent2)', padding: '6px 8px 2px', textTransform: 'uppercase' }}>CrossFit</div>
-                        {exerciseLib.crossfit.map(ex => (
-                          <div key={ex} style={{ padding: '5px 8px', fontSize: 11, cursor: 'pointer', color: 'var(--text)' }}
-                            onMouseEnter={e => e.target.style.background = 'rgba(167,139,250,0.15)'}
-                            onMouseLeave={e => e.target.style.background = 'transparent'}
-                            onClick={() => { setDayPlan(prev => ({ ...prev, [day]: [...prev[day], ex] })); setDayPickerOpen(null) }}>
-                            {ex}
-                          </div>
-                        ))}
-                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent2)', padding: '6px 8px 2px', textTransform: 'uppercase' }}>Olympic</div>
-                        {exerciseLib.olympic.map(ex => (
-                          <div key={ex} style={{ padding: '5px 8px', fontSize: 11, cursor: 'pointer', color: 'var(--text)' }}
-                            onMouseEnter={e => e.target.style.background = 'rgba(167,139,250,0.15)'}
-                            onMouseLeave={e => e.target.style.background = 'transparent'}
-                            onClick={() => { setDayPlan(prev => ({ ...prev, [day]: [...prev[day], ex] })); setDayPickerOpen(null) }}>
-                            {ex}
-                          </div>
-                        ))}
+                <div key={day} className="day-planner-card">
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent2)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>{day}</div>
+                  <div style={{ flex: 1, minHeight: 60 }}>
+                    {items.map((item, idx) => (
+                      <div key={idx} style={{ fontSize: 12, padding: '5px 8px', marginBottom: 5, background: 'rgba(167,139,250,0.1)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text)' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
+                        <button style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
+                          onClick={() => setDayPlan(prev => ({ ...prev, [day]: prev[day].filter((_, i) => i !== idx) }))}>
+                          x
+                        </button>
                       </div>
-                    )}
+                    ))}
                   </div>
+
+                  {/* Four + buttons for each category */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 8 }}>
+                    {[
+                      { key: 'strength', label: 'Strength', color: 'var(--accent2)' },
+                      { key: 'cardio', label: 'Cardio', color: 'var(--teal)' },
+                      { key: 'crossfit', label: 'CrossFit', color: 'var(--accent2)' },
+                      { key: 'olympic', label: 'Olympic', color: 'var(--accent2)' },
+                    ].map(cat => (
+                      <button
+                        key={cat.key}
+                        style={{
+                          padding: '5px 4px',
+                          background: dayPickerOpen === day && dayPickerCategory === cat.key ? 'rgba(167,139,250,0.15)' : 'none',
+                          border: '1px dashed var(--border)',
+                          borderRadius: 4,
+                          color: cat.color,
+                          cursor: 'pointer',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          lineHeight: 1.2,
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.3,
+                        }}
+                        onClick={() => {
+                          if (dayPickerOpen === day && dayPickerCategory === cat.key) {
+                            setDayPickerOpen(null)
+                            setDayPickerCategory(null)
+                          } else {
+                            setDayPickerOpen(day)
+                            setDayPickerCategory(cat.key)
+                          }
+                        }}
+                      >
+                        + {cat.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Dropdown for selected category */}
+                  {dayPickerOpen === day && dayPickerCategory && (
+                    <div style={{ marginTop: 6, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, maxHeight: 180, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                      <div style={{ position: 'sticky', top: 0, background: 'var(--surface)', padding: '6px 8px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent2)', textTransform: 'uppercase' }}>{dayPickerCategory}</span>
+                        <button style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 11 }}
+                          onClick={() => { setDayPickerOpen(null); setDayPickerCategory(null) }}>Close</button>
+                      </div>
+                      {(exerciseLib[dayPickerCategory] || []).map(ex => (
+                        <div key={ex} style={{ padding: '6px 10px', fontSize: 12, cursor: 'pointer', color: 'var(--text)' }}
+                          onMouseEnter={e => e.target.style.background = 'rgba(167,139,250,0.12)'}
+                          onMouseLeave={e => e.target.style.background = 'transparent'}
+                          onClick={() => {
+                            setDayPlan(prev => ({ ...prev, [day]: [...prev[day], ex] }))
+                            setDayPickerOpen(null)
+                            setDayPickerCategory(null)
+                          }}>
+                          {ex}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+
+            {/* Responsive CSS injected inline */}
+            <style>{`
+              .day-planner-grid {
+                display: grid;
+                grid-template-columns: repeat(7, 1fr);
+                gap: 10px;
+              }
+              .day-planner-card {
+                background: var(--input-bg);
+                border-radius: 8px;
+                padding: 12px;
+                border: 1px solid var(--border);
+                min-height: 200px;
+                display: flex;
+                flex-direction: column;
+              }
+              @media (max-width: 1200px) {
+                .day-planner-grid {
+                  grid-template-columns: repeat(4, 1fr);
+                }
+              }
+              @media (max-width: 900px) {
+                .day-planner-grid {
+                  grid-template-columns: repeat(3, 1fr);
+                }
+              }
+              @media (max-width: 600px) {
+                .day-planner-grid {
+                  grid-template-columns: 1fr;
+                  gap: 8px;
+                }
+                .day-planner-card {
+                  min-height: auto;
+                  flex-direction: row;
+                  flex-wrap: wrap;
+                  align-items: flex-start;
+                  gap: 8px;
+                }
+                .day-planner-card > div:first-child {
+                  width: 100%;
+                  border-bottom: none;
+                  padding-bottom: 0;
+                  margin-bottom: 0;
+                }
+              }
+            `}</style>
           </div>
 
           <div className="modal-actions">
