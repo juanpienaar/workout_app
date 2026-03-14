@@ -35,6 +35,7 @@ class UpdateUserRequest(BaseModel):
     password: Optional[str] = None
     phone: Optional[str] = None
     coaches: Optional[list[str]] = None
+    athlete_prompt: Optional[str] = None
 
 class ExerciseItem(BaseModel):
     name: str
@@ -57,11 +58,18 @@ class AIGenerateRequest(BaseModel):
     daysPerWeek: int = 5
     sessionTime: int = 60
     experience: str = "intermediate"
+    athlete_name: str = ""
+    athlete_prompt: str = ""
 
 class AIModifyRequest(BaseModel):
     program: dict
     modification_prompt: str
     model: str = "sonnet"
+
+class ProgramAssignRequest(BaseModel):
+    athlete: str
+    program: str
+    startDate: str = ""
 
 class SendMessageRequest(BaseModel):
     message: str
@@ -111,6 +119,7 @@ async def list_users(coach: Annotated[dict, Depends(require_coach)]):
             "role": info.get("role", "athlete"),
             "email_verified": info.get("email_verified", False),
             "coaches": info.get("coaches", []),
+            "athlete_prompt": info.get("athlete_prompt", ""),
         })
     return {"users": result}
 
@@ -151,6 +160,8 @@ async def update_user(username: str, req: UpdateUserRequest, coach: Annotated[di
         users[username]["phone"] = req.phone
     if req.coaches is not None:
         users[username]["coaches"] = req.coaches
+    if req.athlete_prompt is not None:
+        users[username]["athlete_prompt"] = req.athlete_prompt
     save_users(users)
     return {"ok": True}
 
@@ -231,6 +242,30 @@ async def debug_data_status(coach: Annotated[dict, Depends(require_coach)]):
 
 
 # ══════════════════════════════════════════════════════════════════
+# COACH SETTINGS
+# ══════════════════════════════════════════════════════════════════
+
+@router.get("/coach-settings")
+async def get_coach_settings(coach: Annotated[dict, Depends(require_coach)]):
+    """Get coach training philosophy and defaults."""
+    settings_path = config.DATA_DIR / "coach_settings.json"
+    if settings_path.exists():
+        with open(settings_path) as f:
+            return json.load(f)
+    return {"philosophy": "", "athlete_defaults": ""}
+
+
+@router.put("/coach-settings")
+async def update_coach_settings(req: dict, coach: Annotated[dict, Depends(require_coach)]):
+    """Update coach training philosophy and defaults."""
+    settings_path = config.DATA_DIR / "coach_settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(settings_path, "w") as f:
+        json.dump(req, f, indent=2)
+    return {"ok": True}
+
+
+# ══════════════════════════════════════════════════════════════════
 # PROGRAMS
 # ══════════════════════════════════════════════════════════════════
 
@@ -306,6 +341,49 @@ async def duplicate_program(name: str, req: DuplicateRequest, coach: Annotated[d
     pdata["programs"][req.new_name] = clone
     _save_program_json(pdata)
     return {"ok": True, "name": req.new_name}
+
+
+@router.post("/assign-program")
+async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depends(require_coach)]):
+    """Deep-copy a program into the athlete's user_data file (Phase 3)."""
+    from datetime import datetime
+    import copy
+
+    # 1. Load the program from the library
+    pdata = _load_program_json()
+    programs = pdata.get("programs", {})
+    if req.program not in programs:
+        raise HTTPException(404, f"Program '{req.program}' not found")
+
+    program_data = copy.deepcopy(programs[req.program])
+
+    # 2. Load user data
+    user_key = req.athlete.lower().replace(" ", "_")
+    user_data = load_user_data(user_key)
+
+    # 3. Preserve existing workout logs
+    existing_logs = user_data.get("workout_logs", {})
+
+    # 4. Deep copy program into user data
+    user_data["assigned_program"] = program_data
+    user_data["assigned_program_name"] = req.program
+    user_data["assigned_program_date"] = req.startDate or datetime.now().strftime("%Y-%m-%d")
+
+    # 5. Make sure workout logs are preserved
+    user_data["workout_logs"] = existing_logs
+
+    # 6. Save user data
+    save_user_data(user_key, user_data)
+
+    # 7. Also update users.json reference (for display purposes)
+    users = load_users()
+    if req.athlete in users:
+        users[req.athlete]["program"] = req.program
+        if req.startDate:
+            users[req.athlete]["startDate"] = req.startDate
+        save_users(users)
+
+    return {"ok": True, "message": f"Program '{req.program}' assigned to {req.athlete}"}
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -407,6 +485,100 @@ async def import_csv(file: UploadFile = File(...), coach: Annotated[dict, Depend
         raise HTTPException(500, "CSV build timed out")
 
 
+@router.post("/import-transformed-csv")
+async def import_transformed_csv(req: dict, coach: Annotated[dict, Depends(require_coach)]):
+    """Import a transformed CSV string as a program."""
+    csv_text = req.get("csv", "")
+    if not csv_text.strip():
+        raise HTTPException(400, "CSV content cannot be empty")
+
+    # Save the CSV and run build
+    csv_path = config.PROGRAM_CSV
+    with open(csv_path, "w") as f:
+        f.write(csv_text)
+
+    # Run build
+    build_script = config.APP_DIR / "build.py"
+    try:
+        result = subprocess.run(
+            [sys.executable, str(build_script), str(csv_path)],
+            capture_output=True, text=True, timeout=30,
+            cwd=str(config.DATA_ROOT),
+        )
+        if result.returncode != 0:
+            raise HTTPException(500, f"Build failed: {result.stderr}")
+        return {"ok": True, "output": result.stdout}
+    except subprocess.TimeoutExpired:
+        raise HTTPException(500, "CSV build timed out")
+
+
+@router.post("/ai/transform-csv")
+async def ai_transform_csv(file: UploadFile = File(...), coach: Annotated[dict, Depends(require_coach)] = None):
+    """Use AI to clean and transform an uploaded CSV into program format."""
+    import anthropic
+    from .ai_builder import build_exercise_library_context, MODELS, track_usage
+
+    content = await file.read()
+    csv_text = content.decode("utf-8", errors="replace")
+
+    # Load exercise library for context
+    exercise_context = build_exercise_library_context()
+
+    model_key = "haiku"  # Use haiku for cost efficiency
+    model_info = MODELS[model_key]
+
+    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+
+    system_prompt = """You are an expert at parsing workout program data. You will receive a CSV file that may be messy, poorly formatted, or use non-standard column names.
+
+Your job is to transform it into a clean CSV with these EXACT columns:
+Program,Week,Day,Order,Exercise,Sets,Reps,Tempo,Rest,RPE,Instruction
+
+RULES:
+- Map any column that looks like it contains exercise names to "Exercise"
+- Map set counts to "Sets", rep counts/ranges to "Reps"
+- If tempo is missing, use "-"
+- If rest is missing, use "60s"
+- If RPE is missing, use "-"
+- If order is missing, number sequentially (1, 2, 3...)
+- If week/day structure exists, preserve it. If not, organize logically
+- Program name should be inferred from filename or content, or use "Imported Program"
+- Include rest days where appropriate
+- NEVER use commas inside field values - use semicolons instead
+- Output ONLY the clean CSV, no explanations, no code fences"""
+
+    user_prompt = f"""Here is the uploaded CSV content. Please clean and transform it into the standard program format:
+
+{csv_text}
+
+{exercise_context}"""
+
+    response = client.messages.create(
+        model=model_info["id"],
+        max_tokens=8000,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_prompt}]
+    )
+
+    transformed_csv = response.content[0].text.strip()
+
+    # Track costs
+    input_tokens = response.usage.input_tokens
+    output_tokens = response.usage.output_tokens
+    cost = track_usage(input_tokens, output_tokens, model_key, "CSV transformation")
+
+    return {
+        "ok": True,
+        "transformed_csv": transformed_csv,
+        "cost": {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cost_usd": round(cost, 6),
+            "model": model_key,
+        }
+    }
+
+
 # ══════════════════════════════════════════════════════════════════
 # AI PROGRAM GENERATION
 # ══════════════════════════════════════════════════════════════════
@@ -414,6 +586,21 @@ async def import_csv(file: UploadFile = File(...), coach: Annotated[dict, Depend
 @router.post("/ai/generate")
 async def ai_generate(req: AIGenerateRequest, coach: Annotated[dict, Depends(require_coach)]):
     """Generate a program via Claude AI and save it to program.json."""
+    # Load coach philosophy if available
+    coach_philosophy = ""
+    settings_path = config.DATA_DIR / "coach_settings.json"
+    if settings_path.exists():
+        with open(settings_path) as f:
+            settings = json.load(f)
+            coach_philosophy = settings.get("philosophy", "")
+
+    # If building for specific athlete, load their prompt from users.json
+    athlete_prompt = req.athlete_prompt
+    if req.athlete_name:
+        users = load_users()
+        if req.athlete_name in users:
+            athlete_prompt = users[req.athlete_name].get("athlete_prompt", "") or req.athlete_prompt
+
     try:
         program, cost_info = generate_program(
             types=req.types,
@@ -425,6 +612,8 @@ async def ai_generate(req: AIGenerateRequest, coach: Annotated[dict, Depends(req
             days_per_week=req.daysPerWeek,
             session_time=req.sessionTime,
             experience=req.experience,
+            coach_philosophy=coach_philosophy,
+            athlete_prompt=athlete_prompt,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -436,7 +625,18 @@ async def ai_generate(req: AIGenerateRequest, coach: Annotated[dict, Depends(req
     pdata.setdefault("programs", {})[req.name] = program
     _save_program_json(pdata)
 
-    return {"ok": True, "program": program, "cost": cost_info}
+    # If athlete_name is provided, assign the program to them
+    if req.athlete_name:
+        users = load_users()
+        if req.athlete_name in users:
+            users[req.athlete_name]["program"] = req.name
+            # Set start date to today if not provided
+            if not users[req.athlete_name].get("startDate"):
+                from datetime import datetime
+                users[req.athlete_name]["startDate"] = datetime.now().strftime("%Y-%m-%d")
+            save_users(users)
+
+    return {"ok": True, "program": program, "cost": cost_info, "assigned_to": req.athlete_name if req.athlete_name else None}
 
 
 @router.get("/ai/costs")

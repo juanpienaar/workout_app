@@ -1551,6 +1551,7 @@ let allDays = [];
 let weekMap = [];
 let isViewOnly = false;
 let viewMode = 'week';
+let athletePrograms = {}; // Cache of athlete-specific programs loaded from /my-program (Phase 3)
 
 // ==================== JWT AUTH ====================
 let accessToken = null;
@@ -1665,7 +1666,7 @@ async function init() {
         const testResp = await authFetch(`${SERVER_URL}/api/health`);
         if (testResp.ok || testResp.status !== 401) {
           isViewOnly = false;
-          selectUser(userName);
+          await selectUser(userName);
           return;
         }
       } catch (e) {
@@ -1738,10 +1739,38 @@ async function doLogin() {
     if (userInfo && !userInfo.email_verified) {
       showVerificationScreen(data.user_name, userInfo.email || email);
     } else {
-      selectUser(data.user_name);
+      await selectUser(data.user_name);
     }
   } catch (e) {
     errorEl.textContent = 'Could not reach server. Try again.';
+  }
+}
+
+// ==================== LOAD ATHLETE PROGRAM (Phase 3) ====================
+async function loadAthleteProgram() {
+  /**Load athlete's assigned program from /my-program endpoint.
+   * This supports Phase 3: deep-copied programs in user_data.
+   */
+  if (!accessToken || !currentUser) return null;
+
+  if (athletePrograms[currentUser]) {
+    return athletePrograms[currentUser];
+  }
+
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/my-program`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    if (!resp.ok) {
+      console.warn('[program] Failed to load from /my-program:', resp.status);
+      return null;
+    }
+    const program = await resp.json();
+    athletePrograms[currentUser] = program;
+    return program;
+  } catch (e) {
+    console.warn('[program] Error loading from /my-program:', e);
+    return null;
   }
 }
 
@@ -1811,7 +1840,7 @@ async function submitVerification() {
         programData.users[pendingVerifyUser].email_verified = true;
       }
       document.getElementById('verifyScreen').classList.add('hidden');
-      selectUser(pendingVerifyUser);
+      await selectUser(pendingVerifyUser);
     } else {
       errorEl.textContent = data.error || 'Verification failed.';
     }
@@ -1820,9 +1849,9 @@ async function submitVerification() {
   }
 }
 
-function skipVerification() {
+async function skipVerification() {
   document.getElementById('verifyScreen').classList.add('hidden');
-  selectUser(pendingVerifyUser);
+  await selectUser(pendingVerifyUser);
 }
 
 // Enter key support on login fields
@@ -1837,11 +1866,24 @@ document.getElementById('verifyCode').addEventListener('keydown', (e) => {
 });
 
 // ==================== USER SELECTION ====================
-function selectUser(name) {
+async function selectUser(name) {
   currentUser = name;
 
   const userInfo = programData.users[name];
-  const program = userInfo.program ? programData.programs[userInfo.program] : null;
+  let program = null;
+
+  // Phase 3: Try to load athlete's assigned program first
+  if (accessToken) {
+    const athleteProgram = await loadAthleteProgram();
+    if (athleteProgram && athleteProgram.weeks) {
+      program = athleteProgram;
+    }
+  }
+
+  // Fallback to global program library
+  if (!program && userInfo.program) {
+    program = programData.programs[userInfo.program];
+  }
 
   allDays = [];
   weekMap = [];

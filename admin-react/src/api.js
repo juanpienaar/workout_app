@@ -51,6 +51,7 @@ export const API = {
   createProgram: (data) => authFetch('/api/admin/programs', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
   deleteProgram: (name) => authFetch(`/api/admin/programs/${encodeURIComponent(name)}`, { method: 'DELETE' }).then(r => r.json()),
   duplicateProgram: (name, newName) => authFetch(`/api/admin/programs/${encodeURIComponent(name)}/duplicate`, { method: 'POST', body: JSON.stringify({ new_name: newName }) }).then(r => r.json()),
+  assignProgram: (data) => authFetch('/api/admin/assign-program', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
 
   // Exercises
   getExercises: () => authFetch('/api/admin/exercises').then(r => r.json()),
@@ -69,6 +70,17 @@ export const API = {
     const fd = new FormData(); fd.append('file', file)
     return authFetch('/api/admin/import-csv', { method: 'POST', body: fd }).then(r => r.json())
   },
+  aiTransformCSV: (file) => {
+    const fd = new FormData(); fd.append('file', file)
+    return authFetch('/api/admin/ai/transform-csv', { method: 'POST', body: fd }).then(r => r.json())
+  },
+  importTransformedCSV: (csvContent) => {
+    return authFetch('/api/admin/import-transformed-csv', { method: 'POST', body: JSON.stringify({ csv: csvContent }) }).then(r => r.json())
+  },
+
+  // Coach Settings
+  getCoachSettings: () => authFetch('/api/admin/coach-settings').then(r => r.json()),
+  updateCoachSettings: (data) => authFetch('/api/admin/coach-settings', { method: 'PUT', body: JSON.stringify(data) }).then(r => r.json()),
 
   // AI Builder
   generateProgram: (config) => authFetch('/api/admin/ai/generate', { method: 'POST', body: JSON.stringify(config) }).then(r => r.json()),

@@ -129,12 +129,29 @@ def build_prompt(
     days_per_week: int = 5,
     session_time: int = 60,
     experience: str = "intermediate",
+    coach_philosophy: str = "",
+    athlete_prompt: str = "",
 ) -> str:
     """Build the user prompt for Claude based on selected program types and config."""
     type_labels = " + ".join(t.title() for t in types)
     is_combo = len(types) > 1
 
-    prompt_parts = [f'Generate a {weeks}-week {type_labels} training program called "{name}".']
+    # Start with coach philosophy if provided
+    prompt_parts = []
+    if coach_philosophy:
+        prompt_parts.append(f"""COACH'S TRAINING PHILOSOPHY:
+{coach_philosophy}
+
+Apply this philosophy throughout the program design.""")
+
+    # Add athlete-specific context if provided
+    if athlete_prompt:
+        prompt_parts.append(f"""ATHLETE-SPECIFIC CONTEXT:
+{athlete_prompt}
+
+Tailor the program to this athlete's specific needs and goals.""")
+
+    prompt_parts.append(f'Generate a {weeks}-week {type_labels} training program called "{name}".')
     prompt_parts.append(f"""
 Common details:
 - Experience: {experience}
@@ -392,6 +409,8 @@ def generate_program(
     days_per_week: int = 5,
     session_time: int = 60,
     experience: str = "intermediate",
+    coach_philosophy: str = "",
+    athlete_prompt: str = "",
 ) -> tuple[dict, dict]:
     """
     Generate a program via Claude.
@@ -406,6 +425,8 @@ def generate_program(
         days_per_week=days_per_week,
         session_time=session_time,
         experience=experience,
+        coach_philosophy=coach_philosophy,
+        athlete_prompt=athlete_prompt,
     )
 
     response_text, cost_info = call_claude(prompt, model)

@@ -474,7 +474,7 @@ export default function Dashboard() {
   )
 
   function openAdd() {
-    setForm({ username: '', email: '', password: '', program: '', startDate: '', role: 'athlete' })
+    setForm({ username: '', email: '', password: '', program: '', startDate: '', role: 'athlete', athlete_prompt: '' })
     setModal({ mode: 'add' })
   }
 
@@ -490,7 +490,7 @@ export default function Dashboard() {
         await API.createUser(form)
         toast('User created')
       } else {
-        const body = { email: form.email, program: form.program, startDate: form.startDate, role: form.role, coaches: form.coaches || [] }
+        const body = { email: form.email, program: form.program, startDate: form.startDate, role: form.role, coaches: form.coaches || [], athlete_prompt: form.athlete_prompt || '' }
         if (form.password) body.password = form.password
         await API.updateUser(modal.user.username, body)
         toast('User updated')
@@ -894,12 +894,19 @@ export default function Dashboard() {
                 </select>
               </div>
               {form.role === 'athlete' && (
-                <div className="form-group">
-                  <label>Coaches <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>(comma-separated usernames)</span></label>
-                  <input type="text" value={(form.coaches || []).join(', ')}
-                    onChange={e => setForm({ ...form, coaches: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                    placeholder="e.g. coach1, coach2" />
-                </div>
+                <>
+                  <div className="form-group">
+                    <label>Coaches <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>(comma-separated usernames)</span></label>
+                    <input type="text" value={(form.coaches || []).join(', ')}
+                      onChange={e => setForm({ ...form, coaches: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                      placeholder="e.g. coach1, coach2" />
+                  </div>
+                  <div className="form-group">
+                    <label>AI Builder Prompt <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>(context for AI program generation)</span></label>
+                    <textarea rows="4" value={form.athlete_prompt || ''} onChange={e => setForm({ ...form, athlete_prompt: e.target.value })}
+                      placeholder="e.g. Goals: Build strength and muscle. Injuries: Previous shoulder issues. Preferences: Enjoy heavy barbell work, dislikes machines. Available equipment: Full gym access." />
+                  </div>
+                </>
               )}
             </Modal>
           )}

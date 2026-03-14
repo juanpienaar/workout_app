@@ -45,6 +45,7 @@ PROGRAM_FILE = DATA_ROOT / "program.json"
 EXERCISES_FILE = DATA_ROOT / "exercises.json"
 PROGRAM_CSV = DATA_ROOT / "program.csv"
 DATA_DIR = DATA_ROOT / "user_data"
+PROGRAMS_DIR = DATA_ROOT / "programs"  # Phase 3: Individual program files
 WHOOP_CONFIG_FILE = DATA_ROOT / "whoop_config.json"
 WHOOP_TOKENS_FILE = DATA_ROOT / "whoop_tokens.json"
 METRICS_FILE = DATA_ROOT / "user_metrics.json"

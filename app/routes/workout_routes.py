@@ -1,13 +1,15 @@
 """Workout data routes: load, save-day, sync-all, save-whoop."""
 
+import json
 from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..auth import get_current_user
-from ..data import load_user_data, save_user_data
+from ..data import load_user_data, save_user_data, load_users
 from ..models import SaveDayRequest, SyncAllRequest, SaveWhoopRequest
+from .. import config
 
 router = APIRouter(prefix="/api", tags=["workout"])
 
@@ -17,6 +19,33 @@ async def get_data(current_user: Annotated[dict, Depends(get_current_user)]):
     user_key = current_user["name"]
     user_data = load_user_data(user_key)
     return user_data
+
+
+@router.get("/my-program")
+async def get_my_program(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return the athlete's assigned program (deep copy) or fall back to global library."""
+    user_key = current_user["name"]
+    user_data = load_user_data(user_key)
+
+    # Check for deep-copied assigned program first (Phase 3)
+    if "assigned_program" in user_data:
+        return user_data["assigned_program"]
+
+    # Fall back to global program library
+    users = load_users()
+    program_name = users.get(current_user["sub"], {}).get("program", "")
+    if not program_name:
+        return {"weeks": []}
+
+    # Load from program.json
+    if config.PROGRAM_FILE.exists():
+        with open(config.PROGRAM_FILE) as f:
+            pdata = json.load(f)
+            programs = pdata.get("programs", {})
+            if program_name in programs:
+                return programs[program_name]
+
+    return {"weeks": []}
 
 
 @router.post("/save-day")

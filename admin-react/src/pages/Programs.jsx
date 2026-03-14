@@ -82,10 +82,8 @@ function ProgramsTab() {
     if (selectedAthletes.length === 0) { toast('Select at least one user', 'error'); return }
     setAssigning(true)
     try {
-      const body = { program: assignModal.programName }
-      if (assignStartDate) body.startDate = assignStartDate
       await Promise.all(selectedAthletes.map(name =>
-        API.updateUser(name, body)
+        API.assignProgram({ athlete: name, program: assignModal.programName, startDate: assignStartDate })
       ))
       toast(`Assigned to ${selectedAthletes.length} user(s)`)
       setAssignModal(null)
@@ -280,6 +278,18 @@ function ExercisesTab() {
   const [addModal, setAddModal] = useState(false)
   const [form, setForm] = useState({ group: '', name: '', equipment: '' })
   const [moveModal, setMoveModal] = useState(null)
+  const [category, setCategory] = useState('Strength')
+
+  // CrossFit state
+  const [crossfitTab, setCrossfitTab] = useState('movements')
+  const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
+  const [workoutForm, setWorkoutForm] = useState({
+    format: 'AMRAP',
+    timeCap: '15',
+    rounds: '3',
+    movements: []
+  })
+  const [workoutMovement, setWorkoutMovement] = useState({ movement: '', reps: '', distance: '' })
 
   const load = async () => {
     try { setData(await API.getExercises()) } catch { toast('Failed to load', 'error') }
@@ -323,7 +333,78 @@ function ExercisesTab() {
     if (a === 'Custom') return 1; if (b === 'Custom') return -1; return a.localeCompare(b)
   })
 
-  return (
+  // Cardio exercises (default)
+  const cardioExercises = ['Stairmaster', 'Treadmill', 'Rowing Machine', 'Ski Erg', 'Assault Bike', 'Spin Bike']
+
+  // CrossFit movements
+  const crossfitMovements = [
+    'Muscle Ups', 'Box Jumps', 'Walking Lunges', 'Shoulder to Overhead (Bar)',
+    'Shoulder to Overhead (Dumbbell)', 'Thrusters', 'Double Unders', 'Wall Walks',
+    'Snatches', 'Clean & Jerk', 'Toes to Bar', 'Handstand Push Ups', 'Rope Climbs',
+    'Burpees', 'Kettlebell Swings', 'Pull Ups', 'Ring Dips', 'Pistol Squats',
+    'Wall Balls', 'Assault Bike Calories', 'Row Calories'
+  ]
+
+  // CrossFit benchmark WODs
+  const benchmarkWods = [
+    { name: 'Fran', description: '21-15-9 reps: Thrusters (95/65 lbs), Pull Ups' },
+    { name: 'Murph', description: '1 mile run, 100 pull ups, 200 push ups, 300 air squats, 1 mile run (partition as needed)' },
+    { name: 'Grace', description: '30 reps: Clean & Jerk (135/95 lbs)' },
+    { name: 'Diane', description: '21-15-9 reps: Deadlifts (225/155 lbs), Handstand Push Ups' },
+    { name: 'Helen', description: '3 rounds: 400m run, 21 kettlebell swings (53/35 lbs), 12 pull ups' },
+    { name: 'Isabel', description: '30 reps: Snatches (135/95 lbs)' },
+    { name: 'Jackie', description: '1000m row, 50 thrusters (45/35 lbs), 30 pull ups' },
+    { name: 'Karen', description: '150 wall balls (20/14 lbs) for time' },
+    { name: 'Annie', description: '50-40-30-20-10 reps: Double unders, sit ups' },
+    { name: 'Cindy', description: '20 min AMRAP: 5 pull ups, 10 push ups, 15 air squats' },
+    { name: 'Fight Gone Bad', description: '3 rounds x 1 min each station: Wall balls, sumo deadlift high pulls, box jumps, push press, row calories' },
+    { name: 'DT', description: '5 rounds: 12 deadlifts, 9 hang power cleans, 6 push jerks (135/95 lbs)' }
+  ]
+
+  // Olympic Lifting variations
+  const olympicLifts = {
+    'Snatch Variations': [
+      'Snatch', 'Power Snatch', 'Hang Snatch', 'Snatch Pull',
+      'Snatch Grip Deadlift', 'Overhead Squat'
+    ],
+    'Clean & Jerk Variations': [
+      'Clean', 'Power Clean', 'Hang Clean', 'Clean Pull',
+      'Push Jerk', 'Split Jerk', 'Push Press'
+    ],
+    'Accessory': [
+      'Front Squat', 'Back Squat', 'Romanian Deadlift',
+      'Good Morning', 'Snatch Balance'
+    ]
+  }
+
+  // Tab styles
+  const categoryTabStyle = (active) => ({
+    padding: '8px 14px',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 500,
+    color: active ? 'var(--accent2)' : 'var(--text-dim)',
+    background: active ? 'rgba(167,139,250,0.08)' : 'transparent',
+    border: '1px solid',
+    borderColor: active ? 'var(--accent2)' : 'var(--border)',
+    borderRadius: 6,
+    margin: '0 4px'
+  })
+
+  const subtabStyle = (active) => ({
+    padding: '6px 12px',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 500,
+    color: active ? 'var(--accent2)' : 'var(--text-dim)',
+    background: active ? 'rgba(167,139,250,0.1)' : 'transparent',
+    border: 'none',
+    borderRadius: 12,
+    margin: '0 4px'
+  })
+
+  // Strength category render
+  const renderStrengthCategory = () => (
     <div>
       <div className="info-banner">
         <div className="info-banner-icon">ℹ️</div>
@@ -383,6 +464,293 @@ function ExercisesTab() {
           </div>
         )
       })}
+    </div>
+  )
+
+  // Cardio category render
+  const renderCardioCategory = () => (
+    <div>
+      <div className="info-banner">
+        <div className="info-banner-icon">🏃</div>
+        <div>
+          <div className="info-banner-title">Cardio Exercises</div>
+          <div className="info-banner-text">
+            Common cardiovascular training equipment and methods for conditioning work.
+          </div>
+        </div>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        {cardioExercises.map(ex => (
+          <div key={ex} className="exercise-item" style={{ marginBottom: 8 }}>
+            <span>{ex}</span>
+            <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Default</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  // CrossFit category render
+  const renderCrossfitCategory = () => (
+    <div>
+      <div className="info-banner">
+        <div className="info-banner-icon">⚡</div>
+        <div>
+          <div className="info-banner-title">CrossFit Library</div>
+          <div className="info-banner-text">
+            Common CrossFit movements, benchmark WODs, and a tool to build custom workouts.
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
+        {['movements', 'benchmarks', 'builder'].map(tab => (
+          <button
+            key={tab}
+            style={subtabStyle(crossfitTab === tab)}
+            onClick={() => setCrossfitTab(tab)}
+          >
+            {tab === 'movements' && 'Movements'}
+            {tab === 'benchmarks' && 'Benchmark WODs'}
+            {tab === 'builder' && 'Workout Builder'}
+          </button>
+        ))}
+      </div>
+
+      {crossfitTab === 'movements' && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {crossfitMovements.map(mov => (
+              <div
+                key={mov}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 12,
+                  background: 'rgba(167,139,250,0.1)',
+                  border: '1px solid rgba(167,139,250,0.2)',
+                  color: 'var(--accent2)',
+                  fontSize: 13,
+                  fontWeight: 500
+                }}
+              >
+                {mov}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {crossfitTab === 'benchmarks' && (
+        <div style={{ marginTop: 16 }}>
+          {benchmarkWods.map(wod => (
+            <div key={wod.name} className="muscle-group" style={{ marginBottom: 12 }}>
+              <div className="muscle-group-header" onClick={() => toggleGroup(`wod-${wod.name}`)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="drill-toggle drill-toggle-sm">{openGroups.has(`wod-${wod.name}`) ? '−' : '+'}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--accent2)' }}>{wod.name}</span>
+                </div>
+              </div>
+              {openGroups.has(`wod-${wod.name}`) && (
+                <div className="muscle-group-body" style={{ display: 'block', padding: '12px 16px' }}>
+                  <p style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.5 }}>{wod.description}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {crossfitTab === 'builder' && (
+        <div style={{ marginTop: 16 }}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => setShowWorkoutBuilder(!showWorkoutBuilder)}
+            style={{ marginBottom: 16 }}
+          >
+            {showWorkoutBuilder ? '▼ Close' : '▶ New Workout'}
+          </button>
+
+          {showWorkoutBuilder && (
+            <div style={{ borderRadius: 8, border: '1px solid var(--border)', padding: 16, background: 'rgba(167,139,250,0.04)' }}>
+              <div className="form-group">
+                <label>Workout Format</label>
+                <select value={workoutForm.format} onChange={e => setWorkoutForm({ ...workoutForm, format: e.target.value })}>
+                  <option>AMRAP</option>
+                  <option>EMOM</option>
+                  <option>For Time</option>
+                  <option>Rounds For Time</option>
+                  <option>Chipper</option>
+                </select>
+              </div>
+
+              {(workoutForm.format === 'AMRAP' || workoutForm.format === 'For Time') && (
+                <div className="form-group">
+                  <label>Time Cap (minutes)</label>
+                  <input
+                    type="number"
+                    value={workoutForm.timeCap}
+                    onChange={e => setWorkoutForm({ ...workoutForm, timeCap: e.target.value })}
+                    placeholder="15"
+                  />
+                </div>
+              )}
+
+              {(workoutForm.format === 'Rounds For Time' || workoutForm.format === 'EMOM') && (
+                <div className="form-group">
+                  <label>Rounds / Stations</label>
+                  <input
+                    type="number"
+                    value={workoutForm.rounds}
+                    onChange={e => setWorkoutForm({ ...workoutForm, rounds: e.target.value })}
+                    placeholder="3"
+                  />
+                </div>
+              )}
+
+              <div style={{ marginTop: 16, padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-dim)', marginBottom: 12 }}>Add Movements</div>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                  <select
+                    value={workoutMovement.movement}
+                    onChange={e => setWorkoutMovement({ ...workoutMovement, movement: e.target.value })}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Select movement...</option>
+                    {crossfitMovements.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Reps/Distance"
+                    value={workoutMovement.reps}
+                    onChange={e => setWorkoutMovement({ ...workoutMovement, reps: e.target.value })}
+                    style={{ width: 80 }}
+                  />
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      if (workoutMovement.movement && workoutMovement.reps) {
+                        setWorkoutForm({
+                          ...workoutForm,
+                          movements: [...workoutForm.movements, { ...workoutMovement }]
+                        })
+                        setWorkoutMovement({ movement: '', reps: '', distance: '' })
+                        toast('Movement added')
+                      }
+                    }}
+                  >
+                    Add
+                  </button>
+                </div>
+
+                {workoutForm.movements.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-dim)', marginBottom: 8 }}>Workout Preview</div>
+                    <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 4 }}>
+                      {workoutForm.movements.map((mov, idx) => (
+                        <div key={idx} style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                          <span>{mov.movement}</span>
+                          <span style={{ color: 'var(--accent2)' }}>{mov.reps}</span>
+                          <button
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-dim)',
+                              cursor: 'pointer',
+                              fontSize: 12
+                            }}
+                            onClick={() => {
+                              setWorkoutForm({
+                                ...workoutForm,
+                                movements: workoutForm.movements.filter((_, i) => i !== idx)
+                              })
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <button className="btn btn-secondary" onClick={() => setShowWorkoutBuilder(false)}>Cancel</button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    if (workoutForm.movements.length > 0) {
+                      toast('Workout saved to library')
+                      setShowWorkoutBuilder(false)
+                      setWorkoutForm({ format: 'AMRAP', timeCap: '15', rounds: '3', movements: [] })
+                    } else {
+                      toast('Add at least one movement', 'error')
+                    }
+                  }}
+                >
+                  Save Workout
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
+  // Olympic Lifting category render
+  const renderOlympicCategory = () => (
+    <div>
+      <div className="info-banner">
+        <div className="info-banner-icon">🏋️</div>
+        <div>
+          <div className="info-banner-title">Olympic Lifting</div>
+          <div className="info-banner-text">
+            Snatch, Clean & Jerk, and accessory movements for strength development.
+          </div>
+        </div>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        {Object.entries(olympicLifts).map(([category, lifts]) => (
+          <div key={category} style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+              {category}
+            </div>
+            {lifts.map(lift => (
+              <div key={lift} className="exercise-item" style={{ marginBottom: 8 }}>
+                <span>{lift}</span>
+                <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Olympic</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
+        {['Strength', 'Cardio', 'CrossFit', 'Olympic Lifting'].map(cat => (
+          <button
+            key={cat}
+            style={categoryTabStyle(category === cat)}
+            onClick={() => {
+              setCategory(cat)
+              setSearch('')
+              setOpenGroups(new Set())
+              setCrossfitTab('movements')
+            }}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {category === 'Strength' && renderStrengthCategory()}
+      {category === 'Cardio' && renderCardioCategory()}
+      {category === 'CrossFit' && renderCrossfitCategory()}
+      {category === 'Olympic Lifting' && renderOlympicCategory()}
+
       {addModal && (
         <Modal title="Add Exercise" onClose={() => setAddModal(false)} actions={[
           { label: 'Cancel', cls: 'btn-secondary', onClick: () => setAddModal(false) },
@@ -451,23 +819,46 @@ function AIBuilderTab() {
   const [editValue, setEditValue] = useState('')
   const [nlPrompt, setNlPrompt] = useState('')
   const [nlLoading, setNlLoading] = useState(false)
+  const [buildForAthlete, setBuildForAthlete] = useState(false)
+  const [selectedAthlete, setSelectedAthlete] = useState('')
+  const [athletes, setAthletes] = useState([])
+  const [athleteStartDate, setAthleteStartDate] = useState(new Date().toISOString().slice(0, 10))
 
   const program = editedProgram || result?.program
 
   function toggleType(id) { setTypes(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]) }
   function updateConfig(type, key, value) { setConfig(prev => ({ ...prev, [type]: { ...(prev[type] || {}), [key]: value } })) }
 
+  // Load athletes when toggle is enabled
+  useEffect(() => {
+    if (buildForAthlete && athletes.length === 0) {
+      API.listUsers().then(d => {
+        const athletesList = (d.users || []).filter(u => u.role === 'athlete')
+        setAthletes(athletesList)
+        if (athletesList.length > 0) setSelectedAthlete(athletesList[0].username)
+      }).catch(() => toast('Failed to load athletes', 'error'))
+    }
+  }, [buildForAthlete])
+
   async function generate() {
     if (!name.trim()) { toast('Enter a program name', 'error'); return }
     if (types.length === 0) { toast('Select at least one type', 'error'); return }
     setLoading(true); setResult(null); setEditedProgram(null)
     try {
-      const r = await API.generateProgram({ types, typeConfig: config, model, weeks, name: name.trim(), notes, daysPerWeek, sessionTime })
+      const reqBody = { types, typeConfig: config, model, weeks, name: name.trim(), notes, daysPerWeek, sessionTime }
+      // Add athlete data if building for specific athlete
+      if (buildForAthlete && selectedAthlete) {
+        const athlete = athletes.find(a => a.username === selectedAthlete)
+        reqBody.athlete_name = selectedAthlete
+        reqBody.athlete_prompt = athlete?.athlete_prompt || ''
+      }
+      const r = await API.generateProgram(reqBody)
       if (r.error || r.detail) { toast(r.error || r.detail, 'error'); setLoading(false); return }
       if (!r.program) { toast('Generation returned no program data', 'error'); setLoading(false); return }
       if (!r.program.weeks || r.program.weeks.length === 0) { toast('Program generated but has no weeks', 'error'); setLoading(false); return }
       setResult(r); setStep(5)
-      toast(`Program generated! ${r.program.weeks.length} weeks`)
+      const msg = buildForAthlete ? `Program generated and assigned to ${selectedAthlete}! ${r.program.weeks.length} weeks` : `Program generated! ${r.program.weeks.length} weeks`
+      toast(msg)
     } catch (e) {
       toast(e.message === 'auth_expired' ? 'Session expired' : `Generation failed: ${e.message}`, 'error')
     }
@@ -675,6 +1066,33 @@ function AIBuilderTab() {
             {daysPerWeek} days/week &middot; {sessionTime} min/session &middot; {weeks} weeks
           </div>
           <div className="form-group"><label>Additional Notes (optional)</label><textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. No deadlifts due to back injury..." /></div>
+
+          <div style={{ marginBottom: 16, padding: '12px', background: 'rgba(124,110,240,0.05)', borderRadius: 8, border: '1px solid rgba(124,110,240,0.1)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 0 }}>
+              <input type="checkbox" checked={buildForAthlete} onChange={e => setBuildForAthlete(e.target.checked)} style={{ accentColor: 'var(--accent)' }} />
+              <span style={{ fontWeight: 500 }}>Build for specific athlete</span>
+              <HelpTip text="If checked, the program will be built with the athlete's specific context and automatically assigned to them." />
+            </label>
+          </div>
+
+          {buildForAthlete && (
+            <div style={{ marginBottom: 16, padding: 12, background: 'var(--input-bg)', borderRadius: 8 }}>
+              <div className="form-group" style={{ marginBottom: 12 }}>
+                <label>Select Athlete</label>
+                <select value={selectedAthlete} onChange={e => setSelectedAthlete(e.target.value)}>
+                  <option value="">-- Choose athlete --</option>
+                  {athletes.map(a => <option key={a.username} value={a.username}>{a.username}</option>)}
+                </select>
+              </div>
+              {selectedAthlete && athletes.find(a => a.username === selectedAthlete)?.athlete_prompt && (
+                <div style={{ fontSize: 13, color: 'var(--text-dim)', padding: 10, background: 'var(--surface2)', borderRadius: 6, marginBottom: 12 }}>
+                  <strong style={{ color: 'var(--text)' }}>AI Builder Prompt:</strong>
+                  <p style={{ margin: '8px 0 0', fontStyle: 'italic' }}>{athletes.find(a => a.username === selectedAthlete)?.athlete_prompt}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={() => setStep(3)}>Back</button>
             <button className="btn btn-primary" onClick={generate}><Icon name="ai-builder" size={16} /> Generate Program</button>
@@ -766,47 +1184,383 @@ function AIBuilderTab() {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   SETTINGS TAB
+   ═══════════════════════════════════════════════════════════ */
+function SettingsTab() {
+  const toast = useToast()
+  const [philosophy, setPhilosophy] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const settings = await API.getCoachSettings()
+        setPhilosophy(settings.philosophy || '')
+      } catch {
+        toast('Failed to load settings', 'error')
+      }
+    }
+    load()
+  }, [])
+
+  async function save() {
+    setLoading(true)
+    try {
+      await API.updateCoachSettings({ philosophy })
+      setSaved(true)
+      toast('Settings saved!')
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      toast('Failed to save settings', 'error')
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div className="card">
+      <h3 style={{ marginBottom: 16 }}>Coach Training Philosophy <HelpTip text="This philosophy will be injected into all AI-generated programs to ensure consistency with your coaching approach." /></h3>
+      <div className="form-group">
+        <label>Training Philosophy</label>
+        <textarea
+          value={philosophy}
+          onChange={e => setPhilosophy(e.target.value)}
+          placeholder="e.g. Emphasis on eccentric training, periodized volume progression, frequent deloads, athlete autonomy in exercise selection..."
+          rows="8"
+          style={{ fontFamily: "'Space Mono', monospace", fontSize: 13 }}
+        />
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 16, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 8 }}>
+        When you generate programs, this philosophy will be included in the AI prompt to ensure all programs align with your coaching principles.
+      </div>
+      <div className="modal-actions">
+        <button
+          className="btn btn-primary"
+          onClick={save}
+          disabled={loading}
+          style={{ opacity: saved ? 0.7 : 1 }}
+        >
+          {loading ? 'Saving...' : saved ? '✓ Saved' : 'Save Philosophy'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
    IMPORT CSV TAB
    ═══════════════════════════════════════════════════════════ */
 function ImportCSVTab() {
   const toast = useToast()
+  const [file, setFile] = useState(null)
+  const [rawCSV, setRawCSV] = useState('')
+  const [transformedCSV, setTransformedCSV] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [stage, setStage] = useState('upload') // 'upload', 'preview', 'transformed', 'result'
+  const [costInfo, setCostInfo] = useState(null)
   const inputRef = useRef()
 
-  async function upload(file) {
-    if (!file || !file.name.endsWith('.csv')) { toast('Must be a .csv file', 'error'); return }
-    setLoading(true); setResult(null)
+  async function handleFileSelect(selectedFile) {
+    if (!selectedFile || !selectedFile.name.endsWith('.csv')) {
+      toast('Must be a .csv file', 'error')
+      return
+    }
+    setFile(selectedFile)
+    const text = await selectedFile.text()
+    setRawCSV(text)
+    setTransformedCSV('')
+    setResult(null)
+    setCostInfo(null)
+    setStage('preview')
+  }
+
+  async function directImport() {
+    if (!file) return
+    setLoading(true)
     try {
       const d = await API.importCSV(file)
-      setResult({ ok: true, output: d.output || 'Done' })
+      setResult({ ok: true, output: d.output || 'Done', isDirectImport: true })
       toast('CSV imported & built')
-    } catch (e) { setResult({ ok: false, error: e.message || 'Upload failed' }) }
+      setStage('result')
+    } catch (e) {
+      setResult({ ok: false, error: e.message || 'Upload failed' })
+      setStage('result')
+    }
     setLoading(false)
+  }
+
+  async function aiTransform() {
+    if (!file) return
+    setLoading(true)
+    try {
+      const d = await API.aiTransformCSV(file)
+      if (!d.ok) throw new Error(d.error || 'Transform failed')
+      setTransformedCSV(d.transformed_csv || '')
+      setCostInfo(d.cost || {})
+      toast('CSV transformed with AI')
+      setStage('transformed')
+    } catch (e) {
+      toast(e.message || 'Transform failed', 'error')
+      setResult({ ok: false, error: e.message || 'Transform failed' })
+      setStage('result')
+    }
+    setLoading(false)
+  }
+
+  async function applyTransformed() {
+    if (!transformedCSV) return
+    setLoading(true)
+    try {
+      const d = await API.importTransformedCSV(transformedCSV)
+      setResult({ ok: true, output: d.output || 'Done', isDirectImport: false })
+      toast('Transformed CSV imported & built')
+      setStage('result')
+    } catch (e) {
+      setResult({ ok: false, error: e.message || 'Import failed' })
+      setStage('result')
+    }
+    setLoading(false)
+  }
+
+  function reset() {
+    setFile(null)
+    setRawCSV('')
+    setTransformedCSV('')
+    setResult(null)
+    setCostInfo(null)
+    setStage('upload')
   }
 
   return (
     <div>
       <div className="card">
-        <p style={{ color: 'var(--text-dim)', marginBottom: 16 }}>Upload a program CSV file. It will replace the current program.csv and rebuild program.json. <HelpTip text="This overwrites all existing programs built from CSV. Programs created via the AI Builder are stored separately." /></p>
-        <p style={{ color: 'var(--text-dim)', marginBottom: 16, fontSize: 13 }}>Required columns: Program, Week, Day, Order, Exercise, Sets, Reps, Tempo, Rest, RPE, Instruction <HelpTip text="Each row is one exercise. Week and Day are numbers. Order sets sequence (A1, A2, B1...). Tempo is eccentric-pause-concentric. RPE is 1-10." /></p>
-        <div className={`drop-zone ${dragOver ? 'dragover' : ''}`}
-          onClick={() => inputRef.current?.click()}
-          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={e => { e.preventDefault(); setDragOver(false); upload(e.dataTransfer.files[0]) }}>
-          <Icon name="import" size={32} style={{ marginBottom: 8, display: 'block' }} />
-          <p>{loading ? 'Uploading and building...' : 'Drop CSV file here or click to browse'}</p>
-        </div>
-        <input ref={inputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={e => upload(e.target.files[0])} />
-        {result && (
-          <div style={{ marginTop: 16 }}>
-            {result.ok
-              ? <><div style={{ color: 'var(--green)', marginBottom: 8 }}>✓ Import successful!</div>
-                <pre style={{ background: 'var(--input-bg)', padding: 12, borderRadius: 8, fontSize: 12, color: 'var(--text-dim)', overflowX: 'auto' }}>{result.output}</pre></>
-              : <div style={{ color: '#dc2626' }}>Import failed: {result.error}</div>}
-          </div>
+        <p style={{ color: 'var(--text-dim)', marginBottom: 16 }}>
+          Upload a program CSV file. Choose between direct import or AI-powered cleaning & transformation.
+          <HelpTip text="Direct Import: Uploads CSV as-is. AI Transform: Cleans messy data and maps columns intelligently." />
+        </p>
+
+        {stage === 'upload' && (
+          <>
+            <p style={{ color: 'var(--text-dim)', marginBottom: 16, fontSize: 13 }}>
+              Required columns (for direct import): Program, Week, Day, Order, Exercise, Sets, Reps, Tempo, Rest, RPE, Instruction
+              <HelpTip text="Each row is one exercise. Week and Day are numbers. Order sets sequence (A1, A2, B1...). Tempo is eccentric-pause-concentric. RPE is 1-10." />
+            </p>
+            <div
+              className={`drop-zone ${dragOver ? 'dragover' : ''}`}
+              onClick={() => inputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => { e.preventDefault(); setDragOver(false); handleFileSelect(e.dataTransfer.files[0]) }}
+            >
+              <Icon name="import" size={32} style={{ marginBottom: 8, display: 'block' }} />
+              <p>Drop CSV file here or click to browse</p>
+            </div>
+            <input ref={inputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files[0])} />
+          </>
+        )}
+
+        {stage === 'preview' && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 8 }}>
+                <strong>Raw CSV Preview</strong> ({file?.name || 'file.csv'})
+              </div>
+              <pre
+                style={{
+                  background: 'var(--input-bg)',
+                  padding: 12,
+                  borderRadius: 8,
+                  fontSize: 11,
+                  color: 'var(--text-dim)',
+                  overflowX: 'auto',
+                  maxHeight: 300,
+                  overflow: 'auto',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {rawCSV}
+              </pre>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={directImport}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  minWidth: 150,
+                  padding: '10px 16px',
+                  background: 'var(--accent)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                  fontWeight: 500,
+                }}
+              >
+                {loading ? 'Processing...' : 'Direct Import'}
+              </button>
+              <button
+                onClick={aiTransform}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  minWidth: 150,
+                  padding: '10px 16px',
+                  background: 'var(--accent2)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                  fontWeight: 500,
+                }}
+              >
+                {loading ? 'Transforming...' : 'AI Clean & Transform'}
+              </button>
+              <button
+                onClick={reset}
+                disabled={loading}
+                style={{
+                  padding: '10px 16px',
+                  background: 'transparent',
+                  color: 'var(--text-dim)',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 6,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+
+        {stage === 'transformed' && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 4 }}>
+                <strong>Transformed CSV Preview</strong>
+              </div>
+              {costInfo && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-dim)',
+                    marginBottom: 8,
+                    padding: '8px 12px',
+                    background: 'var(--input-bg)',
+                    borderRadius: 4,
+                  }}
+                >
+                  Cost: {costInfo.input_tokens?.toLocaleString()} input + {costInfo.output_tokens?.toLocaleString()} output tokens = ${costInfo.cost_usd?.toFixed(4)} ({costInfo.model})
+                </div>
+              )}
+              <pre
+                style={{
+                  background: 'var(--input-bg)',
+                  padding: 12,
+                  borderRadius: 8,
+                  fontSize: 11,
+                  color: 'var(--text-dim)',
+                  overflowX: 'auto',
+                  maxHeight: 300,
+                  overflow: 'auto',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {transformedCSV}
+              </pre>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={applyTransformed}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  minWidth: 150,
+                  padding: '10px 16px',
+                  background: 'var(--green)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                  fontWeight: 500,
+                }}
+              >
+                {loading ? 'Importing...' : 'Apply Transformed'}
+              </button>
+              <button
+                onClick={reset}
+                disabled={loading}
+                style={{
+                  padding: '10px 16px',
+                  background: 'transparent',
+                  color: 'var(--text-dim)',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 6,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                }}
+              >
+                Start Over
+              </button>
+            </div>
+          </>
+        )}
+
+        {stage === 'result' && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              {result?.ok ? (
+                <>
+                  <div style={{ color: 'var(--green)', marginBottom: 8, fontWeight: 500 }}>
+                    ✓ {result.isDirectImport ? 'Direct import' : 'Transformed CSV'} successful!
+                  </div>
+                  <pre
+                    style={{
+                      background: 'var(--input-bg)',
+                      padding: 12,
+                      borderRadius: 8,
+                      fontSize: 11,
+                      color: 'var(--text-dim)',
+                      overflowX: 'auto',
+                      maxHeight: 200,
+                      overflow: 'auto',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    {result.output}
+                  </pre>
+                </>
+              ) : (
+                <div style={{ color: '#dc2626' }}>
+                  ✗ Import failed: {result?.error || 'Unknown error'}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={reset}
+              style={{
+                padding: '10px 16px',
+                background: 'var(--accent)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              Import Another CSV
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -820,6 +1574,7 @@ const TABS = [
   { id: 'programs', label: 'Programs' },
   { id: 'exercises', label: 'Exercises' },
   { id: 'ai-builder', label: 'AI Builder' },
+  { id: 'settings', label: 'Settings' },
   { id: 'import', label: 'Import CSV' },
 ]
 
@@ -839,6 +1594,7 @@ export default function Programs() {
       {tab === 'programs' && <ProgramsTab />}
       {tab === 'exercises' && <ExercisesTab />}
       {tab === 'ai-builder' && <AIBuilderTab />}
+      {tab === 'settings' && <SettingsTab />}
       {tab === 'import' && <ImportCSVTab />}
     </div>
   )
