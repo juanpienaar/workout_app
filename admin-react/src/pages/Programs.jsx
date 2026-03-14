@@ -1414,11 +1414,14 @@ function AIBuilderTab() {
                 </div>
               )}
 
-              {/* Rest day button */}
-              <div className="muscle-group" style={{ marginBottom: 10 }}>
-                <div className="muscle-group-header" style={{ cursor: 'pointer' }}
+              {/* Rest day button — disabled if exercises already assigned */}
+              <div className="muscle-group" style={{ marginBottom: 10, opacity: dayPlan[dayPickerOpen].length > 0 && !dayPlan[dayPickerOpen].includes('Rest Day') ? 0.4 : 1 }}>
+                <div className="muscle-group-header" style={{ cursor: dayPlan[dayPickerOpen].length > 0 && !dayPlan[dayPickerOpen].includes('Rest Day') ? 'not-allowed' : 'pointer' }}
                   onClick={() => {
-                    setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], 'Rest Day'] }))
+                    const items = dayPlan[dayPickerOpen]
+                    if (items.length > 0 && !items.includes('Rest Day')) { toast('Remove exercises first to mark as Rest Day'); return }
+                    if (items.includes('Rest Day')) { toast('Already marked as Rest Day'); return }
+                    setDayPlan(prev => ({ ...prev, [dayPickerOpen]: ['Rest Day'] }))
                     toast(`Marked ${dayPickerOpen} as Rest Day`)
                   }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1428,8 +1431,8 @@ function AIBuilderTab() {
                 </div>
               </div>
 
-              {/* Category groups */}
-              {[
+              {/* Category groups — hidden when Rest Day is selected */}
+              {!dayPlan[dayPickerOpen].includes('Rest Day') && [
                 { key: 'strength', label: 'Strength' },
                 { key: 'cardio', label: 'Cardio' },
                 { key: 'crossfit', label: 'CrossFit' },
@@ -1440,7 +1443,7 @@ function AIBuilderTab() {
                 let count = 0
                 if (cat.key === 'cardio') count = Array.isArray(lib) ? lib.length : 0
                 else if (cat.key === 'strength') count = Object.values(lib || {}).reduce((s, arr) => s + arr.length, 0)
-                else if (cat.key === 'crossfit') count = (lib?.movements?.length || 0) + (lib?.benchmarks?.length || 0)
+                else if (cat.key === 'crossfit') count = (lib?.movements?.length || 0) + (lib?.benchmarks?.length || 0) + crossfitOpenWods.length
                 else if (cat.key === 'olympic') count = Object.values(lib || {}).reduce((s, arr) => s + arr.length, 0)
                 return (
                   <div key={cat.key} className="muscle-group" style={{ marginBottom: 10 }}>
@@ -1453,18 +1456,42 @@ function AIBuilderTab() {
                     </div>
                     {isOpen && (
                       <div className="muscle-group-body" style={{ display: 'block' }}>
-                        {cat.key === 'strength' && Object.entries(lib || {}).sort(([a], [b]) => a.localeCompare(b)).map(([group, exercises]) => (
+
+                        {/* STRENGTH: tick checkbox per muscle group + expandable exercises */}
+                        {cat.key === 'strength' && Object.entries(lib || {}).sort(([a], [b]) => a.localeCompare(b)).map(([group, exercises]) => {
+                          const groupTag = `[Strength: ${group}]`
+                          const isGroupSelected = dayPlan[dayPickerOpen].includes(groupTag)
+                          return (
                           <div key={group} style={{ marginBottom: 8 }}>
                             <div className="muscle-group" style={{ marginBottom: 4, border: '1px solid var(--glass-border)' }}>
-                              <div className="muscle-group-header" style={{ padding: '10px 14px' }}
-                                onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`str-${group}`) }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>
-                                    {dayPlannerOpenGroups.has(`str-${group}`) ? '−' : '+'}
-                                  </span>
-                                  <span style={{ fontSize: 13 }}>{group}</span>
+                              <div className="muscle-group-header" style={{ padding: '10px 14px' }}>
+                                {/* Tick to select whole group */}
+                                <div style={{
+                                  width: 20, height: 20, borderRadius: 4, cursor: 'pointer', flexShrink: 0,
+                                  border: isGroupSelected ? '2px solid var(--accent2)' : '2px solid var(--border)',
+                                  background: isGroupSelected ? 'var(--accent2)' : 'transparent',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }} onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (isGroupSelected) {
+                                    setDayPlan(prev => ({ ...prev, [dayPickerOpen]: prev[dayPickerOpen].filter(i => i !== groupTag) }))
+                                    toast(`Removed "${group}" group from ${dayPickerOpen}`)
+                                  } else {
+                                    setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], groupTag] }))
+                                    toast(`Added "${group}" to ${dayPickerOpen} — AI will choose exercises`)
+                                  }
+                                }}>
+                                  {isGroupSelected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                                 </div>
-                                <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{exercises.length}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1, marginLeft: 8 }}
+                                  onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`str-${group}`) }}>
+                                  <span style={{ fontSize: 13 }}>{group}</span>
+                                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>({exercises.length})</span>
+                                </div>
+                                <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12, cursor: 'pointer' }}
+                                  onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup(`str-${group}`) }}>
+                                  {dayPlannerOpenGroups.has(`str-${group}`) ? '−' : '+'}
+                                </span>
                               </div>
                               {dayPlannerOpenGroups.has(`str-${group}`) && (
                                 <div style={{ padding: '6px 14px 10px' }}>
@@ -1482,7 +1509,9 @@ function AIBuilderTab() {
                               )}
                             </div>
                           </div>
-                        ))}
+                        )})}
+
+                        {/* CARDIO */}
                         {cat.key === 'cardio' && (Array.isArray(lib) ? lib : []).map(ex => (
                           <div key={ex} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
                             onClick={() => {
@@ -1493,6 +1522,8 @@ function AIBuilderTab() {
                             <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
                           </div>
                         ))}
+
+                        {/* CROSSFIT: Movements, Benchmarks, Open WODs */}
                         {cat.key === 'crossfit' && (
                           <>
                             <div className="muscle-group" style={{ marginBottom: 8, border: '1px solid var(--glass-border)' }}>
@@ -1537,8 +1568,38 @@ function AIBuilderTab() {
                                 </div>
                               )}
                             </div>
+                            {/* Open WODs */}
+                            <div className="muscle-group" style={{ marginBottom: 8, border: '1px solid var(--glass-border)' }}>
+                              <div className="muscle-group-header" style={{ padding: '10px 14px' }}
+                                onClick={(e) => { e.stopPropagation(); toggleDayPlannerGroup('cf-open') }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span className="drill-toggle drill-toggle-sm" style={{ width: 16, height: 16, fontSize: 12 }}>{dayPlannerOpenGroups.has('cf-open') ? '−' : '+'}</span>
+                                  <span style={{ fontSize: 13 }}>Open WODs</span>
+                                </div>
+                                <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{crossfitOpenWods.length}</span>
+                              </div>
+                              {dayPlannerOpenGroups.has('cf-open') && (
+                                <div style={{ padding: '6px 14px 10px' }}>
+                                  {crossfitOpenWods.map(wod => (
+                                    <div key={wod.name} className="exercise-item" style={{ cursor: 'pointer', padding: '5px 0' }}
+                                      onClick={() => {
+                                        setDayPlan(prev => ({ ...prev, [dayPickerOpen]: [...prev[dayPickerOpen], `Open WOD: ${wod.name} (${wod.format} ${wod.timeCap ? wod.timeCap + ' min' : ''})`] }))
+                                        toast(`Added "Open ${wod.name}" to ${dayPickerOpen}`)
+                                      }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontSize: 13 }}>{wod.name}</span>
+                                        <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{wod.format}{wod.timeCap ? ` / ${wod.timeCap} min` : ''} — {wod.movements.map(m => m.movement).filter((v, i, a) => a.indexOf(v) === i).join(', ')}</span>
+                                      </div>
+                                      <span style={{ color: 'var(--accent2)', fontSize: 18, fontWeight: 300 }}>+</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </>
                         )}
+
+                        {/* OLYMPIC */}
                         {cat.key === 'olympic' && Object.entries(lib || {}).map(([group, lifts]) => (
                           <div key={group} style={{ marginBottom: 8 }}>
                             <div className="muscle-group" style={{ marginBottom: 4, border: '1px solid var(--glass-border)' }}>
@@ -1649,8 +1710,8 @@ function AIBuilderTab() {
             </div>
           )}
 
-          {/* Day-by-day movement planner — only show if NOT using dayplan mode (they already picked exercises in step 1) */}
-          {builderMode !== 'dayplan' && <div style={{ marginTop: 24, padding: 16, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
+          {/* Day-by-day movement planner — only accessible via "By Day Plan" in step 1, hidden here */}
+          {false && <div style={{ marginTop: 24, padding: 16, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
             <h4 style={{ color: 'var(--accent2)', marginBottom: 4 }}>Day Planner (optional)</h4>
             <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
               Assign specific movements to days. The AI will use these preferences when building the program.
