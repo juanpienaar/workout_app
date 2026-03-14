@@ -1,10 +1,12 @@
 """Workout data routes: load, save-day, sync-all, save-whoop."""
 
 import json
+import base64
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import FileResponse
 
 from ..auth import get_current_user
 from ..data import load_user_data, save_user_data, load_users
@@ -135,3 +137,45 @@ async def save_whoop(req: SaveWhoopRequest, current_user: Annotated[dict, Depend
     user_data["whoop_snapshots"] = user_data["whoop_snapshots"][-90:]
     save_user_data(user_key, user_data)
     return {"ok": True}
+
+
+# ── Avatar upload/download ──────────────────────────────────
+
+MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
+
+@router.post("/avatar")
+async def upload_avatar(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """Upload a profile avatar image (max 2MB, jpg/png/webp)."""
+    if file.content_type not in ("image/jpeg", "image/png", "image/webp"):
+        raise HTTPException(400, "Only JPEG, PNG, and WebP images are allowed")
+
+    data = await file.read()
+    if len(data) > MAX_AVATAR_SIZE:
+        raise HTTPException(400, "Image must be under 2MB")
+
+    config.AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Determine extension
+    ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}[file.content_type]
+    user_key = current_user["name"]
+
+    # Remove any existing avatar for this user
+    for old in config.AVATARS_DIR.glob(f"{user_key}.*"):
+        old.unlink()
+
+    avatar_path = config.AVATARS_DIR / f"{user_key}{ext}"
+    with open(avatar_path, "wb") as f:
+        f.write(data)
+
+    return {"ok": True, "url": f"/api/avatar/{user_key}"}
+
+
+@router.get("/avatar/{username}")
+async def get_avatar(username: str):
+    """Serve a user's avatar image. No auth required (public)."""
+    for ext in (".jpg", ".png", ".webp"):
+        p = config.AVATARS_DIR / f"{username}{ext}"
+        if p.exists():
+            media = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}[ext]
+            return FileResponse(p, media_type=media, headers={"Cache-Control": "public, max-age=3600"})
+    raise HTTPException(404, "No avatar found")

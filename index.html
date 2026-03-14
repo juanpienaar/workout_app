@@ -849,6 +849,22 @@ body {
   margin-right: 10px;
   flex-shrink: 0;
   letter-spacing: 0.5px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.user-avatar:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  border-radius: 50%;
 }
 .header-left { display: flex; align-items: center; }
 .header-left-text { display: flex; flex-direction: column; }
@@ -1314,7 +1330,8 @@ body {
 <div id="workoutScreen" class="hidden">
   <div class="header">
     <div class="header-left">
-      <div class="user-avatar" id="headerAvatar"></div>
+      <div class="user-avatar" id="headerAvatar" onclick="document.getElementById('avatarInput').click()" title="Change profile photo"></div>
+      <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="uploadAvatar(this)">
       <div class="header-left-text">
         <h2 id="headerName"></h2>
         <span id="headerProgram"></span>
@@ -1865,6 +1882,42 @@ document.getElementById('verifyCode').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') submitVerification();
 });
 
+// ==================== AVATAR ====================
+function loadAvatar(username, initials) {
+  const el = document.getElementById('headerAvatar');
+  const img = new Image();
+  img.src = `/api/avatar/${encodeURIComponent(username)}?t=${Date.now()}`;
+  img.onload = () => { el.textContent = ''; el.appendChild(img); };
+  img.onerror = () => { el.textContent = initials; };
+}
+
+async function uploadAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); input.value = ''; return; }
+
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch('/api/avatar', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+      body: fd,
+    });
+    if (r.ok) {
+      const nameParts = currentUser.trim().split(/\s+/);
+      const initials = nameParts.length >= 2 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase() : currentUser.slice(0, 2).toUpperCase();
+      loadAvatar(currentUser, initials);
+    } else {
+      const d = await r.json().catch(() => ({}));
+      alert(d.detail || 'Upload failed');
+    }
+  } catch (e) {
+    alert('Upload failed');
+  }
+  input.value = '';
+}
+
 // ==================== USER SELECTION ====================
 async function selectUser(name) {
   currentUser = name;
@@ -1918,10 +1971,10 @@ async function selectUser(name) {
 
   document.getElementById('headerName').textContent = name;
   document.getElementById('headerProgram').textContent = userInfo.program || 'No program';
-  // Set avatar initials
+  // Set avatar — try loading photo first, fall back to initials
   const nameParts = name.trim().split(/\s+/);
   const initials = nameParts.length >= 2 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
-  document.getElementById('headerAvatar').textContent = initials;
+  loadAvatar(name, initials);
 
   if (!program) {
     // No program assigned — show no-program screen
