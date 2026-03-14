@@ -1468,8 +1468,9 @@ function AIBuilderTab() {
                                 {/* Tick to select whole group */}
                                 <div style={{
                                   width: 20, height: 20, borderRadius: 4, cursor: 'pointer', flexShrink: 0,
-                                  border: isGroupSelected ? '2px solid var(--accent2)' : '2px solid var(--border)',
+                                  border: isGroupSelected ? '2px solid var(--accent2)' : '2px solid var(--accent2)',
                                   background: isGroupSelected ? 'var(--accent2)' : 'transparent',
+                                  boxShadow: isGroupSelected ? 'none' : 'inset 0 0 0 1px rgba(167,139,250,0.3)',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 }} onClick={(e) => {
                                   e.stopPropagation()
