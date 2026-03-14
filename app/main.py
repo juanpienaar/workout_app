@@ -9,8 +9,11 @@ from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from fastapi.exceptions import RequestValidationError
+
 from . import config
 from .encryption import migrate_tokens_file
+from .logger import log_event
 from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes, admin_routes
 
 app = FastAPI(title="NumNum Workout", version="1.0.0")
@@ -18,6 +21,25 @@ app = FastAPI(title="NumNum Workout", version="1.0.0")
 # ---- Rate limiting ----
 app.state.limiter = auth_routes.limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ---- Validation error logging ----
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    body = None
+    try:
+        body = await request.body()
+        body = body.decode("utf-8")[:500]
+    except Exception:
+        pass
+    log_event("validation_error", "error", f"Request validation failed: {request.url.path}", {
+        "path": str(request.url.path),
+        "method": request.method,
+        "errors": [{"loc": e.get("loc"), "msg": e.get("msg"), "type": e.get("type")} for e in exc.errors()],
+        "body_preview": body,
+    })
+    return JSONResponse(status_code=422, content={
+        "detail": [{"loc": e.get("loc"), "msg": e.get("msg"), "type": e.get("type")} for e in exc.errors()],
+    })
 
 # ---- CORS ----
 origins = [o.strip() for o in config.CORS_ORIGINS.split(",") if o.strip()]

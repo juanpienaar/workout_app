@@ -1204,10 +1204,15 @@ function AIBuilderTab() {
         reqBody.athlete_name = selectedAthlete
         reqBody.athlete_prompt = athlete?.athlete_prompt || ''
       }
+      console.log('Generate request body:', JSON.stringify(reqBody, null, 2))
       const r = await API.generateProgram(reqBody)
+      console.log('Generate response:', JSON.stringify(r, null, 2))
       if (r.error || r.detail) {
-        setGenerateError(r.error || r.detail)
-        toast(r.error || r.detail, 'error')
+        const errDetail = r.detail
+          ? (Array.isArray(r.detail) ? r.detail.map(d => `${d.loc?.join('.')}: ${d.msg}`).join('; ') : String(r.detail))
+          : r.error
+        setGenerateError(errDetail)
+        toast(errDetail, 'error')
         setLoading(false); return
       }
       if (!r.program) {

@@ -590,6 +590,12 @@ RULES:
 @router.post("/ai/generate")
 async def ai_generate(req: AIGenerateRequest, coach: Annotated[dict, Depends(require_coach)]):
     """Generate a program via Claude AI and save it to program.json."""
+    log_event("ai_generate", "request_received", f"Generate request: '{req.name}'", {
+        "types": req.types, "model": req.model, "weeks": req.weeks, "name": req.name,
+        "daysPerWeek": req.daysPerWeek, "sessionTime": req.sessionTime,
+        "has_dayPlan": bool(req.dayPlan), "progressionStyle": req.progressionStyle,
+        "has_dayPlanPrompt": bool(req.dayPlanPrompt), "athlete_name": req.athlete_name,
+    })
     # Load coach philosophy if available
     coach_philosophy = ""
     settings_path = config.DATA_DIR / "coach_settings.json"
