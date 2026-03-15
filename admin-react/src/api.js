@@ -85,16 +85,20 @@ export const API = {
   // AI Builder
   generateProgram: (config, timeoutMs = 300000) => {
     const opts = { method: 'POST', body: JSON.stringify(config) }
-    if (timeoutMs && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
-      opts.signal = AbortSignal.timeout(timeoutMs)
-    }
+    try {
+      if (timeoutMs && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+        opts.signal = AbortSignal.timeout(timeoutMs)
+      }
+    } catch (_) { /* Safari may throw on AbortSignal.timeout */ }
     return authFetch('/api/admin/ai/generate', opts).then(r => r.json())
   },
   modifyProgram: (data, timeoutMs = 300000) => {
     const opts = { method: 'POST', body: JSON.stringify(data) }
-    if (timeoutMs && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
-      opts.signal = AbortSignal.timeout(timeoutMs)
-    }
+    try {
+      if (timeoutMs && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+        opts.signal = AbortSignal.timeout(timeoutMs)
+      }
+    } catch (_) { /* Safari may throw on AbortSignal.timeout */ }
     return authFetch('/api/admin/ai/modify-program', opts).then(r => r.json())
   },
   getCosts: () => authFetch('/api/admin/ai/costs').then(r => r.json()),

@@ -1292,9 +1292,27 @@ function AIBuilderTab() {
       const msg = buildForAthlete ? `Program generated and assigned to ${selectedAthlete}! ${r.program.weeks.length} weeks` : `Program generated! ${r.program.weeks.length} weeks`
       toast(msg)
     } catch (e) {
-      const errMsg = e.message === 'auth_expired' ? 'Session expired' : `Generation failed: ${e.message}`
-      setGenerateError(errMsg)
-      toast(errMsg, 'error')
+      if (e.message === 'auth_expired') {
+        setGenerateError('Session expired')
+        toast('Session expired', 'error')
+      } else {
+        // The backend may have succeeded even if the fetch errored (e.g. Safari AbortSignal bug)
+        // Try to load the program from the library as a fallback
+        try {
+          const saved = await API.getProgram(name.trim())
+          if (saved && saved.weeks && saved.weeks.length > 0) {
+            setGenerateError(null)
+            setResult({ program: saved, cost: null })
+            setStep(5)
+            toast(`Program loaded from library (${saved.weeks.length} weeks)`)
+            setLoading(false)
+            return
+          }
+        } catch (_) { /* fallback failed, show original error */ }
+        const errMsg = `Generation failed: ${e.message}`
+        setGenerateError(errMsg)
+        toast(errMsg, 'error')
+      }
     }
     setLoading(false)
   }
