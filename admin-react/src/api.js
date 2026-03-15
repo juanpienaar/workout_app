@@ -41,6 +41,7 @@ export const API = {
   deleteUser: (name) => authFetch(`/api/admin/users/${encodeURIComponent(name)}`, { method: 'DELETE' }).then(r => r.json()),
   getUserData: (name) => authFetch(`/api/admin/users/${encodeURIComponent(name)}/data`).then(r => r.json()),
   getUserMetrics: (name) => authFetch(`/api/admin/users/${encodeURIComponent(name)}/metrics`).then(r => r.json()),
+  updateAthleteProgram: (name, program) => authFetch(`/api/admin/users/${encodeURIComponent(name)}/program`, { method: 'PUT', body: JSON.stringify({ program }) }).then(r => r.json()),
   getTargetWeights: (name) => authFetch(`/api/admin/users/${encodeURIComponent(name)}/target-weights`).then(r => r.json()),
   setTargetWeights: (name, weights) => authFetch(`/api/admin/users/${encodeURIComponent(name)}/target-weights`, { method: 'PUT', body: JSON.stringify({ target_weights: weights }) }).then(r => r.json()),
 

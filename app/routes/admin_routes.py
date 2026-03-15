@@ -216,6 +216,22 @@ async def set_target_weights(username: str, body: dict, coach: Annotated[dict, D
     return {"ok": True}
 
 
+@router.put("/users/{username}/program")
+async def update_athlete_program(username: str, body: dict, coach: Annotated[dict, Depends(require_coach)]):
+    """Update an athlete's assigned program (or specific weeks/days)."""
+    users = load_users()
+    if username not in users:
+        raise HTTPException(404, "User not found")
+    data = load_user_data(username)
+    if "assigned_program" not in data:
+        raise HTTPException(400, "Athlete has no assigned program")
+    program = body.get("program")
+    if program:
+        data["assigned_program"] = program
+    save_user_data(username, data)
+    return {"ok": True}
+
+
 @router.get("/debug/data-status")
 async def debug_data_status(coach: Annotated[dict, Depends(require_coach)]):
     """Debug endpoint — shows what data files exist and their sizes."""

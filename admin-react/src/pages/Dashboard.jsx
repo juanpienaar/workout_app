@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+// recharts removed — tonnage chart replaced by calendar view
 import { API } from '../api'
 import { authFetch } from '../api'
 import { useToast } from '../components/Toast'
@@ -328,6 +328,423 @@ function TabBar({ tabs, activeTab, onTabChange }) {
   )
 }
 
+/* ─── Calendar Overview Component ───────────────────── */
+
+function getMonday(date) {
+  const d = new Date(date)
+  const day = d.getDay()
+  d.setDate(d.getDate() - ((day + 6) % 7))
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function addDays(date, n) {
+  const d = new Date(date)
+  d.setDate(d.getDate() + n)
+  return d
+}
+
+function fmtShort(date) {
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
+  const [calAthlete, setCalAthlete] = useState('')
+  const [weekOffset, setWeekOffset] = useState(0) // 0 = current week, -1 = last week, etc
+  const [editingEx, setEditingEx] = useState(null) // {weekIdx, dayIdx, groupIdx, exIdx, field}
+  const [editVal, setEditVal] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [expandedDay, setExpandedDay] = useState(null) // dayIdx to expand on mobile
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+  // Auto-select first athlete
+  useEffect(() => {
+    if (!calAthlete && athletes.length > 0) setCalAthlete(athletes[0].username)
+  }, [athletes])
+
+  const athleteData = userData[calAthlete]
+  const program = athleteData?.assigned_program
+  const startDateStr = athleteData?.assigned_program_date || ''
+  const startDate = startDateStr ? new Date(startDateStr + 'T00:00:00') : null
+
+  // Calculate the Monday of the displayed week
+  const currentMonday = getMonday(new Date())
+  const displayMonday = addDays(currentMonday, weekOffset * 7)
+
+  // Map calendar dates to program days
+  const calendarDays = useMemo(() => {
+    const days = []
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(displayMonday, i)
+      const dateStr = date.toISOString().slice(0, 10)
+      let programDay = null
+      let weekIdx = -1
+      let dayIdx = -1
+
+      if (program && startDate) {
+        const daysSinceStart = Math.floor((date - startDate) / (1000 * 60 * 60 * 24))
+        if (daysSinceStart >= 0) {
+          const allDays = []
+          for (const [wi, week] of (program.weeks || []).entries()) {
+            for (const [di, day] of (week.days || []).entries()) {
+              allDays.push({ weekIdx: wi, dayIdx: di, day, weekNum: week.week || wi + 1 })
+            }
+          }
+          if (daysSinceStart < allDays.length) {
+            const match = allDays[daysSinceStart]
+            programDay = match.day
+            weekIdx = match.weekIdx
+            dayIdx = match.dayIdx
+          }
+        }
+      }
+
+      // Also get logged data for this date
+      const logs = athleteData?.workout_logs || {}
+      const logEntry = Object.values(logs).find(l => l.meta?.date === dateStr)
+
+      days.push({ date, dateStr, programDay, weekIdx, dayIdx, logEntry })
+    }
+    return days
+  }, [program, startDate, displayMonday, athleteData])
+
+  // Week label
+  const weekLabel = (() => {
+    if (weekOffset === 0) return 'This Week'
+    if (weekOffset === 1) return 'Next Week'
+    if (weekOffset === -1) return 'Last Week'
+    const from = fmtShort(displayMonday)
+    const to = fmtShort(addDays(displayMonday, 6))
+    return `${from} – ${to}`
+  })()
+
+  // Program week number for display
+  const programWeekNum = (() => {
+    if (!startDate || !program) return null
+    const daysSinceStart = Math.floor((displayMonday - startDate) / (1000 * 60 * 60 * 24))
+    if (daysSinceStart < 0) return null
+    const weekNum = Math.floor(daysSinceStart / 7) + 1
+    const totalWeeks = (program.weeks || []).length
+    return weekNum <= totalWeeks ? weekNum : null
+  })()
+
+  // Exercise editing
+  function startEdit(weekIdx, dayIdx, groupIdx, exIdx, field, value) {
+    setEditingEx({ weekIdx, dayIdx, groupIdx, exIdx, field })
+    setEditVal(value || '')
+  }
+
+  async function commitEdit() {
+    if (!editingEx || !program) return
+    const { weekIdx, dayIdx, groupIdx, exIdx, field } = editingEx
+    const updated = JSON.parse(JSON.stringify(program))
+    updated.weeks[weekIdx].days[dayIdx].exerciseGroups[groupIdx].exercises[exIdx][field] = editVal
+    setEditingEx(null)
+    await saveProgram(updated)
+  }
+
+  function moveExercise(weekIdx, dayIdx, groupIdx, exIdx, direction) {
+    if (!program) return
+    const updated = JSON.parse(JSON.stringify(program))
+    const day = updated.weeks[weekIdx].days[dayIdx]
+    // Flatten all exercises
+    const flat = []
+    for (const g of (day.exerciseGroups || [])) {
+      for (const ex of (g.exercises || [])) flat.push(ex)
+    }
+    let flatIdx = 0
+    for (let g = 0; g < (day.exerciseGroups || []).length; g++) {
+      for (let e = 0; e < (day.exerciseGroups[g].exercises || []).length; e++) {
+        if (g === groupIdx && e === exIdx) { flatIdx = flat.indexOf(day.exerciseGroups[g].exercises[e]); break }
+      }
+    }
+    // Recalculate flat index properly
+    flatIdx = 0
+    outer: for (let g = 0; g < (day.exerciseGroups || []).length; g++) {
+      for (let e = 0; e < (day.exerciseGroups[g].exercises || []).length; e++) {
+        if (g === groupIdx && e === exIdx) break outer
+        flatIdx++
+      }
+    }
+    const newIdx = flatIdx + direction
+    if (newIdx < 0 || newIdx >= flat.length) return
+    ;[flat[flatIdx], flat[newIdx]] = [flat[newIdx], flat[flatIdx]]
+    // Rebuild as single groups
+    day.exerciseGroups = flat.map((ex, i) => ({ type: 'single', exercises: [{ ...ex, order: String(i + 1) }] }))
+    saveProgram(updated)
+  }
+
+  function removeExercise(weekIdx, dayIdx, groupIdx, exIdx) {
+    if (!program) return
+    const updated = JSON.parse(JSON.stringify(program))
+    const g = updated.weeks[weekIdx].days[dayIdx].exerciseGroups[groupIdx]
+    g.exercises.splice(exIdx, 1)
+    if (g.exercises.length === 0) updated.weeks[weekIdx].days[dayIdx].exerciseGroups.splice(groupIdx, 1)
+    let order = 1
+    for (const grp of updated.weeks[weekIdx].days[dayIdx].exerciseGroups) {
+      for (const ex of grp.exercises) ex.order = String(order++)
+    }
+    saveProgram(updated)
+  }
+
+  async function saveProgram(updated) {
+    setSaving(true)
+    try {
+      await API.updateAthleteProgram(calAthlete, updated)
+      // Update local state
+      setUserData(prev => ({
+        ...prev,
+        [calAthlete]: { ...prev[calAthlete], assigned_program: updated }
+      }))
+      toast('Program updated')
+    } catch { toast('Save failed', 'error') }
+    setSaving(false)
+  }
+
+  const isToday = (date) => {
+    const today = new Date()
+    return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate()
+  }
+
+  const isPast = (date) => {
+    const today = new Date()
+    today.setHours(0,0,0,0)
+    return date < today
+  }
+
+  return (
+    <div>
+      {loading && <p style={{ color: 'var(--text-dim)' }}>Loading athletes...</p>}
+
+      {!loading && (
+        <>
+          {/* Athlete selector + week nav */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <select value={calAthlete} onChange={e => { setCalAthlete(e.target.value); setWeekOffset(0) }}
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>
+                {athletes.map(a => (
+                  <option key={a.username} value={a.username}>{a.username}</option>
+                ))}
+              </select>
+              {program && <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{program.name || 'Program'}</span>}
+              {programWeekNum && <span style={{ fontSize: 11, color: 'var(--accent2)', fontWeight: 600 }}>Week {programWeekNum}</span>}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={() => setWeekOffset(w => w - 1)}
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', cursor: 'pointer', padding: '4px 10px', fontSize: 13 }}>◀</button>
+              <button onClick={() => setWeekOffset(0)}
+                style={{ background: weekOffset === 0 ? 'var(--accent2)' : 'none', border: '1px solid var(--border)', borderRadius: 6, color: weekOffset === 0 ? '#fff' : 'var(--text)', cursor: 'pointer', padding: '4px 12px', fontSize: 12, fontWeight: 600, minWidth: 100, textAlign: 'center' }}>
+                {weekLabel}
+              </button>
+              <button onClick={() => setWeekOffset(w => w + 1)}
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', cursor: 'pointer', padding: '4px 10px', fontSize: 13 }}>▶</button>
+            </div>
+          </div>
+
+          {saving && <div style={{ fontSize: 11, color: 'var(--accent2)', marginBottom: 8 }}>Saving...</div>}
+
+          {!program ? (
+            <div className="card" style={{ textAlign: 'center', padding: 40 }}>
+              <p style={{ color: 'var(--text-dim)' }}>No program assigned to {calAthlete}.</p>
+              <p style={{ fontSize: 12, color: 'var(--muted2)' }}>Assign a program in the Athletes tab first.</p>
+            </div>
+          ) : (
+            /* Calendar grid */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, width: '100%' }}>
+              {/* Day headers */}
+              {DAY_LABELS.map((d, i) => (
+                <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {d}
+                </div>
+              ))}
+
+              {/* Day cells */}
+              {calendarDays.map((cd, i) => {
+                const today = isToday(cd.date)
+                const past = isPast(cd.date)
+                const hasLog = !!cd.logEntry
+                const day = cd.programDay
+                const isRest = day?.isRest
+                const exercises = []
+                if (day && !isRest) {
+                  for (const [gi, group] of (day.exerciseGroups || []).entries()) {
+                    for (const [ei, ex] of (group.exercises || []).entries()) {
+                      exercises.push({ ...ex, _gi: gi, _ei: ei })
+                    }
+                  }
+                }
+                const completion = hasLog ? getCompletionPct(cd.logEntry.data || {}) : null
+
+                return (
+                  <div key={cd.dateStr} style={{
+                    background: today ? 'rgba(124,110,240,0.08)' : 'var(--surface)',
+                    border: today ? '2px solid var(--accent2)' : '1px solid var(--border)',
+                    borderRadius: 10, padding: 8, minHeight: 120,
+                    opacity: !day && past ? 0.4 : 1,
+                    display: 'flex', flexDirection: 'column',
+                  }}>
+                    {/* Date header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: today ? 700 : 500, color: today ? 'var(--accent2)' : 'var(--text)' }}>
+                        {cd.date.getDate()}
+                      </span>
+                      {completion !== null && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 4,
+                          background: completion === 100 ? 'rgba(45,212,191,0.15)' : completion >= 50 ? 'rgba(255,193,7,0.15)' : 'rgba(124,110,240,0.1)',
+                          color: completion === 100 ? 'var(--teal)' : completion >= 50 ? '#ffc107' : 'var(--accent2)',
+                        }}>
+                          {completion}%
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Rest day */}
+                    {isRest && (
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-dim)', fontStyle: 'italic' }}>Rest Day</span>
+                      </div>
+                    )}
+
+                    {/* No program day */}
+                    {!day && (
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 10, color: 'var(--muted2)' }}>—</span>
+                      </div>
+                    )}
+
+                    {/* Exercises */}
+                    {exercises.length > 0 && (
+                      <div style={{ flex: 1, overflow: 'auto', fontSize: 10 }}>
+                        {exercises.map((ex, fi) => {
+                          const isEditingName = editingEx?.weekIdx === cd.weekIdx && editingEx?.dayIdx === cd.dayIdx && editingEx?.groupIdx === ex._gi && editingEx?.exIdx === ex._ei && editingEx?.field === 'name'
+                          return (
+                            <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '2px 0', borderBottom: fi < exercises.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                              <span style={{ color: 'var(--accent2)', fontSize: 9, width: 12, flexShrink: 0 }}>{ex.order}</span>
+                              {isEditingName ? (
+                                <input value={editVal} onChange={e => setEditVal(e.target.value)}
+                                  onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
+                                  autoFocus style={{ flex: 1, fontSize: 10, padding: '1px 3px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 3, color: 'var(--text)', minWidth: 0 }} />
+                              ) : (
+                                <span style={{ flex: 1, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}
+                                  onClick={() => startEdit(cd.weekIdx, cd.dayIdx, ex._gi, ex._ei, 'name', ex.name)}
+                                  title={`${ex.name} · ${ex.sets}×${ex.reps} · Click to edit`}>
+                                  {ex.name}
+                                </span>
+                              )}
+                              <span style={{ color: 'var(--text-dim)', fontSize: 9, flexShrink: 0 }}>{ex.sets}×{ex.reps}</span>
+                              <div style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
+                                <button onClick={() => moveExercise(cd.weekIdx, cd.dayIdx, ex._gi, ex._ei, -1)}
+                                  disabled={fi === 0} title="Move up"
+                                  style={{ background: 'none', border: 'none', cursor: fi === 0 ? 'default' : 'pointer', color: fi === 0 ? 'var(--border)' : 'var(--accent2)', fontSize: 8, padding: '0 1px', lineHeight: 1 }}>▲</button>
+                                <button onClick={() => moveExercise(cd.weekIdx, cd.dayIdx, ex._gi, ex._ei, 1)}
+                                  disabled={fi === exercises.length - 1} title="Move down"
+                                  style={{ background: 'none', border: 'none', cursor: fi === exercises.length - 1 ? 'default' : 'pointer', color: fi === exercises.length - 1 ? 'var(--border)' : 'var(--accent2)', fontSize: 8, padding: '0 1px', lineHeight: 1 }}>▼</button>
+                                <button onClick={() => removeExercise(cd.weekIdx, cd.dayIdx, ex._gi, ex._ei)} title="Remove"
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 9, padding: '0 1px', lineHeight: 1 }}>×</button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Second week row */}
+          {program && (() => {
+            const nextMonday = addDays(displayMonday, 7)
+            const nextDays = []
+            for (let i = 0; i < 7; i++) {
+              const date = addDays(nextMonday, i)
+              const dateStr = date.toISOString().slice(0, 10)
+              let programDay = null, weekIdx = -1, dayIdx = -1
+              if (program && startDate) {
+                const daysSinceStart = Math.floor((date - startDate) / (1000 * 60 * 60 * 24))
+                if (daysSinceStart >= 0) {
+                  const allDays = []
+                  for (const [wi, week] of (program.weeks || []).entries()) {
+                    for (const [di, day] of (week.days || []).entries()) {
+                      allDays.push({ weekIdx: wi, dayIdx: di, day, weekNum: week.week || wi + 1 })
+                    }
+                  }
+                  if (daysSinceStart < allDays.length) {
+                    const match = allDays[daysSinceStart]
+                    programDay = match.day; weekIdx = match.weekIdx; dayIdx = match.dayIdx
+                  }
+                }
+              }
+              const logs = athleteData?.workout_logs || {}
+              const logEntry = Object.values(logs).find(l => l.meta?.date === dateStr)
+              nextDays.push({ date, dateStr, programDay, weekIdx, dayIdx, logEntry })
+            }
+
+            const nextWeekNum = (() => {
+              if (!startDate) return null
+              const daysSinceStart = Math.floor((nextMonday - startDate) / (1000 * 60 * 60 * 24))
+              if (daysSinceStart < 0) return null
+              const wn = Math.floor(daysSinceStart / 7) + 1
+              const totalWeeks = (program.weeks || []).length
+              return wn <= totalWeeks ? wn : null
+            })()
+
+            return (
+              <>
+                <div style={{ margin: '12px 0 6px', fontSize: 12, color: 'var(--text-dim)', fontWeight: 600 }}>
+                  Following Week {nextWeekNum ? <span style={{ color: 'var(--accent2)' }}>(Week {nextWeekNum})</span> : ''}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, width: '100%' }}>
+                  {nextDays.map((cd) => {
+                    const day = cd.programDay
+                    const isRest = day?.isRest
+                    const exercises = []
+                    if (day && !isRest) {
+                      for (const [gi, group] of (day.exerciseGroups || []).entries()) {
+                        for (const [ei, ex] of (group.exercises || []).entries()) {
+                          exercises.push({ ...ex, _gi: gi, _ei: ei })
+                        }
+                      }
+                    }
+                    return (
+                      <div key={cd.dateStr} style={{
+                        background: 'var(--surface)', border: '1px solid var(--border)',
+                        borderRadius: 10, padding: 8, minHeight: 100, opacity: 0.85,
+                        display: 'flex', flexDirection: 'column',
+                      }}>
+                        <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-dim)', marginBottom: 4 }}>
+                          {cd.date.getDate()} {cd.date.toLocaleDateString('en-GB', { month: 'short' })}
+                        </div>
+                        {isRest && <div style={{ fontSize: 10, color: 'var(--text-dim)', fontStyle: 'italic', textAlign: 'center', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Rest</div>}
+                        {!day && <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 10, color: 'var(--muted2)' }}>—</span></div>}
+                        {exercises.length > 0 && (
+                          <div style={{ fontSize: 10, overflow: 'auto' }}>
+                            {exercises.map((ex, fi) => (
+                              <div key={fi} style={{ display: 'flex', gap: 4, padding: '1px 0', alignItems: 'center' }}>
+                                <span style={{ color: 'var(--accent2)', fontSize: 9, width: 12 }}>{ex.order}</span>
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{ex.name}</span>
+                                <span style={{ color: 'var(--text-dim)', fontSize: 9 }}>{ex.sets}×{ex.reps}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )
+          })()}
+        </>
+      )}
+    </div>
+  )
+}
+
+
 /* ─── main component ─────────────────────────────── */
 
 export default function Dashboard() {
@@ -588,237 +1005,9 @@ export default function Dashboard() {
 
       <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* ─── OVERVIEW TAB ─── */}
+      {/* ─── OVERVIEW TAB — Calendar View ─── */}
       {activeTab === 'overview' && (
-        <div>
-          {loading && <p style={{ color: 'var(--text-dim)' }}>Loading athletes...</p>}
-
-          {debugInfo && !selected && (
-            <div className="card" style={{ marginBottom: 16, fontSize: 12 }}>
-              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <h3>Data Status</h3>
-                <button onClick={() => setDebugInfo(null)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>✕</button>
-              </div>
-              <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace", fontSize: 11, padding: '8px 0' }}>
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </div>
-          )}
-
-          {/* Athlete cards grid */}
-          {!loading && !selected && (
-            <div>
-              <button onClick={fetchDebugInfo} style={{ marginBottom: 16, fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--glass-border)', background: 'var(--surface)', color: 'var(--text-dim)', cursor: 'pointer' }}>
-                Debug
-              </button>
-              <div className="athlete-grid">
-                {athletes.length === 0 && <p style={{ color: 'var(--text-dim)' }}>No athletes found.</p>}
-                {athletes.map(u => {
-                  const s = summaries[u.username] || {}
-                  const logs = userData[u.username]?.workout_logs || {}
-                  const validLogs = Object.entries(logs).filter(([k]) => !k.startsWith('cardio_') && !k.startsWith('skips_'))
-                  const lastLog = validLogs.sort(([,a], [,b]) => (b.saved_at || '').localeCompare(a.saved_at || ''))[0]?.[1]
-                  const lastDate = lastLog?.meta?.date
-                  return (
-                    <div key={u.username} className="athlete-card" onClick={() => { setSelected(u.username); setExpandedDay(null) }}>
-                      <div className="athlete-card-header">
-                        <div className="athlete-avatar">{u.username.charAt(0).toUpperCase()}</div>
-                        <div>
-                          <div className="athlete-name">{u.username}</div>
-                          <div className="athlete-program">{u.program || 'No program'}</div>
-                        </div>
-                      </div>
-                      <div className="athlete-card-label">This week</div>
-                      <div className="athlete-week-stats">
-                        <div className="athlete-stat">
-                          <div className="athlete-stat-val">{s.sessions || 0}</div>
-                          <div className="athlete-stat-lbl">Sessions</div>
-                        </div>
-                        <div className="athlete-stat">
-                          <div className="athlete-stat-val">{s.exercises || 0}</div>
-                          <div className="athlete-stat-lbl">Exercises</div>
-                        </div>
-                        <div className="athlete-stat">
-                          <div className="athlete-stat-val">{fmtTonnage(s.tonnage || 0)}</div>
-                          <div className="athlete-stat-lbl">Tonnage <HelpTip text="Total weight × reps across all sets this week. Cardio exercises are excluded." /></div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                        <div style={{ fontSize: 10, color: 'var(--muted2)', fontFamily: "'Space Mono', monospace" }}>
-                          {lastDate ? `Last: ${formatDate(lastDate)}` : 'No sessions yet'}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'var(--muted2)', fontFamily: "'Space Mono', monospace" }}>
-                          {validLogs.length} total
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Selected athlete detail */}
-          {selected && (
-            <>
-              <button className="btn btn-secondary btn-sm" style={{ marginBottom: 16 }} onClick={() => setSelected(null)}>← All Athletes</button>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                <div className="athlete-avatar" style={{ width: 48, height: 48, fontSize: 20 }}>
-                  {selected.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 600 }}>{selected}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace" }}>
-                    {userInfo?.program || 'No program'} · {userInfo?.email || ''}
-                  </div>
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="stats-row">
-                <div className="stat-card"><div className="stat-value">{totalSessions}</div><div className="stat-label">Sessions</div></div>
-                <div className="stat-card"><div className="stat-value">{fmtTonnage(totalTonnage)}</div><div className="stat-label">Total Tonnage <HelpTip text="Total weight × reps across all logged sessions. Higher = more training volume." /></div></div>
-                <div className="stat-card">
-                  <div className="stat-value" style={{ color: avgCompletion >= 80 ? 'var(--teal)' : avgCompletion >= 50 ? 'var(--nn-gold)' : 'var(--accent)' }}>
-                    {avgCompletion}%
-                  </div>
-                  <div className="stat-label">Avg Completion <HelpTip text="Green (80%+) = on track. Gold (50-79%) = needs attention. Purple (<50%) = falling behind." /></div>
-                </div>
-                <div className="stat-card"><div className="stat-value">{latestWhoop ? Math.round(latestWhoop.recovery_score || 0) + '%' : '—'}</div><div className="stat-label">Recovery <HelpTip text="From Whoop integration. Shows the athlete's latest recovery score. '—' means Whoop is not connected." /></div></div>
-              </div>
-
-              {/* Chart */}
-              {chartData.length > 0 && (
-                <div className="chart-container">
-                  <h4>Tonnage Over Time</h4>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(42,42,74,0.3)" />
-                      <XAxis dataKey="date" tick={{ fill: '#888', fontSize: 10 }} />
-                      <YAxis tick={{ fill: '#888' }} />
-                      <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #2a2a4a', borderRadius: 8, fontSize: 12 }} formatter={v => [v + ' kg', 'Tonnage']} />
-                      <Bar dataKey="tonnage" fill="rgba(124,110,240,0.6)" stroke="#7c6ef0" strokeWidth={1} radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* Activity grouped by week */}
-              {logEntries.length === 0 ? (
-                <div className="card">
-                  <div className="card-header"><h3>Activity Log</h3></div>
-                  <p style={{ color: 'var(--text-dim)', padding: '12px 0' }}>No workouts recorded yet.</p>
-                  <p style={{ color: 'var(--muted2)', fontSize: 11 }}>
-                    Workouts sync when the athlete logs sets in the app. Check the Debug panel to verify data files exist on the server.
-                  </p>
-                </div>
-              ) : (
-                weekGroups.map(([weekNum, entries]) => {
-                  const weekTonnage = entries.reduce((s, e) => s + e.tonnage, 0)
-                  const weekCompletion = Math.round(entries.reduce((s, e) => s + e.completion, 0) / entries.length)
-                  return (
-                    <div key={weekNum} className="card" style={{ marginBottom: 12 }}>
-                      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3>Week {weekNum}</h3>
-                        <div style={{ display: 'flex', gap: 16, fontSize: 11, fontFamily: "'Space Mono', monospace" }}>
-                          <span style={{ color: 'var(--accent2)' }}>{entries.length} session{entries.length !== 1 ? 's' : ''}</span>
-                          <span style={{ color: 'var(--teal)' }}>{fmtTonnage(weekTonnage)}</span>
-                          <span style={{ color: weekCompletion >= 80 ? 'var(--teal)' : 'var(--nn-gold)' }}>{weekCompletion}%</span>
-                        </div>
-                      </div>
-
-                      {entries.map(e => {
-                        const isExpanded = expandedDay === e.dayKey
-                        return (
-                          <div key={e.dayKey}>
-                            <div
-                              onClick={() => setExpandedDay(isExpanded ? null : e.dayKey)}
-                              style={{
-                                display: 'grid', gridTemplateColumns: '1fr auto auto auto',
-                                gap: 12, alignItems: 'center', padding: '10px 0',
-                                borderBottom: '1px solid rgba(255,255,255,0.04)',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              <div>
-                                <div style={{ fontSize: 13, fontWeight: 500 }}>
-                                  {formatDate(e.date)}
-                                  <span style={{ color: 'var(--text-dim)', marginLeft: 8, fontSize: 11 }}>D{e.day}</span>
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--muted2)' }}>
-                                  {e.exercises} exercise{e.exercises !== 1 ? 's' : ''}{e.label ? ` · ${e.label}` : ''}
-                                </div>
-                              </div>
-                              <div style={{ fontSize: 12, color: e.completion === 100 ? 'var(--teal)' : e.completion >= 50 ? 'var(--nn-gold)' : 'var(--text-dim)', fontWeight: 600, minWidth: 40, textAlign: 'right' }}>
-                                {e.completion}%
-                              </div>
-                              <div style={{ fontSize: 12, color: 'var(--accent2)', fontWeight: 600, fontFamily: "'Space Mono', monospace", minWidth: 70, textAlign: 'right' }}>
-                                {e.tonnage > 0 ? fmtTonnage(e.tonnage) : '—'}
-                              </div>
-                              <div style={{ fontSize: 14, color: 'var(--text-dim)', width: 20, textAlign: 'center' }}>
-                                {isExpanded ? '▾' : '▸'}
-                              </div>
-                            </div>
-
-                            {isExpanded && (
-                              <div style={{ padding: '8px 0 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                {Object.entries(e.exData).map(([exName, exDetail]) => {
-                                  const sets = parseSets(exDetail)
-                                  const notes = typeof exDetail === 'object' && !Array.isArray(exDetail) ? exDetail.notes : null
-                                  const cardio = isCardioExercise(exName)
-                                  return (
-                                    <div key={exName} style={{ marginBottom: 12 }}>
-                                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
-                                        {exName}
-                                        {cardio && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(45,212,191,0.15)', color: 'var(--teal)' }}>CARDIO</span>}
-                                      </div>
-                                      {sets.length > 0 && (
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr auto', gap: '2px 12px', fontSize: 12, fontFamily: "'Space Mono', monospace" }}>
-                                          <div style={{ color: 'var(--muted2)', fontSize: 10 }}>SET</div>
-                                          <div style={{ color: 'var(--muted2)', fontSize: 10 }}>{cardio ? 'DIST/LAPS' : 'WEIGHT'}</div>
-                                          <div style={{ color: 'var(--muted2)', fontSize: 10 }}>{cardio ? 'TIME' : 'REPS'}</div>
-                                          <div style={{ color: 'var(--muted2)', fontSize: 10 }}>DONE</div>
-                                          {sets.map(s => (
-                                            <React.Fragment key={s.num}>
-                                              <div style={{ color: 'var(--text-dim)' }}>{s.num}</div>
-                                              <div>{s.weight || '—'}{s.weight && !cardio ? ' kg' : ''}</div>
-                                              <div>{s.reps || s.actualReps || '—'}</div>
-                                              <div style={{ color: s.done ? 'var(--teal)' : 'var(--text-dim)' }}>{s.done ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> : '–'}</div>
-                                            </React.Fragment>
-                                          ))}
-                                        </div>
-                                      )}
-                                      {notes && <div style={{ fontSize: 11, color: 'var(--text-dim)', fontStyle: 'italic', marginTop: 4 }}>"{notes}"</div>}
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })
-              )}
-
-              {/* Whoop */}
-              {whoop.length > 0 && (
-                <div className="card" style={{ marginTop: 12 }}>
-                  <div className="card-header"><h3>Whoop (Last {Math.min(whoop.length, 7)})</h3></div>
-                  {whoop.slice(-7).reverse().map((s, i) => (
-                    <div key={i} className="log-row">
-                      <span className="date">{(s.date || '').slice(0, 10)}</span>
-                      <span>Recovery: {s.recovery_score || '—'}% · Sleep: {s.sleep_score || '—'}</span>
-                      <span className="tonnage">{s.strain_score ? s.strain_score.toFixed(1) : '—'} strain</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        <CalendarOverview athletes={athletes} userData={userData} setUserData={setUserData} loading={loading} toast={toast} />
       )}
 
       {/* ─── ATHLETES TAB ─── */}
