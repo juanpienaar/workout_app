@@ -897,15 +897,24 @@ export default function Dashboard() {
           (d.users || []).map(async u => {
             try {
               const ud = await API.getUserData(u.username)
+              // If user has a program name in users.json but no assigned_program in user_data,
+              // load the program from the library so the calendar can display it
+              if (!ud.assigned_program && u.program) {
+                try {
+                  const libProg = await API.getProgram(u.program)
+                  if (libProg && libProg.weeks && libProg.weeks.length > 0) {
+                    ud.assigned_program = libProg
+                    ud.assigned_program_date = u.startDate || ''
+                    console.log(`[Dashboard] ${u.username}: loaded program '${u.program}' from library (${libProg.weeks.length} weeks)`)
+                  }
+                } catch (pe) {
+                  console.warn(`[Dashboard] ${u.username}: could not load program '${u.program}' from library:`, pe)
+                }
+              }
               dataMap[u.username] = ud
               const logCount = Object.keys(ud?.workout_logs || {}).length
               const hasProgram = !!ud?.assigned_program
-              const hasDate = !!ud?.assigned_program_date
-              console.log(`[Dashboard] ${u.username}: logs=${logCount}, program=${hasProgram}, date=${hasDate}, startDate=${u.startDate || 'none'}`)
-              if (hasProgram) {
-                const prog = ud.assigned_program
-                console.log(`[Dashboard]   program: ${prog.name || '?'}, weeks=${(prog.weeks||[]).length}`)
-              }
+              console.log(`[Dashboard] ${u.username}: logs=${logCount}, program=${hasProgram}, startDate=${u.startDate || 'none'}`)
             } catch (e) {
               console.warn(`[Dashboard] Failed to load ${u.username}:`, e)
             }
