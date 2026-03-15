@@ -355,7 +355,7 @@ function localDateStr(date) {
   return `${y}-${m}-${d}`
 }
 
-function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
+function CalendarOverview({ athletes, userData, setUserData, loading, toast, onRefresh }) {
   const [calAthlete, setCalAthlete] = useState('')
   const [expandedDayKey, setExpandedDayKey] = useState(null) // dateStr of expanded day
   const [editingEx, setEditingEx] = useState(null)
@@ -618,6 +618,12 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
             {program && <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{program.name || 'Program'}</span>}
             {startDateStr && <span style={{ fontSize: 11, color: 'var(--muted2)' }}>Start: {fmtShort(new Date(startDateStr + 'T00:00:00'))}</span>}
             {saving && <span style={{ fontSize: 11, color: 'var(--accent2)' }}>Saving...</span>}
+            {onRefresh && (
+              <button onClick={onRefresh} title="Refresh data"
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 10px', fontSize: 12 }}>
+                ↻ Refresh
+              </button>
+            )}
           </div>
 
           {!program ? (
@@ -886,46 +892,54 @@ export default function Dashboard() {
   const [msgForm, setMsgForm] = useState({ message: '', day_key: '', source: 'coach', send_whatsapp: false })
   const [sending, setSending] = useState(false)
 
-  // Initial load for both Overview and Athletes tabs
-  useEffect(() => {
-    async function init() {
-      try {
-        const d = await API.listUsers()
-        setUsers(d.users || [])
-        const dataMap = {}
-        await Promise.all(
-          (d.users || []).map(async u => {
-            try {
-              const ud = await API.getUserData(u.username)
-              // If user has a program name in users.json but no assigned_program in user_data,
-              // load the program from the library so the calendar can display it
-              if (!ud.assigned_program && u.program) {
-                try {
-                  const libProg = await API.getProgram(u.program)
-                  if (libProg && libProg.weeks && libProg.weeks.length > 0) {
-                    ud.assigned_program = libProg
-                    ud.assigned_program_date = u.startDate || ''
-                    console.log(`[Dashboard] ${u.username}: loaded program '${u.program}' from library (${libProg.weeks.length} weeks)`)
-                  }
-                } catch (pe) {
-                  console.warn(`[Dashboard] ${u.username}: could not load program '${u.program}' from library:`, pe)
+  // Data loading function — reusable for initial load and refresh
+  async function loadAllData(silent = false) {
+    if (!silent) setLoading(true)
+    try {
+      const d = await API.listUsers()
+      setUsers(d.users || [])
+      const dataMap = {}
+      await Promise.all(
+        (d.users || []).map(async u => {
+          try {
+            const ud = await API.getUserData(u.username)
+            // If user has a program name in users.json but no assigned_program in user_data,
+            // load the program from the library so the calendar can display it
+            if (!ud.assigned_program && u.program) {
+              try {
+                const libProg = await API.getProgram(u.program)
+                if (libProg && libProg.weeks && libProg.weeks.length > 0) {
+                  ud.assigned_program = libProg
+                  ud.assigned_program_date = u.startDate || ''
+                  console.log(`[Dashboard] ${u.username}: loaded program '${u.program}' from library (${libProg.weeks.length} weeks)`)
                 }
+              } catch (pe) {
+                console.warn(`[Dashboard] ${u.username}: could not load program '${u.program}' from library:`, pe)
               }
-              dataMap[u.username] = ud
-              const logCount = Object.keys(ud?.workout_logs || {}).length
-              const hasProgram = !!ud?.assigned_program
-              console.log(`[Dashboard] ${u.username}: logs=${logCount}, program=${hasProgram}, startDate=${u.startDate || 'none'}`)
-            } catch (e) {
-              console.warn(`[Dashboard] Failed to load ${u.username}:`, e)
             }
-          })
-        )
-        setUserData(dataMap)
-      } catch { toast('Failed to load users', 'error') }
-      setLoading(false)
+            dataMap[u.username] = ud
+            const logCount = Object.keys(ud?.workout_logs || {}).length
+            const hasProgram = !!ud?.assigned_program
+            console.log(`[Dashboard] ${u.username}: logs=${logCount}, program=${hasProgram}, startDate=${u.startDate || 'none'}`)
+          } catch (e) {
+            console.warn(`[Dashboard] Failed to load ${u.username}:`, e)
+          }
+        })
+      )
+      setUserData(dataMap)
+    } catch { if (!silent) toast('Failed to load users', 'error') }
+    setLoading(false)
+  }
+
+  // Initial load
+  useEffect(() => { loadAllData() }, [])
+
+  // Re-fetch when switching to overview tab (picks up newly assigned programs)
+  useEffect(() => {
+    if (activeTab === 'overview' && users.length > 0) {
+      loadAllData(true)
     }
-    init()
-  }, [])
+  }, [activeTab])
 
   // Load programs for Athletes tab
   useEffect(() => {
@@ -1135,7 +1149,7 @@ export default function Dashboard() {
 
       {/* ─── OVERVIEW TAB — Calendar View ─── */}
       {activeTab === 'overview' && (
-        <CalendarOverview athletes={athletes} userData={userData} setUserData={setUserData} loading={loading} toast={toast} />
+        <CalendarOverview athletes={athletes} userData={userData} setUserData={setUserData} loading={loading} toast={toast} onRefresh={() => loadAllData(true)} />
       )}
 
       {/* ─── ATHLETES TAB ─── */}
