@@ -348,13 +348,22 @@ function fmtShort(date) {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
+function localDateStr(date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
   const [calAthlete, setCalAthlete] = useState('')
-  const [weekOffset, setWeekOffset] = useState(0) // 0 = current week, -1 = last week, etc
-  const [editingEx, setEditingEx] = useState(null) // {weekIdx, dayIdx, groupIdx, exIdx, field}
+  const [expandedDayKey, setExpandedDayKey] = useState(null) // dateStr of expanded day
+  const [editingEx, setEditingEx] = useState(null)
   const [editVal, setEditVal] = useState('')
   const [saving, setSaving] = useState(false)
-  const [expandedDay, setExpandedDay] = useState(null) // dayIdx to expand on mobile
+  const [newExName, setNewExName] = useState('')
+  const scrollRef = React.useRef(null)
+  const currentWeekRef = React.useRef(null)
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   // Auto-select first athlete
@@ -362,71 +371,120 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
     if (!calAthlete && athletes.length > 0) setCalAthlete(athletes[0].username)
   }, [athletes])
 
+  // Get startDate from the athletes/users list (same source the app uses)
+  const athleteInfo = athletes.find(a => a.username === calAthlete)
   const athleteData = userData[calAthlete]
   const program = athleteData?.assigned_program
-  const startDateStr = athleteData?.assigned_program_date || ''
+  // Prefer startDate from users list (what the app uses), fallback to assigned_program_date in user_data
+  const startDateStr = athleteInfo?.startDate || athleteData?.assigned_program_date || ''
   const startDate = startDateStr ? new Date(startDateStr + 'T00:00:00') : null
 
-  // Calculate the Monday of the displayed week
-  const currentMonday = getMonday(new Date())
-  const displayMonday = addDays(currentMonday, weekOffset * 7)
-
-  // Map calendar dates to program days
-  const calendarDays = useMemo(() => {
+  // Build flat list of all program days
+  const allProgramDays = useMemo(() => {
+    if (!program) return []
     const days = []
-    for (let i = 0; i < 7; i++) {
-      const date = addDays(displayMonday, i)
-      const dateStr = date.toISOString().slice(0, 10)
-      let programDay = null
-      let weekIdx = -1
-      let dayIdx = -1
-
-      if (program && startDate) {
-        const daysSinceStart = Math.floor((date - startDate) / (1000 * 60 * 60 * 24))
-        if (daysSinceStart >= 0) {
-          const allDays = []
-          for (const [wi, week] of (program.weeks || []).entries()) {
-            for (const [di, day] of (week.days || []).entries()) {
-              allDays.push({ weekIdx: wi, dayIdx: di, day, weekNum: week.week || wi + 1 })
-            }
-          }
-          if (daysSinceStart < allDays.length) {
-            const match = allDays[daysSinceStart]
-            programDay = match.day
-            weekIdx = match.weekIdx
-            dayIdx = match.dayIdx
-          }
-        }
+    for (const [wi, week] of (program.weeks || []).entries()) {
+      for (const [di, day] of (week.days || []).entries()) {
+        days.push({ weekIdx: wi, dayIdx: di, day, weekNum: week.week || wi + 1 })
       }
-
-      // Also get logged data for this date
-      const logs = athleteData?.workout_logs || {}
-      const logEntry = Object.values(logs).find(l => l.meta?.date === dateStr)
-
-      days.push({ date, dateStr, programDay, weekIdx, dayIdx, logEntry })
     }
     return days
-  }, [program, startDate, displayMonday, athleteData])
+  }, [program])
 
-  // Week label
-  const weekLabel = (() => {
-    if (weekOffset === 0) return 'This Week'
-    if (weekOffset === 1) return 'Next Week'
-    if (weekOffset === -1) return 'Last Week'
-    const from = fmtShort(displayMonday)
-    const to = fmtShort(addDays(displayMonday, 6))
-    return `${from} – ${to}`
-  })()
+  // Calculate the range of weeks to display
+  const { weeks, currentWeekIndex } = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayMonday = getMonday(today)
 
-  // Program week number for display
-  const programWeekNum = (() => {
-    if (!startDate || !program) return null
-    const daysSinceStart = Math.floor((displayMonday - startDate) / (1000 * 60 * 60 * 24))
-    if (daysSinceStart < 0) return null
-    const weekNum = Math.floor(daysSinceStart / 7) + 1
-    const totalWeeks = (program.weeks || []).length
-    return weekNum <= totalWeeks ? weekNum : null
-  })()
+    if (!program || !startDate || allProgramDays.length === 0) {
+      // No program — show 4 weeks centered on current week
+      const result = []
+      for (let w = -1; w <= 2; w++) {
+        const monday = addDays(todayMonday, w * 7)
+        const days = []
+        for (let d = 0; d < 7; d++) {
+          const date = addDays(monday, d)
+          days.push({ date, dateStr: localDateStr(date), programDay: null, weekIdx: -1, dayIdx: -1, logEntry: null })
+        }
+        result.push({ monday, days, programWeekNum: null })
+      }
+      return { weeks: result, currentWeekIndex: 1 }
+    }
+
+    // Program exists — calculate week range from program start to program end
+    const programEndDate = addDays(startDate, allProgramDays.length - 1)
+    const firstMonday = getMonday(startDate)
+    const lastMonday = getMonday(programEndDate)
+
+    // Also include current week if it's outside program range
+    const earliest = firstMonday <= todayMonday ? firstMonday : todayMonday
+    const latest = lastMonday >= todayMonday ? lastMonday : todayMonday
+
+    // Add 1 week buffer on each end
+    const rangeStart = addDays(earliest, -7)
+    const rangeEnd = addDays(latest, 7)
+
+    const result = []
+    let cwIdx = 0
+    let monday = new Date(rangeStart)
+    let weekCounter = 0
+    while (monday <= rangeEnd) {
+      const days = []
+      for (let d = 0; d < 7; d++) {
+        const date = addDays(monday, d)
+        const ds = localDateStr(date)
+        let programDay = null, weekIdx = -1, dayIdx = -1
+
+        const daysSinceStart = Math.round((date - startDate) / (1000 * 60 * 60 * 24))
+        if (daysSinceStart >= 0 && daysSinceStart < allProgramDays.length) {
+          const match = allProgramDays[daysSinceStart]
+          programDay = match.day
+          weekIdx = match.weekIdx
+          dayIdx = match.dayIdx
+        }
+
+        const logs = athleteData?.workout_logs || {}
+        const logEntry = Object.values(logs).find(l => l.meta?.date === ds)
+        days.push({ date, dateStr: ds, programDay, weekIdx, dayIdx, logEntry })
+      }
+
+      // Program week number
+      const daysSinceStartMon = Math.round((monday - startDate) / (1000 * 60 * 60 * 24))
+      let programWeekNum = null
+      if (daysSinceStartMon >= 0) {
+        const wn = Math.floor(daysSinceStartMon / 7) + 1
+        const totalWeeks = (program.weeks || []).length
+        if (wn <= totalWeeks) programWeekNum = wn
+      }
+
+      if (monday.getTime() === todayMonday.getTime()) cwIdx = weekCounter
+
+      result.push({ monday, days, programWeekNum })
+      monday = addDays(monday, 7)
+      weekCounter++
+    }
+
+    return { weeks: result, currentWeekIndex: cwIdx }
+  }, [program, startDate, allProgramDays, athleteData, calAthlete])
+
+  // Scroll to current week on load / athlete change
+  useEffect(() => {
+    if (currentWeekRef.current) {
+      currentWeekRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [calAthlete, program])
+
+  const isToday = (date) => {
+    const today = new Date()
+    return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate()
+  }
+
+  const isPast = (date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return date < today
+  }
 
   // Exercise editing
   function startEdit(weekIdx, dayIdx, groupIdx, exIdx, field, value) {
@@ -447,19 +505,11 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
     if (!program) return
     const updated = JSON.parse(JSON.stringify(program))
     const day = updated.weeks[weekIdx].days[dayIdx]
-    // Flatten all exercises
     const flat = []
     for (const g of (day.exerciseGroups || [])) {
       for (const ex of (g.exercises || [])) flat.push(ex)
     }
     let flatIdx = 0
-    for (let g = 0; g < (day.exerciseGroups || []).length; g++) {
-      for (let e = 0; e < (day.exerciseGroups[g].exercises || []).length; e++) {
-        if (g === groupIdx && e === exIdx) { flatIdx = flat.indexOf(day.exerciseGroups[g].exercises[e]); break }
-      }
-    }
-    // Recalculate flat index properly
-    flatIdx = 0
     outer: for (let g = 0; g < (day.exerciseGroups || []).length; g++) {
       for (let e = 0; e < (day.exerciseGroups[g].exercises || []).length; e++) {
         if (g === groupIdx && e === exIdx) break outer
@@ -469,7 +519,6 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
     const newIdx = flatIdx + direction
     if (newIdx < 0 || newIdx >= flat.length) return
     ;[flat[flatIdx], flat[newIdx]] = [flat[newIdx], flat[flatIdx]]
-    // Rebuild as single groups
     day.exerciseGroups = flat.map((ex, i) => ({ type: 'single', exercises: [{ ...ex, order: String(i + 1) }] }))
     saveProgram(updated)
   }
@@ -487,11 +536,30 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
     saveProgram(updated)
   }
 
+  function addExercise(weekIdx, dayIdx) {
+    if (!program || !newExName.trim()) return
+    const updated = JSON.parse(JSON.stringify(program))
+    const day = updated.weeks[weekIdx].days[dayIdx]
+    if (!day.exerciseGroups) day.exerciseGroups = []
+    let maxOrder = 0
+    for (const g of day.exerciseGroups) {
+      for (const ex of (g.exercises || [])) {
+        const o = parseInt(ex.order) || 0
+        if (o > maxOrder) maxOrder = o
+      }
+    }
+    day.exerciseGroups.push({
+      type: 'single',
+      exercises: [{ order: String(maxOrder + 1), name: newExName.trim(), sets: '3', reps: '10', tempo: '', rest: '90', rpe: '', instruction: '' }]
+    })
+    setNewExName('')
+    saveProgram(updated)
+  }
+
   async function saveProgram(updated) {
     setSaving(true)
     try {
       await API.updateAthleteProgram(calAthlete, updated)
-      // Update local state
       setUserData(prev => ({
         ...prev,
         [calAthlete]: { ...prev[calAthlete], assigned_program: updated }
@@ -501,16 +569,27 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
     setSaving(false)
   }
 
-  const isToday = (date) => {
-    const today = new Date()
-    return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate()
-  }
+  // Expanded day data
+  const expandedData = useMemo(() => {
+    if (!expandedDayKey) return null
+    for (const week of weeks) {
+      for (const cd of week.days) {
+        if (cd.dateStr === expandedDayKey) return cd
+      }
+    }
+    return null
+  }, [expandedDayKey, weeks])
 
-  const isPast = (date) => {
-    const today = new Date()
-    today.setHours(0,0,0,0)
-    return date < today
-  }
+  const expandedExercises = useMemo(() => {
+    if (!expandedData?.programDay || expandedData.programDay.isRest) return []
+    const exs = []
+    for (const [gi, group] of (expandedData.programDay.exerciseGroups || []).entries()) {
+      for (const [ei, ex] of (group.exercises || []).entries()) {
+        exs.push({ ...ex, _gi: gi, _ei: ei })
+      }
+    }
+    return exs
+  }, [expandedData])
 
   return (
     <div>
@@ -518,31 +597,18 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
 
       {!loading && (
         <>
-          {/* Athlete selector + week nav */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <select value={calAthlete} onChange={e => { setCalAthlete(e.target.value); setWeekOffset(0) }}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>
-                {athletes.map(a => (
-                  <option key={a.username} value={a.username}>{a.username}</option>
-                ))}
-              </select>
-              {program && <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{program.name || 'Program'}</span>}
-              {programWeekNum && <span style={{ fontSize: 11, color: 'var(--accent2)', fontWeight: 600 }}>Week {programWeekNum}</span>}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={() => setWeekOffset(w => w - 1)}
-                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', cursor: 'pointer', padding: '4px 10px', fontSize: 13 }}>◀</button>
-              <button onClick={() => setWeekOffset(0)}
-                style={{ background: weekOffset === 0 ? 'var(--accent2)' : 'none', border: '1px solid var(--border)', borderRadius: 6, color: weekOffset === 0 ? '#fff' : 'var(--text)', cursor: 'pointer', padding: '4px 12px', fontSize: 12, fontWeight: 600, minWidth: 100, textAlign: 'center' }}>
-                {weekLabel}
-              </button>
-              <button onClick={() => setWeekOffset(w => w + 1)}
-                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', cursor: 'pointer', padding: '4px 10px', fontSize: 13 }}>▶</button>
-            </div>
+          {/* Athlete selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+            <select value={calAthlete} onChange={e => { setCalAthlete(e.target.value); setExpandedDayKey(null) }}
+              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>
+              {athletes.map(a => (
+                <option key={a.username} value={a.username}>{a.username}</option>
+              ))}
+            </select>
+            {program && <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{program.name || 'Program'}</span>}
+            {startDateStr && <span style={{ fontSize: 11, color: 'var(--muted2)' }}>Start: {fmtShort(new Date(startDateStr + 'T00:00:00'))}</span>}
+            {saving && <span style={{ fontSize: 11, color: 'var(--accent2)' }}>Saving...</span>}
           </div>
-
-          {saving && <div style={{ fontSize: 11, color: 'var(--accent2)', marginBottom: 8 }}>Saving...</div>}
 
           {!program ? (
             <div className="card" style={{ textAlign: 'center', padding: 40 }}>
@@ -550,194 +616,231 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
               <p style={{ fontSize: 12, color: 'var(--muted2)' }}>Assign a program in the Athletes tab first.</p>
             </div>
           ) : (
-            /* Calendar grid */
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, width: '100%' }}>
-              {/* Day headers */}
-              {DAY_LABELS.map((d, i) => (
-                <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {d}
-                </div>
-              ))}
+            <>
+              {/* Sticky day headers */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, width: '100%', position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg)', paddingBottom: 4 }}>
+                {DAY_LABELS.map(d => (
+                  <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {d}
+                  </div>
+                ))}
+              </div>
 
-              {/* Day cells */}
-              {calendarDays.map((cd, i) => {
-                const today = isToday(cd.date)
-                const past = isPast(cd.date)
-                const hasLog = !!cd.logEntry
-                const day = cd.programDay
-                const isRest = day?.isRest
-                const exercises = []
-                if (day && !isRest) {
-                  for (const [gi, group] of (day.exerciseGroups || []).entries()) {
-                    for (const [ei, ex] of (group.exercises || []).entries()) {
-                      exercises.push({ ...ex, _gi: gi, _ei: ei })
-                    }
-                  }
-                }
-                const completion = hasLog ? getCompletionPct(cd.logEntry.data || {}) : null
-
-                return (
-                  <div key={cd.dateStr} style={{
-                    background: today ? 'rgba(124,110,240,0.08)' : 'var(--surface)',
-                    border: today ? '2px solid var(--accent2)' : '1px solid var(--border)',
-                    borderRadius: 10, padding: 8, minHeight: 120,
-                    opacity: !day && past ? 0.4 : 1,
-                    display: 'flex', flexDirection: 'column',
-                  }}>
-                    {/* Date header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, fontWeight: today ? 700 : 500, color: today ? 'var(--accent2)' : 'var(--text)' }}>
-                        {cd.date.getDate()}
-                      </span>
-                      {completion !== null && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 4,
-                          background: completion === 100 ? 'rgba(45,212,191,0.15)' : completion >= 50 ? 'rgba(255,193,7,0.15)' : 'rgba(124,110,240,0.1)',
-                          color: completion === 100 ? 'var(--teal)' : completion >= 50 ? '#ffc107' : 'var(--accent2)',
-                        }}>
-                          {completion}%
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Rest day */}
-                    {isRest && (
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-dim)', fontStyle: 'italic' }}>Rest Day</span>
+              {/* Continuous calendar */}
+              <div ref={scrollRef}>
+                {weeks.map((week, wi) => {
+                  const isCurrent = wi === currentWeekIndex
+                  return (
+                    <div key={localDateStr(week.monday)} ref={isCurrent ? currentWeekRef : undefined}
+                      style={{ marginBottom: 8 }}>
+                      {/* Week label */}
+                      <div style={{ fontSize: 11, color: isCurrent ? 'var(--accent2)' : 'var(--text-dim)', fontWeight: 600, padding: '6px 0 4px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span>{fmtShort(week.monday)} – {fmtShort(addDays(week.monday, 6))}</span>
+                        {week.programWeekNum && <span style={{ color: 'var(--accent2)', fontSize: 10 }}>Program Week {week.programWeekNum}</span>}
+                        {isCurrent && <span style={{ background: 'var(--accent2)', color: '#fff', fontSize: 9, padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>Current</span>}
                       </div>
-                    )}
 
-                    {/* No program day */}
-                    {!day && (
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 10, color: 'var(--muted2)' }}>—</span>
-                      </div>
-                    )}
+                      {/* 7-column grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, width: '100%' }}>
+                        {week.days.map((cd) => {
+                          const today = isToday(cd.date)
+                          const past = isPast(cd.date)
+                          const day = cd.programDay
+                          const isRest = day?.isRest
+                          const isExpanded = expandedDayKey === cd.dateStr
+                          const exercises = []
+                          if (day && !isRest) {
+                            for (const [gi, group] of (day.exerciseGroups || []).entries()) {
+                              for (const [ei, ex] of (group.exercises || []).entries()) {
+                                exercises.push({ ...ex, _gi: gi, _ei: ei })
+                              }
+                            }
+                          }
+                          const hasLog = !!cd.logEntry
+                          const completion = hasLog ? getCompletionPct(cd.logEntry.data || {}) : null
 
-                    {/* Exercises */}
-                    {exercises.length > 0 && (
-                      <div style={{ flex: 1, overflow: 'auto', fontSize: 10 }}>
-                        {exercises.map((ex, fi) => {
-                          const isEditingName = editingEx?.weekIdx === cd.weekIdx && editingEx?.dayIdx === cd.dayIdx && editingEx?.groupIdx === ex._gi && editingEx?.exIdx === ex._ei && editingEx?.field === 'name'
                           return (
-                            <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '2px 0', borderBottom: fi < exercises.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                              <span style={{ color: 'var(--accent2)', fontSize: 9, width: 12, flexShrink: 0 }}>{ex.order}</span>
-                              {isEditingName ? (
-                                <input value={editVal} onChange={e => setEditVal(e.target.value)}
-                                  onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
-                                  autoFocus style={{ flex: 1, fontSize: 10, padding: '1px 3px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 3, color: 'var(--text)', minWidth: 0 }} />
-                              ) : (
-                                <span style={{ flex: 1, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}
-                                  onClick={() => startEdit(cd.weekIdx, cd.dayIdx, ex._gi, ex._ei, 'name', ex.name)}
-                                  title={`${ex.name} · ${ex.sets}×${ex.reps} · Click to edit`}>
-                                  {ex.name}
-                                </span>
-                              )}
-                              <span style={{ color: 'var(--text-dim)', fontSize: 9, flexShrink: 0 }}>{ex.sets}×{ex.reps}</span>
-                              <div style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
-                                <button onClick={() => moveExercise(cd.weekIdx, cd.dayIdx, ex._gi, ex._ei, -1)}
-                                  disabled={fi === 0} title="Move up"
-                                  style={{ background: 'none', border: 'none', cursor: fi === 0 ? 'default' : 'pointer', color: fi === 0 ? 'var(--border)' : 'var(--accent2)', fontSize: 8, padding: '0 1px', lineHeight: 1 }}>▲</button>
-                                <button onClick={() => moveExercise(cd.weekIdx, cd.dayIdx, ex._gi, ex._ei, 1)}
-                                  disabled={fi === exercises.length - 1} title="Move down"
-                                  style={{ background: 'none', border: 'none', cursor: fi === exercises.length - 1 ? 'default' : 'pointer', color: fi === exercises.length - 1 ? 'var(--border)' : 'var(--accent2)', fontSize: 8, padding: '0 1px', lineHeight: 1 }}>▼</button>
-                                <button onClick={() => removeExercise(cd.weekIdx, cd.dayIdx, ex._gi, ex._ei)} title="Remove"
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 9, padding: '0 1px', lineHeight: 1 }}>×</button>
+                            <div key={cd.dateStr}
+                              onClick={() => { if (day && !isRest && exercises.length > 0) setExpandedDayKey(isExpanded ? null : cd.dateStr) }}
+                              style={{
+                                background: today ? 'rgba(124,110,240,0.08)' : isExpanded ? 'rgba(124,110,240,0.04)' : 'var(--surface)',
+                                border: today ? '2px solid var(--accent2)' : isExpanded ? '2px solid rgba(124,110,240,0.4)' : '1px solid var(--border)',
+                                borderRadius: 10, padding: 10, minHeight: 150,
+                                opacity: !day && past ? 0.35 : 1,
+                                display: 'flex', flexDirection: 'column',
+                                cursor: (day && !isRest && exercises.length > 0) ? 'pointer' : 'default',
+                                transition: 'border-color 0.15s',
+                              }}>
+                              {/* Date header */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <span style={{ fontSize: 13, fontWeight: today ? 700 : 500, color: today ? 'var(--accent2)' : 'var(--text)' }}>
+                                    {cd.date.getDate()}
+                                  </span>
+                                  <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>
+                                    {cd.date.toLocaleDateString('en-GB', { month: 'short' })}
+                                  </span>
+                                </div>
+                                {completion !== null && (
+                                  <span style={{
+                                    fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 4,
+                                    background: completion === 100 ? 'rgba(45,212,191,0.15)' : completion >= 50 ? 'rgba(255,193,7,0.15)' : 'rgba(124,110,240,0.1)',
+                                    color: completion === 100 ? 'var(--teal)' : completion >= 50 ? '#ffc107' : 'var(--accent2)',
+                                  }}>
+                                    {completion}%
+                                  </span>
+                                )}
                               </div>
+
+                              {/* Rest day */}
+                              {isRest && (
+                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <span style={{ fontSize: 11, color: 'var(--text-dim)', fontStyle: 'italic' }}>Rest Day</span>
+                                </div>
+                              )}
+
+                              {/* No program day */}
+                              {!day && (
+                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <span style={{ fontSize: 11, color: 'var(--muted2)' }}>—</span>
+                                </div>
+                              )}
+
+                              {/* Exercise summary (always visible) */}
+                              {exercises.length > 0 && (
+                                <div style={{ flex: 1, overflow: 'hidden', fontSize: 11 }}>
+                                  {exercises.map((ex, fi) => (
+                                    <div key={fi} style={{ display: 'flex', gap: 4, padding: '2px 0', alignItems: 'center', borderBottom: fi < exercises.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                      <span style={{ color: 'var(--accent2)', fontSize: 10, width: 14, flexShrink: 0 }}>{ex.order}</span>
+                                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{ex.name}</span>
+                                      <span style={{ color: 'var(--text-dim)', fontSize: 10, flexShrink: 0 }}>{ex.sets}×{ex.reps}</span>
+                                    </div>
+                                  ))}
+                                  {exercises.length > 0 && (
+                                    <div style={{ fontSize: 9, color: 'var(--accent2)', marginTop: 4, textAlign: 'center', opacity: 0.7 }}>
+                                      {isExpanded ? '▾ click to close' : '▸ click to edit'}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )
                         })}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
           )}
 
-          {/* Second week row */}
-          {program && (() => {
-            const nextMonday = addDays(displayMonday, 7)
-            const nextDays = []
-            for (let i = 0; i < 7; i++) {
-              const date = addDays(nextMonday, i)
-              const dateStr = date.toISOString().slice(0, 10)
-              let programDay = null, weekIdx = -1, dayIdx = -1
-              if (program && startDate) {
-                const daysSinceStart = Math.floor((date - startDate) / (1000 * 60 * 60 * 24))
-                if (daysSinceStart >= 0) {
-                  const allDays = []
-                  for (const [wi, week] of (program.weeks || []).entries()) {
-                    for (const [di, day] of (week.days || []).entries()) {
-                      allDays.push({ weekIdx: wi, dayIdx: di, day, weekNum: week.week || wi + 1 })
-                    }
-                  }
-                  if (daysSinceStart < allDays.length) {
-                    const match = allDays[daysSinceStart]
-                    programDay = match.day; weekIdx = match.weekIdx; dayIdx = match.dayIdx
-                  }
-                }
-              }
-              const logs = athleteData?.workout_logs || {}
-              const logEntry = Object.values(logs).find(l => l.meta?.date === dateStr)
-              nextDays.push({ date, dateStr, programDay, weekIdx, dayIdx, logEntry })
-            }
-
-            const nextWeekNum = (() => {
-              if (!startDate) return null
-              const daysSinceStart = Math.floor((nextMonday - startDate) / (1000 * 60 * 60 * 24))
-              if (daysSinceStart < 0) return null
-              const wn = Math.floor(daysSinceStart / 7) + 1
-              const totalWeeks = (program.weeks || []).length
-              return wn <= totalWeeks ? wn : null
-            })()
-
-            return (
-              <>
-                <div style={{ margin: '12px 0 6px', fontSize: 12, color: 'var(--text-dim)', fontWeight: 600 }}>
-                  Following Week {nextWeekNum ? <span style={{ color: 'var(--accent2)' }}>(Week {nextWeekNum})</span> : ''}
+          {/* Expanded day editor (modal overlay) */}
+          {expandedDayKey && expandedData && expandedData.programDay && !expandedData.programDay.isRest && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.6)', zIndex: 100,
+              display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 20,
+            }} onClick={(e) => { if (e.target === e.currentTarget) setExpandedDayKey(null) }}>
+              <div style={{
+                background: 'var(--surface)', borderRadius: 16, padding: 24,
+                width: '100%', maxWidth: 540, maxHeight: '80vh', overflow: 'auto',
+                border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+              }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text)' }}>
+                      {expandedData.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </h3>
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                      Day {expandedData.dayIdx + 1} · Week {expandedData.weekIdx + 1}
+                    </span>
+                  </div>
+                  <button onClick={() => setExpandedDayKey(null)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 20, cursor: 'pointer', padding: '4px 8px' }}>✕</button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, width: '100%' }}>
-                  {nextDays.map((cd) => {
-                    const day = cd.programDay
-                    const isRest = day?.isRest
-                    const exercises = []
-                    if (day && !isRest) {
-                      for (const [gi, group] of (day.exerciseGroups || []).entries()) {
-                        for (const [ei, ex] of (group.exercises || []).entries()) {
-                          exercises.push({ ...ex, _gi: gi, _ei: ei })
-                        }
-                      }
-                    }
+
+                {/* Exercise list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {expandedExercises.map((ex, fi) => {
+                    const isEd = (field) => editingEx?.weekIdx === expandedData.weekIdx && editingEx?.dayIdx === expandedData.dayIdx && editingEx?.groupIdx === ex._gi && editingEx?.exIdx === ex._ei && editingEx?.field === field
                     return (
-                      <div key={cd.dateStr} style={{
-                        background: 'var(--surface)', border: '1px solid var(--border)',
-                        borderRadius: 10, padding: 8, minHeight: 100, opacity: 0.85,
-                        display: 'flex', flexDirection: 'column',
+                      <div key={fi} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+                        background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)',
                       }}>
-                        <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-dim)', marginBottom: 4 }}>
-                          {cd.date.getDate()} {cd.date.toLocaleDateString('en-GB', { month: 'short' })}
+                        <span style={{ color: 'var(--accent2)', fontSize: 12, fontWeight: 700, width: 20, textAlign: 'center', flexShrink: 0 }}>{ex.order}</span>
+
+                        {/* Name */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {isEd('name') ? (
+                            <input value={editVal} onChange={e => setEditVal(e.target.value)}
+                              onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
+                              autoFocus style={{ width: '100%', fontSize: 13, padding: '3px 6px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)' }} />
+                          ) : (
+                            <div style={{ fontSize: 13, color: 'var(--text)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              onClick={(e) => { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'name', ex.name) }}
+                              title="Click to edit name">
+                              {ex.name}
+                            </div>
+                          )}
                         </div>
-                        {isRest && <div style={{ fontSize: 10, color: 'var(--text-dim)', fontStyle: 'italic', textAlign: 'center', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Rest</div>}
-                        {!day && <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 10, color: 'var(--muted2)' }}>—</span></div>}
-                        {exercises.length > 0 && (
-                          <div style={{ fontSize: 10, overflow: 'auto' }}>
-                            {exercises.map((ex, fi) => (
-                              <div key={fi} style={{ display: 'flex', gap: 4, padding: '1px 0', alignItems: 'center' }}>
-                                <span style={{ color: 'var(--accent2)', fontSize: 9, width: 12 }}>{ex.order}</span>
-                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{ex.name}</span>
-                                <span style={{ color: 'var(--text-dim)', fontSize: 9 }}>{ex.sets}×{ex.reps}</span>
-                              </div>
-                            ))}
-                          </div>
+
+                        {/* Sets */}
+                        {isEd('sets') ? (
+                          <input value={editVal} onChange={e => setEditVal(e.target.value)}
+                            onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
+                            autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
+                        ) : (
+                          <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: 'pointer', minWidth: 20, textAlign: 'center' }}
+                            onClick={(e) => { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'sets', ex.sets) }}
+                            title="Click to edit sets">{ex.sets}</span>
                         )}
+                        <span style={{ fontSize: 11, color: 'var(--muted2)' }}>×</span>
+                        {/* Reps */}
+                        {isEd('reps') ? (
+                          <input value={editVal} onChange={e => setEditVal(e.target.value)}
+                            onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
+                            autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
+                        ) : (
+                          <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: 'pointer', minWidth: 20, textAlign: 'center' }}
+                            onClick={(e) => { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'reps', ex.reps) }}
+                            title="Click to edit reps">{ex.reps}</span>
+                        )}
+
+                        {/* Move / Delete buttons */}
+                        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                          <button onClick={(e) => { e.stopPropagation(); moveExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, -1) }}
+                            disabled={fi === 0} title="Move up"
+                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: fi === 0 ? 'default' : 'pointer', color: fi === 0 ? 'var(--border)' : 'var(--accent2)', fontSize: 11, padding: '2px 6px', lineHeight: 1 }}>▲</button>
+                          <button onClick={(e) => { e.stopPropagation(); moveExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 1) }}
+                            disabled={fi === expandedExercises.length - 1} title="Move down"
+                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: fi === expandedExercises.length - 1 ? 'default' : 'pointer', color: fi === expandedExercises.length - 1 ? 'var(--border)' : 'var(--accent2)', fontSize: 11, padding: '2px 6px', lineHeight: 1 }}>▼</button>
+                          <button onClick={(e) => { e.stopPropagation(); removeExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei) }} title="Remove"
+                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', color: '#dc2626', fontSize: 12, padding: '2px 6px', lineHeight: 1 }}>×</button>
+                        </div>
                       </div>
                     )
                   })}
                 </div>
-              </>
-            )
-          })()}
+
+                {/* Add exercise */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
+                  <input value={newExName} onChange={e => setNewExName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addExercise(expandedData.weekIdx, expandedData.dayIdx) }}
+                    placeholder="Add exercise..."
+                    style={{ flex: 1, fontSize: 13, padding: '6px 10px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
+                  <button onClick={() => addExercise(expandedData.weekIdx, expandedData.dayIdx)}
+                    disabled={!newExName.trim()}
+                    style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: newExName.trim() ? 'var(--accent2)' : 'var(--border)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: newExName.trim() ? 'pointer' : 'default' }}>
+                    + Add
+                  </button>
+                </div>
+
+                {saving && <div style={{ fontSize: 11, color: 'var(--accent2)', marginTop: 8 }}>Saving...</div>}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
