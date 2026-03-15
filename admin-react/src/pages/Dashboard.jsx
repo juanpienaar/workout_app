@@ -379,6 +379,16 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast }) {
   const startDateStr = athleteInfo?.startDate || athleteData?.assigned_program_date || ''
   const startDate = startDateStr ? new Date(startDateStr + 'T00:00:00') : null
 
+  // Debug: log calendar state for selected athlete
+  useEffect(() => {
+    if (calAthlete) {
+      console.log(`[Calendar] athlete=${calAthlete}, hasInfo=${!!athleteInfo}, hasData=${!!athleteData}, hasProgram=${!!program}, startDate=${startDateStr}`)
+      if (athleteData) {
+        console.log(`[Calendar]   userData keys:`, Object.keys(athleteData))
+      }
+    }
+  }, [calAthlete, athleteData, program])
+
   // Build flat list of all program days
   const allProgramDays = useMemo(() => {
     if (!program) return []
@@ -889,7 +899,13 @@ export default function Dashboard() {
               const ud = await API.getUserData(u.username)
               dataMap[u.username] = ud
               const logCount = Object.keys(ud?.workout_logs || {}).length
-              if (logCount > 0) console.log(`[Dashboard] ${u.username}: ${logCount} workout logs`)
+              const hasProgram = !!ud?.assigned_program
+              const hasDate = !!ud?.assigned_program_date
+              console.log(`[Dashboard] ${u.username}: logs=${logCount}, program=${hasProgram}, date=${hasDate}, startDate=${u.startDate || 'none'}`)
+              if (hasProgram) {
+                const prog = ud.assigned_program
+                console.log(`[Dashboard]   program: ${prog.name || '?'}, weeks=${(prog.weeks||[]).length}`)
+              }
             } catch (e) {
               console.warn(`[Dashboard] Failed to load ${u.username}:`, e)
             }
