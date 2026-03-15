@@ -99,6 +99,11 @@ export const API = {
   },
   getCosts: () => authFetch('/api/admin/ai/costs').then(r => r.json()),
 
+  // Day Plan Templates
+  listTemplates: () => authFetch('/api/admin/dayplan-templates').then(r => r.json()),
+  saveTemplate: (data) => authFetch('/api/admin/dayplan-templates', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
+  deleteTemplate: (name) => authFetch(`/api/admin/dayplan-templates/${encodeURIComponent(name)}`, { method: 'DELETE' }).then(r => r.json()),
+
   // Deploy
   getDeployStatus: () => authFetch('/api/admin/deploy/status').then(r => r.json()),
   deploy: (msg) => authFetch('/api/admin/deploy', { method: 'POST', body: JSON.stringify({ commit_msg: msg }) }).then(r => r.json()),

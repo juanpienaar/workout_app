@@ -347,6 +347,54 @@ async def duplicate_program(name: str, req: DuplicateRequest, coach: Annotated[d
     return {"ok": True, "name": req.new_name}
 
 
+# ── Day Plan Templates ──────────────────────────────────────────
+
+class DayPlanTemplateRequest(BaseModel):
+    name: str
+    dayPlan: dict
+    types: list[str] = []
+    config: dict = {}
+    progressionStyle: str = ""
+    dayPlanPrompt: str = ""
+    sessionTime: int = 60
+    weeks: int = 12
+
+def _templates_path():
+    p = config.DATA_ROOT / "dayplan_templates.json"
+    if not p.exists():
+        p.write_text("{}")
+    return p
+
+@router.get("/dayplan-templates")
+async def list_templates(coach: Annotated[dict, Depends(require_coach)]):
+    data = json.loads(_templates_path().read_text())
+    return {"templates": data}
+
+@router.post("/dayplan-templates")
+async def save_template(req: DayPlanTemplateRequest, coach: Annotated[dict, Depends(require_coach)]):
+    data = json.loads(_templates_path().read_text())
+    data[req.name] = {
+        "name": req.name,
+        "dayPlan": req.dayPlan,
+        "types": req.types,
+        "config": req.config,
+        "progressionStyle": req.progressionStyle,
+        "dayPlanPrompt": req.dayPlanPrompt,
+        "sessionTime": req.sessionTime,
+        "weeks": req.weeks,
+    }
+    _templates_path().write_text(json.dumps(data, indent=2))
+    return {"ok": True}
+
+@router.delete("/dayplan-templates/{name}")
+async def delete_template(name: str, coach: Annotated[dict, Depends(require_coach)]):
+    data = json.loads(_templates_path().read_text())
+    if name in data:
+        del data[name]
+        _templates_path().write_text(json.dumps(data, indent=2))
+    return {"ok": True}
+
+
 @router.post("/assign-program")
 async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depends(require_coach)]):
     """Deep-copy a program into the athlete's user_data file (Phase 3)."""

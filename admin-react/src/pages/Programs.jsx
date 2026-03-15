@@ -1148,6 +1148,9 @@ function AIBuilderTab() {
   const [dayPlanPrompt, setDayPlanPrompt] = useState('')
   const [progressionStyle, setProgressionStyle] = useState('progressive') // 'progressive' or 'varied'
   const [exerciseRoles, setExerciseRoles] = useState({}) // { exerciseName: 'main'|'accessory' }
+  const [templates, setTemplates] = useState({})
+  const [templateName, setTemplateName] = useState('')
+  const [savingTemplate, setSavingTemplate] = useState(false)
 
   const program = editedProgram || result?.program
 
@@ -1197,6 +1200,44 @@ function AIBuilderTab() {
       })
     }).catch(() => {})
   }, [])
+
+  // Load day plan templates
+  useEffect(() => {
+    API.listTemplates().then(d => setTemplates(d.templates || {})).catch(() => {})
+  }, [])
+
+  async function saveAsTemplate() {
+    const tName = templateName.trim() || name.trim() || 'Untitled Template'
+    setSavingTemplate(true)
+    try {
+      await API.saveTemplate({
+        name: tName, dayPlan, types, config, progressionStyle, dayPlanPrompt, sessionTime, weeks
+      })
+      setTemplates(prev => ({ ...prev, [tName]: { name: tName, dayPlan, types, config, progressionStyle, dayPlanPrompt, sessionTime, weeks } }))
+      toast(`Template "${tName}" saved!`)
+      setTemplateName('')
+    } catch { toast('Failed to save template', 'error') }
+    setSavingTemplate(false)
+  }
+
+  function loadTemplate(t) {
+    setDayPlan(t.dayPlan || { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] })
+    if (t.types?.length) setTypes(t.types)
+    if (t.config) setConfig(t.config)
+    if (t.progressionStyle) setProgressionStyle(t.progressionStyle)
+    if (t.dayPlanPrompt) setDayPlanPrompt(t.dayPlanPrompt)
+    if (t.sessionTime) setSessionTime(t.sessionTime)
+    if (t.weeks) setWeeks(t.weeks)
+    toast(`Loaded template "${t.name}"`)
+  }
+
+  async function deleteTemplate(tName) {
+    try {
+      await API.deleteTemplate(tName)
+      setTemplates(prev => { const n = { ...prev }; delete n[tName]; return n })
+      toast(`Template "${tName}" deleted`)
+    } catch { toast('Failed to delete', 'error') }
+  }
 
   async function generate() {
     if (!name.trim()) { toast('Enter a program name', 'error'); return }
@@ -1308,10 +1349,15 @@ function AIBuilderTab() {
     setNlLoading(false)
   }
 
+  const [saving, setSaving] = useState(false)
   async function saveToLibrary() {
-    if (!program) return
-    try { await API.createProgram({ name: program.name || name, weeks: program.weeks || [] }); toast('Saved to library!') }
-    catch { toast('Save failed', 'error') }
+    if (!program || saving) return
+    setSaving(true)
+    try {
+      await API.createProgram({ name: program.name || name, weeks: program.weeks || [] })
+      toast('Saved to library!')
+    } catch { toast('Save failed', 'error') }
+    setSaving(false)
   }
 
   const modelInfo = MODEL_COSTS[model]
@@ -1426,6 +1472,23 @@ function AIBuilderTab() {
           <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
             Assign exercises to each day. The AI will use this as the foundation and build sets, reps, tempo, and progression around it.
           </p>
+
+          {/* Template import */}
+          {Object.keys(templates).length > 0 && (
+            <div style={{ marginBottom: 16, padding: 12, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent2)', marginBottom: 8 }}>Load from Template</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {Object.values(templates).map(t => (
+                  <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => loadTemplate(t)}
+                      style={{ fontSize: 12, padding: '4px 10px' }}>{t.name}</button>
+                    <button onClick={() => deleteTemplate(t.name)} title="Delete template"
+                      style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 14, padding: '0 2px' }}>×</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Reuse the day planner UI */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -1756,6 +1819,18 @@ function AIBuilderTab() {
               style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', padding: 10, fontSize: 13, resize: 'vertical' }}
             />
           </div>
+
+          {/* Save as template */}
+          {Object.values(dayPlan).some(items => items.length > 0) && (
+            <div style={{ marginTop: 12, padding: 12, background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input type="text" value={templateName} onChange={e => setTemplateName(e.target.value)}
+                  placeholder="Template name..." style={{ flex: 1, fontSize: 12, padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
+                <button className="btn btn-secondary btn-sm" onClick={saveAsTemplate} disabled={savingTemplate}
+                  style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{savingTemplate ? 'Saving...' : 'Save as Template'}</button>
+              </div>
+            </div>
+          )}
 
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={() => { setBuilderMode(null); setDayPickerOpen(null); setDayPickerCategory(null) }}>Back</button>
@@ -2255,7 +2330,7 @@ function AIBuilderTab() {
               <h3>{program.name || name}</h3>
               <div style={{ display: 'flex', gap: 8 }}>
                 {editedProgram && <span style={{ fontSize: 12, color: 'var(--accent2)', alignSelf: 'center' }}>Edited</span>}
-                <button className="btn btn-primary btn-sm" onClick={saveToLibrary}><Icon name="save" size={14} /> Save to Library</button>
+                <button className="btn btn-primary btn-sm" onClick={saveToLibrary} disabled={saving}>{saving ? 'Saving...' : <><Icon name="save" size={14} /> Save to Library</>}</button>
               </div>
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 12 }}>

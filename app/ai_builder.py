@@ -685,12 +685,14 @@ def generate_program(
 # ── Program modification via natural language ───────────────────
 
 MODIFY_SYSTEM_PROMPT = """You are an expert strength and conditioning coach.
-You will receive a workout program as JSON and a modification request from a coach.
-Apply the requested changes to the program and return the complete modified program as valid JSON.
+You will receive a workout program (or a subset of weeks from a program) as JSON and a modification request from a coach.
+Apply the requested changes and return the modified weeks as valid JSON.
 
 RULES:
-- Return ONLY the JSON. No markdown, no explanation, no code fences.
-- Preserve the exact same structure: {name, weeks: [{week, days: [{day, isRest, exerciseGroups: [{type, exercises: [{order, name, sets, reps, tempo, rest, rpe, instruction}]}]}]}]}
+- Return ONLY a JSON object with this shape: {"weeks": [...]}
+- The "weeks" array must contain ALL the weeks you were given (modified as requested).
+- No markdown, no explanation, no code fences — ONLY raw JSON.
+- Preserve the exact structure: {weeks: [{week, days: [{day, isRest, exerciseGroups: [{type, exercises: [{order, name, sets, reps, tempo, rest, rpe, instruction}]}]}]}]}
 - Keep all unmodified parts exactly the same.
 - When modifying exercises, use realistic values for sets, reps, tempo, rest, and RPE.
 - If asked to make something "harder", increase sets/reps/RPE. If "easier", decrease them.
@@ -725,15 +727,51 @@ def _extract_json(text: str) -> str:
     return text
 
 
+def _modify_week_batch(client, model_info, program_name: str, weeks_batch: list, modification_prompt: str) -> tuple[list, int, int]:
+    """Modify a batch of weeks via Claude. Returns (modified_weeks, input_tokens, output_tokens)."""
+    batch_data = {"name": program_name, "weeks": weeks_batch}
+    week_nums = [w.get("week", "?") for w in weeks_batch]
+
+    user_prompt = f"""Here is a portion of the workout program "{program_name}" (weeks {', '.join(str(w) for w in week_nums)}):
+
+{json.dumps(batch_data, indent=2)}
+
+Coach's modification request: {modification_prompt}
+
+Apply the changes to these weeks and return them as {{"weeks": [...]}} with all weeks included (modified or not). Return ONLY valid JSON."""
+
+    response_text = ""
+    with client.messages.stream(
+        model=model_info["id"],
+        max_tokens=32000,
+        system=MODIFY_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_prompt}],
+    ) as stream:
+        for text in stream.text_stream:
+            response_text += text
+        final = stream.get_final_message()
+        input_tokens = final.usage.input_tokens
+        output_tokens = final.usage.output_tokens
+
+    json_text = _extract_json(response_text.strip())
+    parsed = json.loads(json_text)
+    modified_weeks = parsed.get("weeks", parsed.get("Weeks", []))
+    if not modified_weeks and isinstance(parsed, list):
+        modified_weeks = parsed
+    return modified_weeks, input_tokens, output_tokens
+
+
 def modify_program(program: dict, modification_prompt: str, model_key: str = "sonnet") -> tuple[dict, dict]:
     """
     Modify an existing program via Claude using natural language instructions.
+    For large programs, splits into batches of 4 weeks to avoid token truncation.
     Returns (modified_program, cost_info).
     """
+    all_weeks = program.get("weeks", [])
     log_event("ai_modify", "started", f"Modifying program: {modification_prompt[:100]}", {
         "prompt": modification_prompt, "model": model_key,
         "program_name": program.get("name", "unknown"),
-        "weeks_count": len(program.get("weeks", [])),
+        "weeks_count": len(all_weeks),
     })
 
     import os
@@ -754,65 +792,59 @@ def modify_program(program: dict, modification_prompt: str, model_key: str = "so
     model_info = MODELS.get(model_key, MODELS["sonnet"])
     client = anthropic.Anthropic(api_key=api_key)
 
-    user_prompt = f"""Here is the current workout program:
+    # Determine batch size: for small programs send all at once, for large ones batch by 4 weeks
+    BATCH_SIZE = 4
+    total_input = 0
+    total_output = 0
+    total_cost = 0.0
 
-{json.dumps(program, indent=2)}
+    if len(all_weeks) <= BATCH_SIZE:
+        # Small program — send everything at once
+        try:
+            modified_weeks, inp, out = _modify_week_batch(
+                client, model_info, program.get("name", "Program"), all_weeks, modification_prompt
+            )
+        except Exception as e:
+            log_event("ai_modify", "error", f"Claude API call failed: {str(e)}", {"model": model_key})
+            raise
+        total_input = inp
+        total_output = out
+        total_cost = track_usage(inp, out, model_key, f"Modify program: {modification_prompt[:80]}")
+    else:
+        # Large program — process in batches
+        modified_weeks = []
+        for i in range(0, len(all_weeks), BATCH_SIZE):
+            batch = all_weeks[i:i + BATCH_SIZE]
+            batch_label = f"weeks {i+1}-{min(i+BATCH_SIZE, len(all_weeks))}"
+            log_event("ai_modify", "batch_started", f"Processing batch: {batch_label}")
+            try:
+                batch_result, inp, out = _modify_week_batch(
+                    client, model_info, program.get("name", "Program"), batch, modification_prompt
+                )
+            except json.JSONDecodeError as e:
+                log_event("ai_modify", "error", f"JSON parse failed for {batch_label}: {str(e)}")
+                raise
+            except Exception as e:
+                log_event("ai_modify", "error", f"Claude API call failed for {batch_label}: {str(e)}")
+                raise
+            total_input += inp
+            total_output += out
+            cost = track_usage(inp, out, model_key, f"Modify {batch_label}: {modification_prompt[:60]}")
+            total_cost += cost
+            modified_weeks.extend(batch_result)
+            log_event("ai_modify", "batch_done", f"Batch {batch_label} complete: {len(batch_result)} weeks returned")
 
-Coach's modification request: {modification_prompt}
-
-Apply the changes and return the complete modified program as valid JSON."""
-
-    try:
-        # Use streaming to avoid timeout with high max_tokens
-        response_text = ""
-        input_tokens = 0
-        output_tokens = 0
-        with client.messages.stream(
-            model=model_info["id"],
-            max_tokens=32000,
-            system=MODIFY_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
-        ) as stream:
-            for text in stream.text_stream:
-                response_text += text
-            final = stream.get_final_message()
-            input_tokens = final.usage.input_tokens
-            output_tokens = final.usage.output_tokens
-    except Exception as e:
-        log_event("ai_modify", "error", f"Claude API call failed: {str(e)}", {"model": model_key})
-        raise
-
-    cost = track_usage(input_tokens, output_tokens, model_key, f"Modify program: {modification_prompt[:80]}")
-
-    response_text = response_text.strip()
-
-    log_event("ai_modify", "api_complete", f"Got response ({output_tokens} tokens)", {
-        "input_tokens": input_tokens, "output_tokens": output_tokens,
-        "cost_usd": round(cost, 6), "model": model_key,
-        "response_preview": response_text[:500],
-    })
-
-    # Extract and parse JSON
-    json_text = _extract_json(response_text)
-    try:
-        modified = json.loads(json_text)
-    except json.JSONDecodeError as e:
-        log_event("ai_modify", "error", f"JSON parse failed: {str(e)}", {
-            "json_error": str(e),
-            "response_preview": response_text[:1000],
-            "extracted_json_preview": json_text[:500],
-        })
-        raise
+    modified = {**program, "weeks": modified_weeks}
 
     log_event("ai_modify", "success", f"Program modified successfully", {
         "weeks_count": len(modified.get("weeks", [])),
-        "input_tokens": input_tokens, "output_tokens": output_tokens,
-        "cost_usd": round(cost, 6),
+        "input_tokens": total_input, "output_tokens": total_output,
+        "cost_usd": round(total_cost, 6),
     })
 
     return modified, {
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "cost_usd": round(cost, 6),
+        "input_tokens": total_input,
+        "output_tokens": total_output,
+        "cost_usd": round(total_cost, 6),
         "model": model_key,
     }

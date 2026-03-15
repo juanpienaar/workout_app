@@ -1333,7 +1333,7 @@ body {
     <div class="header-left">
       <div class="user-avatar" id="headerAvatar" onclick="document.getElementById('avatarInput').click()" title="Change profile photo"></div>
       <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="uploadAvatar(this)">
-      <div class="header-left-text">
+      <div class="header-left-text" onclick="showProgramInfo()" style="cursor:pointer;">
         <h2 id="headerName"></h2>
         <span id="headerProgram"></span>
       </div>
@@ -1498,6 +1498,17 @@ body {
     <div class="confirm-buttons">
       <button class="confirm-cancel" onclick="closeLogoutModal()">Cancel</button>
       <button class="confirm-logout" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== PROGRAM INFO MODAL ======== -->
+<div id="programInfoModal" class="confirm-overlay hidden" onclick="if(event.target===this)closeProgramInfo()">
+  <div class="confirm-box" style="max-width:340px;text-align:left;">
+    <h3 style="margin-bottom:16px;">Program Info</h3>
+    <div id="programInfoContent" style="font-size:14px;line-height:1.8;color:var(--text-dim);"></div>
+    <div class="confirm-buttons" style="margin-top:16px;">
+      <button class="confirm-cancel" onclick="closeProgramInfo()">Close</button>
     </div>
   </div>
 </div>
@@ -2419,7 +2430,8 @@ function renderDay() {
           <button onclick="moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},-1)" style="background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;padding:0;line-height:1;">▲</button>
           <button onclick="moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},1)" style="background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;padding:0;line-height:1;">▼</button>
         </div>` : ''}
-        <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === ex.sets ? 'background:var(--green);color:#fff;' : ''}">${setsCompleted === ex.sets ? '✓' : '+'}</div>
+        <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === ex.sets ? 'background:var(--green);color:#fff;' : ''}"
+          onclick="event.stopPropagation(); handleToggleTick('${exKey}', ${ex.sets}, '${collapseId}')">${setsCompleted === ex.sets ? '✓' : '+'}</div>
         <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;">
           ${getEquipmentIcon(ex.name)} ${ex.name}
           ${group._isCustom ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">CUSTOM</span>' : ''}
@@ -3400,6 +3412,19 @@ function onSetChange(input) {
   }
 }
 function onNotesChange(ta) { saveCurrentDay(); }
+
+function handleToggleTick(exKey, totalSets, collapseId) {
+  // If all sets are done (green tick), clicking it undoes all sets
+  const rows = document.querySelectorAll(`.set-check[data-key="${exKey}"]`);
+  const allDone = rows.length > 0 && [...rows].every(btn => btn.classList.contains('done'));
+  if (allDone) {
+    completeAllSets(exKey, totalSets); // This toggles (undoes) all
+  } else {
+    // Not all done — just toggle the collapse as usual
+    toggleExerciseCollapse(collapseId);
+  }
+}
+
 function completeAllSets(exKey, totalSets) {
   if (isViewOnly) return;
   const rows = document.querySelectorAll(`.set-check[data-key="${exKey}"]`);
@@ -3978,6 +4003,77 @@ function openSettings() {
 }
 function closeSettings() {
   document.getElementById('settingsModal').classList.add('hidden');
+}
+
+function showProgramInfo() {
+  const el = document.getElementById('programInfoContent');
+  if (!programData) {
+    el.innerHTML = '<p>No program loaded.</p>';
+  } else {
+    const pName = programData.name || 'Unnamed Program';
+    const totalWeeks = (programData.weeks || []).length;
+    const totalDays = allDays.length;
+
+    // Calculate start date and end date
+    let startStr = '—', endStr = '—';
+    if (programData.start_date) {
+      const start = new Date(programData.start_date);
+      startStr = start.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      // End date = start + totalDays
+      const end = new Date(start);
+      end.setDate(end.getDate() + (totalWeeks * 7) - 1);
+      endStr = end.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    // Current progress
+    const doneCount = allDays.filter((d, i) => {
+      if (d.isRest) return true;
+      const data = loadDayData(i);
+      if (!data) return false;
+      let totalSets = 0, doneSets = 0;
+      for (const g of (d.exerciseGroups || [])) {
+        for (const ex of g.exercises) {
+          const exKey = ex.order + '_' + ex.name.replace(/\\s+/g, '_');
+          const exData = data[exKey] || {};
+          for (let s = 1; s <= ex.sets; s++) {
+            totalSets++;
+            if (exData['set' + s]?.done) doneSets++;
+          }
+        }
+      }
+      return totalSets > 0 && doneSets === totalSets;
+    }).length;
+    const progress = totalDays > 0 ? Math.round((doneCount / totalDays) * 100) : 0;
+
+    el.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Program</div>
+        <div style="font-size:16px;font-weight:600;color:var(--text);">${pName}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Start Date</div>
+          <div style="font-size:14px;color:var(--text);">${startStr}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">End Date</div>
+          <div style="font-size:14px;color:var(--text);">${endStr}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Duration</div>
+          <div style="font-size:14px;color:var(--text);">${totalWeeks} weeks · ${totalDays} days</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Progress</div>
+          <div style="font-size:14px;color:var(--text);">${progress}% (${doneCount}/${totalDays})</div>
+        </div>
+      </div>`;
+  }
+  document.getElementById('programInfoModal').classList.remove('hidden');
+}
+
+function closeProgramInfo() {
+  document.getElementById('programInfoModal').classList.add('hidden');
 }
 
 // ==================== WHOOP INTEGRATION ====================
