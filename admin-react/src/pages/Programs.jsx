@@ -1151,6 +1151,8 @@ function AIBuilderTab() {
   const [templates, setTemplates] = useState({})
   const [templateName, setTemplateName] = useState('')
   const [savingTemplate, setSavingTemplate] = useState(false)
+  const [existingPrograms, setExistingPrograms] = useState([])
+  const [showExistingPicker, setShowExistingPicker] = useState(false)
 
   const program = editedProgram || result?.program
 
@@ -1205,6 +1207,30 @@ function AIBuilderTab() {
   useEffect(() => {
     API.listTemplates().then(d => setTemplates(d.templates || {})).catch(() => {})
   }, [])
+
+  // Load existing programs for "build from existing" option
+  useEffect(() => {
+    if (showExistingPicker && existingPrograms.length === 0) {
+      API.listPrograms().then(d => {
+        const progs = d.programs ? Object.entries(d.programs).map(([k, v]) => ({ name: k, weeks: (v.weeks || []).length })) : []
+        setExistingPrograms(progs)
+      }).catch(() => {})
+    }
+  }, [showExistingPicker])
+
+  async function loadExistingProgram(progName) {
+    try {
+      const prog = await API.getProgram(progName)
+      if (prog && prog.weeks) {
+        setEditedProgram(prog)
+        setResult({ program: prog, cost: null })
+        setName(progName + ' (copy)')
+        setStep(5)
+        toast(`Loaded "${progName}" — edit inline or use AI modify`)
+        setShowExistingPicker(false)
+      }
+    } catch { toast('Failed to load program', 'error') }
+  }
 
   async function saveAsTemplate() {
     const tName = templateName.trim() || name.trim() || 'Untitled Template'
@@ -1328,14 +1354,44 @@ function AIBuilderTab() {
     updated.weeks[weekIdx].days[dayIdx].exerciseGroups[groupIdx].exercises[exIdx][field] = editValue
     setEditedProgram(updated); setEditing(null)
   }
+  // Flatten all exercises in a day into a single list for reordering
+  function flattenDayExercises(day) {
+    const flat = []
+    for (const [gi, group] of (day.exerciseGroups || []).entries()) {
+      for (const [ei, ex] of (group.exercises || []).entries()) {
+        flat.push({ ...ex, _gi: gi, _ei: ei })
+      }
+    }
+    return flat
+  }
+  function rebuildGroups(day, flatList) {
+    // Put each exercise into its own single group (simplest structure)
+    day.exerciseGroups = flatList.map((ex, i) => ({
+      type: 'single',
+      exercises: [{ ...ex, order: String(i + 1), _gi: undefined, _ei: undefined }]
+    }))
+    // Clean up internal props
+    for (const g of day.exerciseGroups) {
+      for (const ex of g.exercises) { delete ex._gi; delete ex._ei }
+    }
+  }
   function moveExercise(weekIdx, dayIdx, groupIdx, exIdx, direction) {
     const updated = JSON.parse(JSON.stringify(program))
-    const exercises = updated.weeks[weekIdx].days[dayIdx].exerciseGroups[groupIdx].exercises
-    const newIdx = exIdx + direction
-    if (newIdx < 0 || newIdx >= exercises.length) return
-    ;[exercises[exIdx], exercises[newIdx]] = [exercises[newIdx], exercises[exIdx]]
-    // Update order numbers
-    exercises.forEach((ex, i) => { ex.order = String(i + 1) })
+    const day = updated.weeks[weekIdx].days[dayIdx]
+    const flat = flattenDayExercises(day)
+    // Find the flat index for this exercise
+    let flatIdx = 0
+    for (let g = 0; g < (day.exerciseGroups || []).length; g++) {
+      for (let e = 0; e < (day.exerciseGroups[g].exercises || []).length; e++) {
+        if (g === groupIdx && e === exIdx) break
+        flatIdx++
+      }
+      if (g === groupIdx) break
+    }
+    const newIdx = flatIdx + direction
+    if (newIdx < 0 || newIdx >= flat.length) return
+    ;[flat[flatIdx], flat[newIdx]] = [flat[newIdx], flat[flatIdx]]
+    rebuildGroups(day, flat)
     setEditedProgram(updated)
   }
   function removeExercise(weekIdx, dayIdx, groupIdx, exIdx) {
@@ -1343,6 +1399,11 @@ function AIBuilderTab() {
     const group = updated.weeks[weekIdx].days[dayIdx].exerciseGroups[groupIdx]
     group.exercises.splice(exIdx, 1)
     if (group.exercises.length === 0) updated.weeks[weekIdx].days[dayIdx].exerciseGroups.splice(groupIdx, 1)
+    // Re-number all exercises in the day
+    let order = 1
+    for (const g of updated.weeks[weekIdx].days[dayIdx].exerciseGroups) {
+      for (const ex of g.exercises) { ex.order = String(order++) }
+    }
     setEditedProgram(updated)
   }
   function addExercise(weekIdx, dayIdx) {
@@ -1424,8 +1485,8 @@ function AIBuilderTab() {
 
       {step === 1 && !builderMode && (
         <div className="card">
-          <h3 style={{ marginBottom: 16 }}>How do you want to build? <HelpTip text="Choose program types for AI to decide structure, or plan exercises by day yourself." /></h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <h3 style={{ marginBottom: 16 }}>How do you want to build? <HelpTip text="Choose program types for AI to decide structure, or plan exercises by day yourself, or start from an existing program." /></h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
             <div
               style={{
                 background: 'var(--surface2)', border: '1px solid var(--glass-border)',
@@ -1441,7 +1502,7 @@ function AIBuilderTab() {
               </div>
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>By Program Type</div>
               <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5 }}>
-                Choose types (Strength, CrossFit, etc.) and let the AI decide the structure and split.
+                Choose types (Strength, CrossFit, etc.) and let the AI decide the structure.
               </div>
             </div>
             <div
@@ -1459,10 +1520,58 @@ function AIBuilderTab() {
               </div>
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>By Day Plan</div>
               <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5 }}>
-                Assign specific exercises to each day of the week. The AI fills in sets, reps, and progression.
+                Assign exercises to each day. The AI fills in sets, reps, and progression.
+              </div>
+            </div>
+            <div
+              style={{
+                background: 'var(--surface2)', border: '1px solid var(--glass-border)',
+                borderRadius: 14, padding: 24, textAlign: 'center', cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,110,240,0.4)'; e.currentTarget.style.background = 'rgba(124,110,240,0.08)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.background = 'var(--surface2)' }}
+              onClick={() => setShowExistingPicker(true)}
+            >
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--surface3)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <Icon name="save" size={24} />
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>From Existing</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                Load a program from your library and edit or modify it with AI.
               </div>
             </div>
           </div>
+
+          {/* Existing program picker */}
+          {showExistingPicker && (
+            <div style={{ marginTop: 16, padding: 16, background: 'var(--surface2)', borderRadius: 10, border: '1px solid var(--glass-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h4 style={{ margin: 0 }}>Select a Program</h4>
+                <button onClick={() => setShowExistingPicker(false)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 18 }}>×</button>
+              </div>
+              {existingPrograms.length === 0 ? (
+                <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>Loading programs...</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+                  {existingPrograms.map(p => (
+                    <div key={p.name} onClick={() => loadExistingProgram(p.name)}
+                      style={{
+                        padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--border)',
+                        borderRadius: 8, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent2)'; e.currentTarget.style.background = 'rgba(124,110,240,0.06)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--surface)' }}
+                    >
+                      <span style={{ fontWeight: 500, fontSize: 14 }}>{p.name}</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{p.weeks} weeks</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -2371,35 +2480,44 @@ function AIBuilderTab() {
                           <span>Rest</span><span>RPE <HelpTip text="1-10 effort scale." style={{ fontSize: 7 }} /></span>
                           <span></span>
                         </div>
-                        {(day.exerciseGroups || []).map((group, gi) => (
-                          <div key={gi}>
-                            {(group.exercises || []).map((ex, ei) => (
-                              <div key={ei} className="exercise-row" style={{ position: 'relative' }}>
-                                {renderEditableCell(wi, di, gi, ei, 'order', ex.order)}
-                                {renderEditableCell(wi, di, gi, ei, 'name', ex.name)}
-                                {renderEditableCell(wi, di, gi, ei, 'sets', ex.sets)}
-                                {renderEditableCell(wi, di, gi, ei, 'reps', ex.reps)}
-                                {renderEditableCell(wi, di, gi, ei, 'tempo', ex.tempo)}
-                                {renderEditableCell(wi, di, gi, ei, 'rest', ex.rest)}
-                                {renderEditableCell(wi, di, gi, ei, 'rpe', ex.rpe)}
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'flex-end' }}>
-                                  <button className="btn-icon" onClick={() => moveExercise(wi, di, gi, ei, -1)} title="Move up"
-                                    style={{ opacity: ei === 0 ? 0.25 : 1, padding: '2px 3px' }} disabled={ei === 0}>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-                                  </button>
-                                  <button className="btn-icon" onClick={() => moveExercise(wi, di, gi, ei, 1)} title="Move down"
-                                    style={{ opacity: ei === group.exercises.length - 1 ? 0.25 : 1, padding: '2px 3px' }} disabled={ei === group.exercises.length - 1}>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                                  </button>
-                                  <button className="btn-icon" onClick={() => removeExercise(wi, di, gi, ei)} title="Remove exercise"
-                                    style={{ padding: '2px 3px' }}>
-                                    <Icon name="close" size={12} style={{ color: '#dc2626' }} />
-                                  </button>
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        ))}
+                        {(() => {
+                          const totalExInDay = (day.exerciseGroups || []).reduce((s, g) => s + (g.exercises || []).length, 0)
+                          let flatIdx = 0
+                          return (day.exerciseGroups || []).map((group, gi) => (
+                            <div key={gi}>
+                              {(group.exercises || []).map((ex, ei) => {
+                                const currentFlat = flatIdx++
+                                const isFirst = currentFlat === 0
+                                const isLast = currentFlat === totalExInDay - 1
+                                return (
+                                  <div key={ei} className="exercise-row" style={{ position: 'relative' }}>
+                                    {renderEditableCell(wi, di, gi, ei, 'order', ex.order)}
+                                    {renderEditableCell(wi, di, gi, ei, 'name', ex.name)}
+                                    {renderEditableCell(wi, di, gi, ei, 'sets', ex.sets)}
+                                    {renderEditableCell(wi, di, gi, ei, 'reps', ex.reps)}
+                                    {renderEditableCell(wi, di, gi, ei, 'tempo', ex.tempo)}
+                                    {renderEditableCell(wi, di, gi, ei, 'rest', ex.rest)}
+                                    {renderEditableCell(wi, di, gi, ei, 'rpe', ex.rpe)}
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'flex-end' }}>
+                                      <button className="btn-icon" onClick={() => moveExercise(wi, di, gi, ei, -1)} title="Move up"
+                                        style={{ opacity: isFirst ? 0.25 : 1, padding: '2px 3px' }} disabled={isFirst}>
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                                      </button>
+                                      <button className="btn-icon" onClick={() => moveExercise(wi, di, gi, ei, 1)} title="Move down"
+                                        style={{ opacity: isLast ? 0.25 : 1, padding: '2px 3px' }} disabled={isLast}>
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                      </button>
+                                      <button className="btn-icon" onClick={() => removeExercise(wi, di, gi, ei)} title="Remove exercise"
+                                        style={{ padding: '2px 3px' }}>
+                                        <Icon name="close" size={12} style={{ color: '#dc2626' }} />
+                                      </button>
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          ))
+                        })()}
                       </>
                     )}
                   </div>
