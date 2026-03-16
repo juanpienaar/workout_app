@@ -4547,20 +4547,31 @@ function moveExercise(exKey, isCustom, direction) {
   let order = [];
   try { order = JSON.parse(localStorage.getItem(orderKey) || '[]'); } catch {}
 
-  // If no saved order, build from single-type program groups + customs
+  // Build full current exercise list (program singles + customs)
+  const fullOrder = [];
+  for (const g of day.exerciseGroups) {
+    if (g.type !== 'single') continue;
+    for (const ex of g.exercises) {
+      fullOrder.push(ex.order + '_' + ex.name.replace(/\s+/g, '_'));
+    }
+  }
+  const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+  let customs = [];
+  try { customs = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
+  for (const ce of customs) {
+    fullOrder.push(ce.order + '_' + ce.name.replace(/\s+/g, '_'));
+  }
+
+  // If no saved order, use the full list
   if (order.length === 0) {
-    for (const g of day.exerciseGroups) {
-      if (g.type !== 'single') continue;
-      for (const ex of g.exercises) {
-        order.push(ex.order + '_' + ex.name.replace(/\s+/g, '_'));
-      }
+    order = fullOrder;
+  } else {
+    // Ensure any new exercises (e.g. recently added customs) are in the order
+    for (const key of fullOrder) {
+      if (!order.includes(key)) order.push(key);
     }
-    const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
-    let customs = [];
-    try { customs = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
-    for (const ce of customs) {
-      order.push(ce.order + '_' + ce.name.replace(/\s+/g, '_'));
-    }
+    // Remove any stale keys that no longer exist
+    order = order.filter(k => fullOrder.includes(k));
   }
 
   const idx = order.indexOf(exKey);
