@@ -2502,13 +2502,13 @@ function renderDay() {
         <div class="swipe-delete-bg">Delete</div>
         <div class="exercise-collapse-header ${cardClass} ${isSkipped ? 'skipped-header' : ''}" style="margin-bottom:0;">
           ${canReorder ? `<button onclick="event.stopPropagation(); moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},-1)" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:8px 6px;line-height:1;margin-right:2px;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;">▲</button>` : ''}
-          <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === totalSetsForEx ? 'background:var(--green);color:#fff;' : ''}"
-            onclick="event.stopPropagation(); handleToggleTick('${exKey}', ${totalSetsForEx}, '${collapseId}')">${setsCompleted === totalSetsForEx ? '✓' : ''}</div>
-          <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="event.stopPropagation(); toggleExerciseCollapse('${collapseId}')">
+          <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;" onclick="event.stopPropagation(); toggleExerciseCollapse('${collapseId}')">
             ${getEquipmentIcon(ex.name)} ${ex.name}
             ${group._isCustom ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">CUSTOM</span>' : ''}
             ${isSkipped ? `<span class="skip-badge">Skipped</span>` : ''}
           </div>
+          <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === totalSetsForEx ? 'background:var(--green);color:#fff;' : ''}"
+            onclick="event.stopPropagation(); handleToggleTick('${exKey}', ${totalSetsForEx}, '${collapseId}')">${setsCompleted === totalSetsForEx ? '✓' : ''}</div>
           <div class="exercise-collapse-meta" id="meta_${collapseId}">${isSkipped ? skippedExercises[exKey].reason : (completionLabel || summaryText)}</div>
           ${!isViewOnly && !isSkipped && group._isCustom ? `<button onclick="event.stopPropagation();editCustomExercise('${exKey}')" title="Edit exercise" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;font-size:14px;">✎</button>` : ''}
           ${!isViewOnly && isSkipped ? `<button onclick="event.stopPropagation();unskipExercise('${exKey}')" title="Unskip exercise" style="background:none;border:1px solid var(--card-border);border-radius:6px;padding:2px 8px;color:var(--text-dim);font-size:11px;cursor:pointer;white-space:nowrap;">Unskip</button>` : ''}
@@ -3395,6 +3395,15 @@ function syncDayToServer(dayIndex, data) {
     const start = new Date(userInfo.startDate + 'T00:00:00');
     meta.date = new Date(start.getTime() + dayIndex * 86400000).toISOString().split('T')[0];
   }
+  // Include hidden (deleted) and custom exercises so dashboard can display them
+  try {
+    const hidden = JSON.parse(localStorage.getItem(`hidden_exercises_${currentUser}_day${dayIndex}`) || '[]');
+    if (hidden.length > 0) meta.hidden_exercises = hidden;
+  } catch {}
+  try {
+    const customs = JSON.parse(localStorage.getItem(`custom_exercises_${currentUser}_day${dayIndex}`) || '[]');
+    if (customs.length > 0) meta.custom_exercises = customs;
+  } catch {}
   authFetch(`${SERVER_URL}/api/save-day`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},

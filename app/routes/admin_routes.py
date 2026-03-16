@@ -223,11 +223,11 @@ async def update_athlete_program(username: str, body: dict, coach: Annotated[dic
     if username not in users:
         raise HTTPException(404, "User not found")
     data = load_user_data(username)
-    if "assigned_program" not in data:
-        raise HTTPException(400, "Athlete has no assigned program")
     program = body.get("program")
     if program:
         data["assigned_program"] = program
+    elif "assigned_program" not in data:
+        raise HTTPException(400, "Athlete has no assigned program")
     save_user_data(username, data)
     return {"ok": True}
 

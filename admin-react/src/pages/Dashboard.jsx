@@ -665,11 +665,19 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                           const isRest = day?.isRest
                           const isExpanded = expandedDayKey === cd.dateStr
                           const exercises = []
+                          const hiddenExercises = cd.logEntry?.meta?.hidden_exercises || []
+                          const customExercises = cd.logEntry?.meta?.custom_exercises || []
                           if (day && !isRest) {
                             for (const [gi, group] of (day.exerciseGroups || []).entries()) {
                               for (const [ei, ex] of (group.exercises || []).entries()) {
-                                exercises.push({ ...ex, _gi: gi, _ei: ei })
+                                const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_')
+                                const isHidden = hiddenExercises.includes(exKey)
+                                exercises.push({ ...ex, _gi: gi, _ei: ei, _hidden: isHidden })
                               }
+                            }
+                            // Append custom (added) exercises
+                            for (const cex of customExercises) {
+                              exercises.push({ ...cex, _isCustom: true, _hidden: false })
                             }
                           }
                           const hasLog = !!cd.logEntry
@@ -726,9 +734,9 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                               {exercises.length > 0 && (
                                 <div style={{ flex: 1, overflow: 'hidden', fontSize: 11 }}>
                                   {exercises.map((ex, fi) => (
-                                    <div key={fi} style={{ display: 'flex', gap: 4, padding: '2px 0', alignItems: 'center', borderBottom: fi < exercises.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                                      <span style={{ color: 'var(--accent2)', fontSize: 10, width: 14, flexShrink: 0 }}>{ex.order}</span>
-                                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{ex.name}</span>
+                                    <div key={fi} style={{ display: 'flex', gap: 4, padding: '2px 0', alignItems: 'center', borderBottom: fi < exercises.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', opacity: ex._hidden ? 0.4 : 1 }}>
+                                      <span style={{ color: ex._isCustom ? 'var(--teal)' : 'var(--accent2)', fontSize: 10, width: 14, flexShrink: 0 }}>{ex._isCustom ? '+' : ex.order}</span>
+                                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: ex._hidden ? 'var(--text-dim)' : 'var(--text)', textDecoration: ex._hidden ? 'line-through' : 'none' }}>{ex.name}</span>
                                       <span style={{ color: 'var(--text-dim)', fontSize: 10, flexShrink: 0 }}>{ex.sets}×{ex.reps}</span>
                                     </div>
                                   ))}
