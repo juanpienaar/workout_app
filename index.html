@@ -2,14 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NumNum">
 <meta name="theme-color" content="#080810">
+<meta name="description" content="Your personal workout coaching app. Track workouts, follow programs, and crush your fitness goals with NumNum.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta property="og:title" content="NumNum Workout">
+<meta property="og:description" content="Your personal workout coaching app. Track workouts, follow programs, and crush your fitness goals.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://numnum.fit">
+<meta property="og:image" content="https://numnum.fit/icons/icon-512x512.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>NumNum Workout</title>
 <!-- v2.0 - Weekly Overview + Completion Tracking -->
 <style>
@@ -4837,6 +4847,16 @@ function escapeHtml(s) {
 
 // ==================== START ====================
 init();
+</script>
+<script>
+// Register service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('[SW] Registered:', reg.scope))
+      .catch(err => console.warn('[SW] Registration failed:', err));
+  });
+}
 </script>
 </body>
 </html>

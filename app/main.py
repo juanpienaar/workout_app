@@ -11,12 +11,27 @@ from slowapi.errors import RateLimitExceeded
 
 from fastapi.exceptions import RequestValidationError
 
+import os
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import RedirectResponse
+
 from . import config
 from .encryption import migrate_tokens_file
 from .logger import log_event
 from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes, admin_routes
 
 app = FastAPI(title="NumNum Workout", version="1.0.0")
+
+# ---- HTTPS enforcement (production only) ----
+class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        proto = request.headers.get("x-forwarded-proto", "https")
+        if proto == "http" and os.environ.get("RAILWAY_ENVIRONMENT"):
+            url = request.url.replace(scheme="https")
+            return RedirectResponse(url=str(url), status_code=301)
+        return await call_next(request)
+
+app.add_middleware(HTTPSRedirectMiddleware)
 
 # ---- Rate limiting ----
 app.state.limiter = auth_routes.limiter
