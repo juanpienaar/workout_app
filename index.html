@@ -2214,7 +2214,13 @@ function renderWeekOverview() {
         exerciseNames.push(ex.name);
         const exData = savedData[exKey] || {};
         const isCardio = !!getCardioType(ex.name);
-        for (let s = 1; s <= ex.sets; s++) {
+        const numSets = parseInt(ex.sets) || 0;
+        // Count warmup set for strength exercises (consistent with day detail view)
+        if (!isCardio) {
+          totalSets++;
+          if (exData['set0']?.done) doneSets++;
+        }
+        for (let s = 1; s <= numSets; s++) {
           totalSets++;
           const sd = exData['set' + s] || {};
           if (sd.done) {
@@ -2712,16 +2718,34 @@ function renderDay() {
       <span class="group-label" style="background:var(--nn-warm);color:#fff;">Cardio</span>`;
 
     for (const ctype of visibleCardioTypes) {
-      const icon = ctype === 'running'
-        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="17" cy="4" r="2"/><path d="M15 20l-3-8 4-2v-4l-4 2-3 4"/><path d="M7 20l3-8"/><path d="M3 20h18"/></svg>'
-        : ctype === 'cycling'
-        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l3-7h4l3 7"/><circle cx="12" cy="7" r="1.5"/></svg>'
-        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-3h8l2 3h4"/><path d="M6 12c0 3 2 6 6 6s6-3 6-6"/><circle cx="12" cy="7" r="2"/></svg>';
+      const cardioIcons = {
+        running: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="17" cy="4" r="2"/><path d="M15 20l-3-8 4-2v-4l-4 2-3 4"/><path d="M7 20l3-8"/><path d="M3 20h18"/></svg>',
+        cycling: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l3-7h4l3 7"/><circle cx="12" cy="7" r="1.5"/></svg>',
+        swimming: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M2 20c2-1 4-1 6 0s4 1 6 0 4-1 6 0"/><path d="M2 16c2-1 4-1 6 0s4 1 6 0 4-1 6 0"/><circle cx="9" cy="8" r="2"/><path d="M15 8l-3 4"/></svg>',
+        rowing: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M4 18l4-4 4 2 4-4 4-2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>',
+        walking: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2"/><path d="M10 22l2-7 2 7"/><path d="M10 13l-2 4"/><path d="M14 13l2 4"/></svg>',
+        elliptical: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="14" rx="6" ry="4"/><line x1="12" y1="10" x2="12" y2="4"/><circle cx="12" cy="3" r="1.5"/></svg>',
+        stairclimber: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M4 18h4v-4h4v-4h4v-4h4"/></svg>',
+        jumprope: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M4 6c0 6 4 10 8 10s8-4 8-10"/><circle cx="12" cy="4" r="2"/></svg>',
+        skierg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M12 4v12"/><path d="M8 8l4-4 4 4"/><path d="M6 20l6-4 6 4"/></svg>',
+      };
+      const icon = cardioIcons[ctype] || cardioIcons.running;
       const cd = cardioData[ctype] || {};
-      const fields = ctype === 'swimming'
-        ? [{f:'distance',l:'Distance (m)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'laps',l:'Laps',p:'0'}]
-        : [{f:'distance',l:'Distance (km)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'pace',l:ctype==='running'?'Pace (min/km)':'Avg Speed (km/h)',p:'0'}];
-      if (ctype !== 'swimming') fields.push({f:'elevation',l:'Elevation (m)',p:'0'});
+      let fields;
+      if (ctype === 'swimming') {
+        fields = [{f:'distance',l:'Distance (m)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'laps',l:'Laps',p:'0'}];
+      } else if (ctype === 'rowing' || ctype === 'skierg') {
+        fields = [{f:'distance',l:'Distance (m)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'pace',l:'Pace (/500m)',p:'0'},{f:'calories',l:'Calories',p:'0'}];
+      } else if (ctype === 'stairclimber') {
+        fields = [{f:'time',l:'Time (min)',p:'0'},{f:'floors',l:'Floors/Flights',p:'0'},{f:'calories',l:'Calories',p:'0'}];
+      } else if (ctype === 'jumprope') {
+        fields = [{f:'time',l:'Time (min)',p:'0'},{f:'skips',l:'Skips/Reps',p:'0'},{f:'rounds',l:'Rounds',p:'0'}];
+      } else if (ctype === 'elliptical') {
+        fields = [{f:'distance',l:'Distance (km)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'resistance',l:'Resistance',p:'0'},{f:'calories',l:'Calories',p:'0'}];
+      } else {
+        // running, cycling, walking
+        fields = [{f:'distance',l:'Distance (km)',p:'0'},{f:'time',l:'Time (min)',p:'0'},{f:'pace',l:ctype==='running'||ctype==='walking'?'Pace (min/km)':'Avg Speed (km/h)',p:'0'},{f:'elevation',l:'Elevation (m)',p:'0'}];
+      }
       fields.push({f:'hr',l:'Avg HR (bpm)',p:'0'},{f:'notes',l:'Notes',p:''});
 
       html += `<div class="exercise-card" style="margin-top:8px;">
@@ -2804,22 +2828,21 @@ function renderDay() {
         </div>
         <div id="addPanelCardio" class="exercise-card" style="display:none;border-top-left-radius:0;border-top-right-radius:0;margin-top:0;">
           <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">Select a cardio type to add a tracking section.</p>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <button onclick="addCardioType('running')"
-              style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;text-align:left;font-weight:500;display:flex;align-items:center;gap:10px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2"/><path d="M4 20l3-8 3 2 4-6 4 4"/></svg>
-              Running <span style="color:var(--text-dim);font-size:12px;margin-left:auto;">Distance + Time</span>
-            </button>
-            <button onclick="addCardioType('cycling')"
-              style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;text-align:left;font-weight:500;display:flex;align-items:center;gap:10px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h3"/></svg>
-              Cycling <span style="color:var(--text-dim);font-size:12px;margin-left:auto;">Distance + Time</span>
-            </button>
-            <button onclick="addCardioType('swimming')"
-              style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;text-align:left;font-weight:500;display:flex;align-items:center;gap:10px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M2 20c2-1 4-1 6 0s4 1 6 0 4-1 6 0"/><path d="M2 16c2-1 4-1 6 0s4 1 6 0 4-1 6 0"/><circle cx="9" cy="8" r="2"/><path d="M15 8l-3 4"/></svg>
-              Swimming <span style="color:var(--text-dim);font-size:12px;margin-left:auto;">Laps + Time</span>
-            </button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            ${[
+              {id:'running',label:'Running',desc:'Distance + Time',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="17" cy="4" r="2"/><path d="M15 20l-3-8 4-2v-4l-4 2-3 4"/><path d="M7 20l3-8"/><path d="M3 20h18"/></svg>'},
+              {id:'cycling',label:'Cycling',desc:'Distance + Time',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l3-7h4l3 7"/><circle cx="12" cy="7" r="1.5"/></svg>'},
+              {id:'swimming',label:'Swimming',desc:'Laps + Time',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M2 20c2-1 4-1 6 0s4 1 6 0 4-1 6 0"/><path d="M2 16c2-1 4-1 6 0s4 1 6 0 4-1 6 0"/><circle cx="9" cy="8" r="2"/><path d="M15 8l-3 4"/></svg>'},
+              {id:'rowing',label:'Rowing',desc:'Distance + Pace',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M4 18l4-4 4 2 4-4 4-2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>'},
+              {id:'walking',label:'Walking',desc:'Distance + Time',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2"/><path d="M10 22l2-7 2 7"/><path d="M10 13l-2 4"/><path d="M14 13l2 4"/></svg>'},
+              {id:'elliptical',label:'Elliptical',desc:'Distance + Cals',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="14" rx="6" ry="4"/><line x1="12" y1="10" x2="12" y2="4"/><circle cx="12" cy="3" r="1.5"/></svg>'},
+              {id:'stairclimber',label:'Stairs',desc:'Flights + Time',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M4 18h4v-4h4v-4h4v-4h4"/></svg>'},
+              {id:'skierg',label:'Ski Erg',desc:'Distance + Pace',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M12 4v12"/><path d="M8 8l4-4 4 4"/><path d="M6 20l6-4 6 4"/></svg>'},
+              {id:'jumprope',label:'Jump Rope',desc:'Skips + Time',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M4 6c0 6 4 10 8 10s8-4 8-10"/><circle cx="12" cy="4" r="2"/></svg>'},
+            ].map(c => `<button onclick="addCardioType('${c.id}')"
+              style="padding:10px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:13px;text-align:left;font-weight:500;display:flex;align-items:center;gap:8px;">
+              ${c.icon} ${c.label} <span style="color:var(--text-dim);font-size:10px;margin-left:auto;">${c.desc}</span>
+            </button>`).join('')}
           </div>
         </div>
       </div>
@@ -3259,10 +3282,22 @@ function getCardioType(name) {
   const n = name.toLowerCase();
   if (n.includes('run') || n.includes('jog') || n.includes('sprint') || n.includes('tempo run') || n.includes('interval run') || n.includes('fartlek') || n.includes('easy run') || n.includes('long run') || n.includes('hill run') || n.includes('threshold'))
     return 'running';
-  if (n.includes('cycl') || n.includes('bike') || n.includes('spin') || n.includes('ride'))
+  if (n.includes('cycl') || n.includes('bike') || n.includes('spin') || n.includes('ride') || n.includes('assault'))
     return 'cycling';
   if (n.includes('swim') || n.includes('pool') || n.includes('freestyle') || n.includes('backstroke') || n.includes('breaststroke') || n.includes('butterfly'))
     return 'swimming';
+  if (n.includes('row') || n.includes('erg'))
+    return 'rowing';
+  if (n.includes('walk') || n.includes('hike') || n.includes('hiking') || n.includes('trek'))
+    return 'walking';
+  if (n.includes('elliptical') || n.includes('cross trainer') || n.includes('crosstrainer'))
+    return 'elliptical';
+  if (n.includes('stair') || n.includes('stepper') || n.includes('stepmill') || n.includes('step mill'))
+    return 'stairclimber';
+  if (n.includes('jump rope') || n.includes('skipping') || n.includes('skip rope'))
+    return 'jumprope';
+  if (n.includes('ski erg') || n.includes('skierg'))
+    return 'skierg';
   return null;
 }
 

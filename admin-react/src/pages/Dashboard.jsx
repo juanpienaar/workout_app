@@ -421,9 +421,27 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
   const [replaceTo, setReplaceTo] = useState('')
   const [replaceFromDate, setReplaceFromDate] = useState('')
   const [movingEx, setMovingEx] = useState(null) // { weekIdx, dayIdx, groupIdx, exIdx, exercise }
+  const [expandedExKey, setExpandedExKey] = useState(null) // exKey of expanded exercise in modal
   const scrollRef = React.useRef(null)
   const currentWeekRef = React.useRef(null)
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+  // Helper: apply exercise_order from meta to sort exercises like the app does
+  function applyExerciseOrder(exercises, orderArr) {
+    if (!orderArr || orderArr.length === 0) return exercises
+    const keyToEx = {}
+    exercises.forEach(ex => {
+      const key = ex.order + '_' + ex.name.replace(/\s+/g, '_')
+      keyToEx[key] = ex
+    })
+    const ordered = []
+    for (const key of orderArr) {
+      if (keyToEx[key]) { ordered.push(keyToEx[key]); delete keyToEx[key] }
+    }
+    // Append any exercises not in the order array
+    Object.values(keyToEx).forEach(ex => ordered.push(ex))
+    return ordered
+  }
 
   // Auto-select first athlete
   useEffect(() => {
@@ -746,12 +764,23 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
 
   const expandedExercises = useMemo(() => {
     if (!expandedData?.programDay) return []
-    const exs = []
+    const hiddenExercises = expandedData.logEntry?.meta?.hidden_exercises || []
+    const customExercises = expandedData.logEntry?.meta?.custom_exercises || []
+    const exerciseOrder = expandedData.logEntry?.meta?.exercise_order || []
+    let exs = []
     for (const [gi, group] of (expandedData.programDay.exerciseGroups || []).entries()) {
       for (const [ei, ex] of (group.exercises || []).entries()) {
-        exs.push({ ...ex, _gi: gi, _ei: ei })
+        const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_')
+        const isHidden = hiddenExercises.includes(exKey)
+        exs.push({ ...ex, _gi: gi, _ei: ei, _hidden: isHidden })
       }
     }
+    // Append custom exercises
+    for (const cex of customExercises) {
+      exs.push({ ...cex, _isCustom: true, _hidden: false, _gi: -1, _ei: -1 })
+    }
+    // Apply exercise order
+    exs = applyExerciseOrder(exs, exerciseOrder)
     return exs
   }, [expandedData])
 
@@ -861,9 +890,10 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                           const day = cd.programDay
                           const isRest = day?.isRest
                           const isExpanded = expandedDayKey === cd.dateStr
-                          const exercises = []
+                          let exercises = []
                           const hiddenExercises = cd.logEntry?.meta?.hidden_exercises || []
                           const customExercises = cd.logEntry?.meta?.custom_exercises || []
+                          const exerciseOrder = cd.logEntry?.meta?.exercise_order || []
                           if (day && !isRest) {
                             for (const [gi, group] of (day.exerciseGroups || []).entries()) {
                               for (const [ei, ex] of (group.exercises || []).entries()) {
@@ -876,6 +906,8 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                             for (const cex of customExercises) {
                               exercises.push({ ...cex, _isCustom: true, _hidden: false })
                             }
+                            // Apply exercise order from app
+                            exercises = applyExerciseOrder(exercises, exerciseOrder)
                           }
                           const hasLog = !!cd.logEntry
                           const completion = hasLog ? getCompletionPct(cd.logEntry.data || {}) : null
@@ -991,67 +1023,142 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                     style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 20, cursor: 'pointer', padding: '4px 8px' }}>✕</button>
                 </div>
 
+                {/* Expand All / Collapse All */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  <button onClick={() => setExpandedExKey('__all__')}
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: 'var(--accent2)', cursor: 'pointer' }}>
+                    Expand All
+                  </button>
+                  <button onClick={() => setExpandedExKey(null)}
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: 'var(--text-dim)', cursor: 'pointer' }}>
+                    Collapse All
+                  </button>
+                </div>
+
                 {/* Exercise list */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {expandedExercises.map((ex, fi) => {
+                    const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_')
                     const isEd = (field) => editingEx?.weekIdx === expandedData.weekIdx && editingEx?.dayIdx === expandedData.dayIdx && editingEx?.groupIdx === ex._gi && editingEx?.exIdx === ex._ei && editingEx?.field === field
+                    const isExExpanded = expandedExKey === '__all__' || expandedExKey === exKey
+                    const logData = (expandedData.logEntry?.data || {})[exKey] || {}
+                    const numSets = parseInt(ex.sets) || 0
                     return (
-                      <div key={fi} style={{
-                        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
-                        background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)',
-                      }}>
-                        <span style={{ color: 'var(--accent2)', fontSize: 12, fontWeight: 700, width: 20, textAlign: 'center', flexShrink: 0 }}>{ex.order}</span>
+                      <div key={fi} style={{ opacity: ex._hidden ? 0.4 : 1 }}>
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+                          background: ex._isCustom ? 'rgba(45,212,191,0.06)' : 'var(--bg)', borderRadius: isExExpanded ? '8px 8px 0 0' : 8, border: '1px solid var(--border)',
+                          borderBottom: isExExpanded ? '1px dashed var(--border)' : '1px solid var(--border)',
+                          cursor: 'pointer',
+                        }} onClick={(e) => { if (!editingEx) setExpandedExKey(isExExpanded ? null : exKey) }}>
+                          <span style={{ color: ex._isCustom ? 'var(--teal)' : 'var(--accent2)', fontSize: 12, fontWeight: 700, width: 20, textAlign: 'center', flexShrink: 0 }}>
+                            {ex._isCustom ? '+' : ex.order}
+                          </span>
 
-                        {/* Name */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          {isEd('name') ? (
+                          {/* Name */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {isEd('name') ? (
+                              <input value={editVal} onChange={e => setEditVal(e.target.value)}
+                                onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
+                                autoFocus style={{ width: '100%', fontSize: 13, padding: '3px 6px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)' }} />
+                            ) : (
+                              <div style={{ fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: ex._hidden ? 'line-through' : 'none' }}
+                                onClick={(e) => { if (!ex._isCustom && !ex._hidden) { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'name', ex.name) } }}
+                                title={ex._hidden ? 'Deleted by athlete' : ex._isCustom ? 'Custom exercise' : 'Click to edit name'}>
+                                {ex.name}
+                                {ex._isCustom && <span style={{ fontSize: 9, background: 'var(--teal)', color: '#fff', padding: '1px 5px', borderRadius: 3, marginLeft: 6, fontWeight: 600 }}>CUSTOM</span>}
+                                {ex._hidden && <span style={{ fontSize: 9, color: 'var(--text-dim)', marginLeft: 6 }}>deleted</span>}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Sets × Reps */}
+                          {isEd('sets') ? (
                             <input value={editVal} onChange={e => setEditVal(e.target.value)}
                               onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
-                              autoFocus style={{ width: '100%', fontSize: 13, padding: '3px 6px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)' }} />
+                              autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
                           ) : (
-                            <div style={{ fontSize: 13, color: 'var(--text)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                              onClick={(e) => { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'name', ex.name) }}
-                              title="Click to edit name">
-                              {ex.name}
+                            <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: ex._isCustom ? 'default' : 'pointer', minWidth: 20, textAlign: 'center' }}
+                              onClick={(e) => { if (!ex._isCustom) { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'sets', ex.sets) } }}
+                              title="Click to edit sets">{ex.sets}</span>
+                          )}
+                          <span style={{ fontSize: 11, color: 'var(--muted2)' }}>×</span>
+                          {isEd('reps') ? (
+                            <input value={editVal} onChange={e => setEditVal(e.target.value)}
+                              onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
+                              autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
+                          ) : (
+                            <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: ex._isCustom ? 'default' : 'pointer', minWidth: 20, textAlign: 'center' }}
+                              onClick={(e) => { if (!ex._isCustom) { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'reps', ex.reps) } }}
+                              title="Click to edit reps">{ex.reps}</span>
+                          )}
+
+                          {/* Expand indicator */}
+                          <span style={{ fontSize: 10, color: 'var(--text-dim)', flexShrink: 0 }}>{isExExpanded ? '▾' : '▸'}</span>
+
+                          {/* Move / Delete buttons (only for program exercises) */}
+                          {!ex._isCustom && !ex._hidden && (
+                            <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                              <button onClick={(e) => { e.stopPropagation(); moveExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, -1) }}
+                                disabled={fi === 0} title="Move up"
+                                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: fi === 0 ? 'default' : 'pointer', color: fi === 0 ? 'var(--border)' : 'var(--accent2)', fontSize: 11, padding: '2px 6px', lineHeight: 1 }}>▲</button>
+                              <button onClick={(e) => { e.stopPropagation(); moveExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 1) }}
+                                disabled={fi === expandedExercises.length - 1} title="Move down"
+                                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: fi === expandedExercises.length - 1 ? 'default' : 'pointer', color: fi === expandedExercises.length - 1 ? 'var(--border)' : 'var(--accent2)', fontSize: 11, padding: '2px 6px', lineHeight: 1 }}>▼</button>
+                              <button onClick={(e) => { e.stopPropagation(); setMovingEx({ weekIdx: expandedData.weekIdx, dayIdx: expandedData.dayIdx, groupIdx: ex._gi, exIdx: ex._ei, exercise: ex }); setExpandedDayKey(null) }} title="Move to another day"
+                                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', color: 'var(--text-dim)', fontSize: 10, padding: '2px 5px', lineHeight: 1 }}>→</button>
+                              <button onClick={(e) => { e.stopPropagation(); removeExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei) }} title="Remove"
+                                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', color: '#dc2626', fontSize: 12, padding: '2px 6px', lineHeight: 1 }}>×</button>
                             </div>
                           )}
                         </div>
 
-                        {/* Sets */}
-                        {isEd('sets') ? (
-                          <input value={editVal} onChange={e => setEditVal(e.target.value)}
-                            onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
-                            autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
-                        ) : (
-                          <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: 'pointer', minWidth: 20, textAlign: 'center' }}
-                            onClick={(e) => { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'sets', ex.sets) }}
-                            title="Click to edit sets">{ex.sets}</span>
+                        {/* Expanded exercise details: workout log data */}
+                        {isExExpanded && (
+                          <div style={{
+                            background: 'var(--bg)', borderRadius: '0 0 8px 8px', border: '1px solid var(--border)', borderTop: 'none',
+                            padding: '8px 10px', fontSize: 12,
+                          }}>
+                            {Object.keys(logData).filter(k => k.startsWith('set')).length > 0 ? (
+                              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                  <tr style={{ color: 'var(--text-dim)', fontSize: 10, textAlign: 'left' }}>
+                                    <th style={{ padding: '2px 4px', width: 30 }}>Set</th>
+                                    <th style={{ padding: '2px 4px' }}>Weight</th>
+                                    <th style={{ padding: '2px 4px' }}>Reps</th>
+                                    <th style={{ padding: '2px 4px', width: 30 }}>✓</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {Array.from({ length: Math.max(numSets, ...Object.keys(logData).filter(k => k.startsWith('set')).map(k => parseInt(k.replace('set', '')) || 0)) }, (_, i) => {
+                                    const setNum = i === 0 ? 0 : i // set0 = warmup, then set1, set2...
+                                    const sKey = 'set' + setNum
+                                    const sd = logData[sKey]
+                                    if (!sd && setNum === 0) return null // skip warmup if no data
+                                    if (!sd && setNum > numSets) return null
+                                    return (
+                                      <tr key={setNum} style={{ borderTop: '1px solid var(--border)' }}>
+                                        <td style={{ padding: '3px 4px', color: setNum === 0 ? '#f59e0b' : 'var(--text-dim)', fontWeight: setNum === 0 ? 700 : 400 }}>
+                                          {setNum === 0 ? 'W' : setNum}
+                                        </td>
+                                        <td style={{ padding: '3px 4px', color: 'var(--text)' }}>{sd?.weight || '—'}</td>
+                                        <td style={{ padding: '3px 4px', color: 'var(--text)' }}>{sd?.reps || '—'}</td>
+                                        <td style={{ padding: '3px 4px', color: sd?.done ? '#22c55e' : 'var(--text-dim)' }}>{sd?.done ? '✓' : '—'}</td>
+                                      </tr>
+                                    )
+                                  }).filter(Boolean)}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <div style={{ color: 'var(--text-dim)', fontStyle: 'italic', fontSize: 11 }}>No workout data logged yet</div>
+                            )}
+                            {logData.notes && (
+                              <div style={{ marginTop: 6, padding: '4px 6px', background: 'rgba(124,110,240,0.06)', borderRadius: 4, fontSize: 11, color: 'var(--text-dim)' }}>
+                                📝 {logData.notes}
+                              </div>
+                            )}
+                          </div>
                         )}
-                        <span style={{ fontSize: 11, color: 'var(--muted2)' }}>×</span>
-                        {/* Reps */}
-                        {isEd('reps') ? (
-                          <input value={editVal} onChange={e => setEditVal(e.target.value)}
-                            onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
-                            autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
-                        ) : (
-                          <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: 'pointer', minWidth: 20, textAlign: 'center' }}
-                            onClick={(e) => { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'reps', ex.reps) }}
-                            title="Click to edit reps">{ex.reps}</span>
-                        )}
-
-                        {/* Move / Delete buttons */}
-                        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                          <button onClick={(e) => { e.stopPropagation(); moveExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, -1) }}
-                            disabled={fi === 0} title="Move up"
-                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: fi === 0 ? 'default' : 'pointer', color: fi === 0 ? 'var(--border)' : 'var(--accent2)', fontSize: 11, padding: '2px 6px', lineHeight: 1 }}>▲</button>
-                          <button onClick={(e) => { e.stopPropagation(); moveExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 1) }}
-                            disabled={fi === expandedExercises.length - 1} title="Move down"
-                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: fi === expandedExercises.length - 1 ? 'default' : 'pointer', color: fi === expandedExercises.length - 1 ? 'var(--border)' : 'var(--accent2)', fontSize: 11, padding: '2px 6px', lineHeight: 1 }}>▼</button>
-                          <button onClick={(e) => { e.stopPropagation(); setMovingEx({ weekIdx: expandedData.weekIdx, dayIdx: expandedData.dayIdx, groupIdx: ex._gi, exIdx: ex._ei, exercise: ex }); setExpandedDayKey(null) }} title="Move to another day"
-                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', color: 'var(--text-dim)', fontSize: 10, padding: '2px 5px', lineHeight: 1 }}>→</button>
-                          <button onClick={(e) => { e.stopPropagation(); removeExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei) }} title="Remove"
-                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', color: '#dc2626', fontSize: 12, padding: '2px 6px', lineHeight: 1 }}>×</button>
-                        </div>
                       </div>
                     )
                   })}
