@@ -3503,7 +3503,8 @@ function syncDayToServer(dayIndex, data) {
     const start = new Date(userInfo.startDate + 'T00:00:00');
     meta.date = new Date(start.getTime() + dayIndex * 86400000).toISOString().split('T')[0];
   }
-  // Include hidden (deleted) and custom exercises so dashboard can display them
+  // Include hidden (deleted), custom exercises, and exercise order so dashboard can display them
+  // and data survives cache clears / device changes
   try {
     const hidden = JSON.parse(localStorage.getItem(`hidden_exercises_${currentUser}_day${dayIndex}`) || '[]');
     if (hidden.length > 0) meta.hidden_exercises = hidden;
@@ -3511,6 +3512,10 @@ function syncDayToServer(dayIndex, data) {
   try {
     const customs = JSON.parse(localStorage.getItem(`custom_exercises_${currentUser}_day${dayIndex}`) || '[]');
     if (customs.length > 0) meta.custom_exercises = customs;
+  } catch {}
+  try {
+    const order = JSON.parse(localStorage.getItem(`exercise_order_${currentUser}_day${dayIndex}`) || '[]');
+    if (order.length > 0) meta.exercise_order = order;
   } catch {}
   authFetch(`${SERVER_URL}/api/save-day`, {
     method: 'POST',
@@ -3554,13 +3559,8 @@ async function pullDataFromServer() {
         merged++;
       }
     }
-    if (merged > 0) {
-      console.log(`[sync] Restored ${merged} days from server`);
-      // Re-render if we got new data
-      if (viewMode === 'week') renderWeekOverview();
-      else renderDayDetail();
-    }
-    // Also restore hidden/custom exercises from server meta
+    // Always restore hidden/custom/order exercises from server meta (server is source of truth)
+    let metaRestored = 0;
     for (const [dayKey, entry] of Object.entries(logs)) {
       const match = dayKey.match(/^day_(\d+)$/);
       if (!match) continue;
@@ -3568,12 +3568,34 @@ async function pullDataFromServer() {
       const meta = entry.meta || {};
       if (meta.hidden_exercises && meta.hidden_exercises.length > 0) {
         const hk = `hidden_exercises_${currentUser}_day${idx}`;
-        if (!localStorage.getItem(hk)) localStorage.setItem(hk, JSON.stringify(meta.hidden_exercises));
+        const existing = localStorage.getItem(hk);
+        if (!existing || existing === '[]') {
+          localStorage.setItem(hk, JSON.stringify(meta.hidden_exercises));
+          metaRestored++;
+        }
       }
       if (meta.custom_exercises && meta.custom_exercises.length > 0) {
         const ck = `custom_exercises_${currentUser}_day${idx}`;
-        if (!localStorage.getItem(ck)) localStorage.setItem(ck, JSON.stringify(meta.custom_exercises));
+        const existing = localStorage.getItem(ck);
+        if (!existing || existing === '[]') {
+          localStorage.setItem(ck, JSON.stringify(meta.custom_exercises));
+          metaRestored++;
+        }
       }
+      if (meta.exercise_order && meta.exercise_order.length > 0) {
+        const ok = `exercise_order_${currentUser}_day${idx}`;
+        const existing = localStorage.getItem(ok);
+        if (!existing || existing === '[]') {
+          localStorage.setItem(ok, JSON.stringify(meta.exercise_order));
+          metaRestored++;
+        }
+      }
+    }
+    if (merged > 0 || metaRestored > 0) {
+      console.log(`[sync] Restored ${merged} days, ${metaRestored} meta entries from server`);
+      // Re-render to reflect restored data (hidden/custom/order changes)
+      if (viewMode === 'week') renderWeekOverview();
+      else if (viewMode === 'day') renderDay();
     }
     // Fetch coach messages
     fetchMessages();
@@ -3596,7 +3618,7 @@ async function syncAllToServer() {
         const start = new Date(userInfo.startDate + 'T00:00:00');
         meta.date = new Date(start.getTime() + i * 86400000).toISOString().split('T')[0];
       }
-      // Include hidden/custom exercises in meta for server backup
+      // Include hidden/custom/order in meta for server backup
       try {
         const hidden = JSON.parse(localStorage.getItem(`hidden_exercises_${currentUser}_day${i}`) || '[]');
         if (hidden.length > 0) meta.hidden_exercises = hidden;
@@ -3604,6 +3626,10 @@ async function syncAllToServer() {
       try {
         const customs = JSON.parse(localStorage.getItem(`custom_exercises_${currentUser}_day${i}`) || '[]');
         if (customs.length > 0) meta.custom_exercises = customs;
+      } catch {}
+      try {
+        const order = JSON.parse(localStorage.getItem(`exercise_order_${currentUser}_day${i}`) || '[]');
+        if (order.length > 0) meta.exercise_order = order;
       } catch {}
       days[`day_${i}`] = {data, meta};
     }
