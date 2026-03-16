@@ -11,32 +11,38 @@ const APP_SHELL = [
   '/icons/apple-touch-icon.png',
 ];
 
-// Install: cache app shell
+// Install: cache new app shell, but don't activate yet (let old SW serve until ready)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Caching app shell');
-      return cache.addAll(APP_SHELL);
+      // Cache each individually so one failure doesn't block all
+      return Promise.allSettled(
+        APP_SHELL.map(url => cache.add(url).catch(e => console.warn('[SW] Failed to cache:', url, e)))
+      );
     })
   );
-  self.skipWaiting();
+  // Don't skipWaiting — let the old SW serve until user navigates again
+  // This prevents blank screens during deploy transitions
 });
 
-// Activate: clean up old caches
+// Activate: clean up old caches only after new cache is ready
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+        keys.filter((k) => k !== CACHE_NAME).map((k) => {
+          console.log('[SW] Deleting old cache:', k);
+          return caches.delete(k);
+        })
       )
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 // Fetch strategy:
-// - API calls (/api/*): network-only (don't cache auth/data requests)
-// - Google Fonts: cache-first (they're versioned/immutable)
+// - API calls (/api/*): network-only
+// - Google Fonts: cache-first
 // - App shell & static assets: stale-while-revalidate
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
@@ -53,9 +59,13 @@ self.addEventListener('fetch', (event) => {
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await cache.match(event.request);
         if (cached) return cached;
-        const resp = await fetch(event.request);
-        if (resp.ok) cache.put(event.request, resp.clone());
-        return resp;
+        try {
+          const resp = await fetch(event.request);
+          if (resp.ok) cache.put(event.request, resp.clone());
+          return resp;
+        } catch {
+          return cached || new Response('', { status: 503 });
+        }
       })
     );
     return;
@@ -87,4 +97,11 @@ self.addEventListener('fetch', (event) => {
       return cachedResponse || fetchPromise;
     })
   );
+});
+
+// Listen for update messages from the app
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });

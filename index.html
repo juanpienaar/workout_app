@@ -3483,7 +3483,7 @@ function saveCurrentDay() {
   }
 }
 
-// Pull workout data from server (for cross-device access)
+// Pull workout data from server (for cross-device access and recovery)
 async function pullDataFromServer() {
   if (!(await checkServer()) || !accessToken) return;
   try {
@@ -3502,17 +3502,34 @@ async function pullDataFromServer() {
       if (!match) continue;
       const idx = parseInt(match[1]);
       const localData = loadDayData(idx);
-      // Only fill in from server if localStorage is empty for this day
-      if (Object.keys(localData).length === 0 && entry.data && Object.keys(entry.data).length > 0) {
+      const localKeys = Object.keys(localData).filter(k => k !== 'notes');
+      const serverHasData = entry.data && Object.keys(entry.data).filter(k => k !== 'notes').length > 0;
+      // Restore from server if local is empty/missing (handles cache clears, new device, deploys)
+      if (localKeys.length === 0 && serverHasData) {
         localStorage.setItem(getStorageKey(idx), JSON.stringify(entry.data));
         merged++;
       }
     }
     if (merged > 0) {
-      console.log(`[sync] Pulled ${merged} days from server`);
+      console.log(`[sync] Restored ${merged} days from server`);
       // Re-render if we got new data
       if (viewMode === 'week') renderWeekOverview();
       else renderDayDetail();
+    }
+    // Also restore hidden/custom exercises from server meta
+    for (const [dayKey, entry] of Object.entries(logs)) {
+      const match = dayKey.match(/^day_(\d+)$/);
+      if (!match) continue;
+      const idx = parseInt(match[1]);
+      const meta = entry.meta || {};
+      if (meta.hidden_exercises && meta.hidden_exercises.length > 0) {
+        const hk = `hidden_exercises_${currentUser}_day${idx}`;
+        if (!localStorage.getItem(hk)) localStorage.setItem(hk, JSON.stringify(meta.hidden_exercises));
+      }
+      if (meta.custom_exercises && meta.custom_exercises.length > 0) {
+        const ck = `custom_exercises_${currentUser}_day${idx}`;
+        if (!localStorage.getItem(ck)) localStorage.setItem(ck, JSON.stringify(meta.custom_exercises));
+      }
     }
     // Fetch coach messages
     fetchMessages();
@@ -3535,6 +3552,15 @@ async function syncAllToServer() {
         const start = new Date(userInfo.startDate + 'T00:00:00');
         meta.date = new Date(start.getTime() + i * 86400000).toISOString().split('T')[0];
       }
+      // Include hidden/custom exercises in meta for server backup
+      try {
+        const hidden = JSON.parse(localStorage.getItem(`hidden_exercises_${currentUser}_day${i}`) || '[]');
+        if (hidden.length > 0) meta.hidden_exercises = hidden;
+      } catch {}
+      try {
+        const customs = JSON.parse(localStorage.getItem(`custom_exercises_${currentUser}_day${i}`) || '[]');
+        if (customs.length > 0) meta.custom_exercises = customs;
+      } catch {}
       days[`day_${i}`] = {data, meta};
     }
   }
@@ -4867,8 +4893,27 @@ init();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('[SW] Registered:', reg.scope))
+      .then(reg => {
+        console.log('[SW] Registered:', reg.scope);
+        // Check for updates periodically
+        setInterval(() => reg.update(), 60 * 60 * 1000); // hourly
+        // When a new SW is waiting, activate it on next navigation
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available — activate on next load
+              console.log('[SW] New version available, will activate on next visit');
+            }
+          });
+        });
+      })
       .catch(err => console.warn('[SW] Registration failed:', err));
+    // Reload when new SW takes over (ensures fresh content)
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) { refreshing = true; window.location.reload(); }
+    });
   });
 }
 </script>
