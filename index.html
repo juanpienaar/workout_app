@@ -2191,10 +2191,27 @@ function renderWeekOverview() {
     let exerciseNames = [];
     let totalSets = 0, doneSets = 0, tonnage = 0;
 
-    for (const group of day.exerciseGroups) {
+    // Load hidden exercises to exclude from stats
+    let hiddenForDay = [];
+    try { hiddenForDay = JSON.parse(localStorage.getItem(`hidden_exercises_${currentUser}_day${i}`) || '[]'); } catch {}
+
+    // Load custom exercises to include in stats
+    let customForDay = [];
+    try { customForDay = JSON.parse(localStorage.getItem(`custom_exercises_${currentUser}_day${i}`) || '[]'); } catch {}
+
+    const weekExGroups = [...day.exerciseGroups];
+    if (customForDay.length > 0) {
+      for (const ce of customForDay) {
+        weekExGroups.push({type: 'single', exercises: [{order: ce.order, name: ce.name, sets: ce.sets, reps: String(ce.reps)}]});
+      }
+    }
+
+    for (const group of weekExGroups) {
       for (const ex of group.exercises) {
-        exerciseNames.push(ex.name);
         const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
+        // Skip hidden/deleted exercises
+        if (hiddenForDay.includes(exKey)) continue;
+        exerciseNames.push(ex.name);
         const exData = savedData[exKey] || {};
         const isCardio = !!getCardioType(ex.name);
         for (let s = 1; s <= ex.sets; s++) {
@@ -2349,9 +2366,13 @@ function renderDay() {
     return;
   }
 
-  // Calculate day stats (including custom exercises)
+  // Calculate day stats (including custom exercises, excluding hidden)
   const savedData = loadDayData(currentDayIndex);
   let totalSets = 0, doneSets = 0, tonnage = 0;
+
+  // Load hidden exercises to exclude from stats
+  let hiddenForStats = [];
+  try { hiddenForStats = JSON.parse(localStorage.getItem(`hidden_exercises_${currentUser}_day${currentDayIndex}`) || '[]'); } catch {}
 
   // Include custom exercises in stats
   const customKeyStats = `custom_exercises_${currentUser}_day${currentDayIndex}`;
@@ -2367,6 +2388,8 @@ function renderDay() {
   for (const group of allExGroups) {
     for (const ex of group.exercises) {
       const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
+      // Skip hidden/deleted exercises
+      if (hiddenForStats.includes(exKey)) continue;
       const exData = savedData[exKey] || {};
       const isCardio = !!getCardioType(ex.name);
       // Count warmup set for strength exercises
@@ -3707,6 +3730,10 @@ function updateDayDetailStats() {
   const data = collectCurrentData();
   let totalSets = 0, doneSets = 0, tonnage = 0;
 
+  // Load hidden exercises to exclude from stats
+  let hiddenLive = [];
+  try { hiddenLive = JSON.parse(localStorage.getItem(`hidden_exercises_${currentUser}_day${currentDayIndex}`) || '[]'); } catch {}
+
   // Include custom exercises in live stats update
   const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
   let customEx = [];
@@ -3722,6 +3749,8 @@ function updateDayDetailStats() {
   for (const group of allExGroups) {
     for (const ex of group.exercises) {
       const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
+      // Skip hidden/deleted exercises
+      if (hiddenLive.includes(exKey)) continue;
       const exData = data[exKey] || {};
       const isCardio = !!getCardioType(ex.name);
       // Count all sets present in data (includes extra sets beyond ex.sets)
