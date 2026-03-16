@@ -2409,33 +2409,35 @@ function renderDay() {
   const orderKey = `exercise_order_${currentUser}_day${currentDayIndex}`;
   let savedOrder = [];
   try { savedOrder = JSON.parse(localStorage.getItem(orderKey) || '[]'); } catch {}
-  if (savedOrder.length > 0) {
-    // Reorder single-exercise groups based on saved order
-    const singles = allGroups.filter(g => g.type === 'single' && !g._isCustom);
-    const nonSingles = allGroups.filter(g => g.type !== 'single' || g._isCustom);
+  {
+    // Unified reorder: singles + customs together, non-singles (supersets/circuits) stay at top
+    const singles = allGroups.filter(g => (g.type === 'single' && !g._isCustom));
     const customs = allGroups.filter(g => g._isCustom);
-    const others = nonSingles.filter(g => !g._isCustom);
-    // Build exercise key → group map
-    const keyToGroup = {};
-    singles.forEach(g => {
-      if (g.exercises.length === 1) {
-        const ex = g.exercises[0];
-        keyToGroup[ex.order + '_' + ex.name.replace(/\s+/g, '_')] = g;
+    const others = allGroups.filter(g => g.type !== 'single' && !g._isCustom);
+    const movable = [...singles, ...customs]; // default order: program singles then customs
+    if (savedOrder.length > 0) {
+      const keyToGroup = {};
+      movable.forEach(g => {
+        if (g.exercises.length === 1) {
+          const ex = g.exercises[0];
+          keyToGroup[ex.order + '_' + ex.name.replace(/\s+/g, '_')] = g;
+        }
+      });
+      const reordered = [];
+      for (const key of savedOrder) {
+        if (keyToGroup[key]) {
+          reordered.push(keyToGroup[key]);
+          delete keyToGroup[key];
+        }
       }
-    });
-    // Rebuild single groups in saved order
-    const reordered = [];
-    for (const key of savedOrder) {
-      if (keyToGroup[key]) {
-        reordered.push(keyToGroup[key]);
-        delete keyToGroup[key];
-      }
+      // Add any remaining not in saved order
+      Object.values(keyToGroup).forEach(g => reordered.push(g));
+      allGroups.length = 0;
+      allGroups.push(...others, ...reordered);
+    } else {
+      allGroups.length = 0;
+      allGroups.push(...others, ...movable);
     }
-    // Add any remaining singles not in saved order
-    Object.values(keyToGroup).forEach(g => reordered.push(g));
-    // Reassemble: others (supersets/circuits) + reordered singles + customs
-    allGroups.length = 0;
-    allGroups.push(...others, ...reordered, ...customs);
   }
 
   // Move skipped exercises to bottom (Change 7b)
@@ -4452,42 +4454,33 @@ function moveExercise(exKey, isCustom, direction) {
   const day = allDays[currentDayIndex];
   if (!day) return;
 
-  if (isCustom) {
-    // Reorder within custom exercises
-    const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
-    let customExercises = [];
-    try { customExercises = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
-    // Find by matching key
-    const ci = customExercises.findIndex(ce => (ce.order + '_' + ce.name.replace(/\s+/g, '_')) === exKey);
-    if (ci < 0) return;
-    const newCi = ci + direction;
-    if (newCi < 0 || newCi >= customExercises.length) return;
-    [customExercises[ci], customExercises[newCi]] = [customExercises[newCi], customExercises[ci]];
-    customExercises.forEach((ce, i) => ce.order = `C${i + 1}`);
-    localStorage.setItem(customKey, JSON.stringify(customExercises));
-  } else {
-    // Reorder within single-type program exercises
-    const orderKey = `exercise_order_${currentUser}_day${currentDayIndex}`;
-    let order = [];
-    try { order = JSON.parse(localStorage.getItem(orderKey) || '[]'); } catch {}
+  // Unified order: program singles + custom exercises together
+  const orderKey = `exercise_order_${currentUser}_day${currentDayIndex}`;
+  let order = [];
+  try { order = JSON.parse(localStorage.getItem(orderKey) || '[]'); } catch {}
 
-    // If no saved order, build from single-type groups only
-    if (order.length === 0) {
-      for (const g of day.exerciseGroups) {
-        if (g.type !== 'single') continue;
-        for (const ex of g.exercises) {
-          order.push(ex.order + '_' + ex.name.replace(/\s+/g, '_'));
-        }
+  // If no saved order, build from single-type program groups + customs
+  if (order.length === 0) {
+    for (const g of day.exerciseGroups) {
+      if (g.type !== 'single') continue;
+      for (const ex of g.exercises) {
+        order.push(ex.order + '_' + ex.name.replace(/\s+/g, '_'));
       }
     }
-
-    const idx = order.indexOf(exKey);
-    if (idx < 0) return;
-    const newIdx = idx + direction;
-    if (newIdx < 0 || newIdx >= order.length) return;
-    [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
-    localStorage.setItem(orderKey, JSON.stringify(order));
+    const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+    let customs = [];
+    try { customs = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
+    for (const ce of customs) {
+      order.push(ce.order + '_' + ce.name.replace(/\s+/g, '_'));
+    }
   }
+
+  const idx = order.indexOf(exKey);
+  if (idx < 0) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= order.length) return;
+  [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
+  localStorage.setItem(orderKey, JSON.stringify(order));
 
   renderDay();
 }
