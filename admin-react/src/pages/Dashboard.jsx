@@ -362,6 +362,11 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
   const [editVal, setEditVal] = useState('')
   const [saving, setSaving] = useState(false)
   const [newExName, setNewExName] = useState('')
+  const [showReplace, setShowReplace] = useState(false)
+  const [replaceFrom, setReplaceFrom] = useState('')
+  const [replaceTo, setReplaceTo] = useState('')
+  const [replaceFromDate, setReplaceFromDate] = useState('')
+  const [movingEx, setMovingEx] = useState(null) // { weekIdx, dayIdx, groupIdx, exIdx, exercise }
   const scrollRef = React.useRef(null)
   const currentWeekRef = React.useRef(null)
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -566,6 +571,101 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
     saveProgram(updated)
   }
 
+  // Bulk replace exercise name across program
+  async function bulkReplace() {
+    if (!program || !replaceFrom.trim() || !replaceTo.trim()) return
+    const updated = JSON.parse(JSON.stringify(program))
+    const fromLower = replaceFrom.trim().toLowerCase()
+    let count = 0
+
+    for (const [wi, week] of (updated.weeks || []).entries()) {
+      for (const [di, day] of (week.days || []).entries()) {
+        // If replaceFromDate is set, skip days before that date
+        if (replaceFromDate && startDate) {
+          let flatIdx = 0
+          for (let w = 0; w < wi; w++) flatIdx += (updated.weeks[w].days || []).length
+          flatIdx += di
+          const dayDate = new Date(startDate.getTime() + flatIdx * 86400000)
+          const fromDate = new Date(replaceFromDate + 'T00:00:00')
+          if (dayDate < fromDate) continue
+        }
+
+        for (const group of (day.exerciseGroups || [])) {
+          for (const ex of (group.exercises || [])) {
+            if (ex.name.toLowerCase() === fromLower) {
+              ex.name = replaceTo.trim()
+              count++
+            }
+          }
+        }
+      }
+    }
+
+    if (count === 0) {
+      toast(`No exercises found matching "${replaceFrom.trim()}"`, 'error')
+      return
+    }
+
+    await saveProgram(updated)
+    toast(`Replaced ${count} instance${count > 1 ? 's' : ''} of "${replaceFrom.trim()}" → "${replaceTo.trim()}"`)
+    setShowReplace(false)
+    setReplaceFrom('')
+    setReplaceTo('')
+    setReplaceFromDate('')
+  }
+
+  // Move exercise from one day to another
+  function moveExerciseToDay(targetWeekIdx, targetDayIdx) {
+    if (!program || !movingEx) return
+    const updated = JSON.parse(JSON.stringify(program))
+    const { weekIdx: srcWi, dayIdx: srcDi, groupIdx: srcGi, exIdx: srcEi } = movingEx
+
+    // Extract exercise from source
+    const srcGroup = updated.weeks[srcWi].days[srcDi].exerciseGroups[srcGi]
+    const [exercise] = srcGroup.exercises.splice(srcEi, 1)
+    if (srcGroup.exercises.length === 0) {
+      updated.weeks[srcWi].days[srcDi].exerciseGroups.splice(srcGi, 1)
+    }
+    // Reorder source day
+    let srcOrder = 1
+    for (const g of (updated.weeks[srcWi].days[srcDi].exerciseGroups || [])) {
+      for (const ex of g.exercises) ex.order = String(srcOrder++)
+    }
+
+    // Add to target day
+    const targetDay = updated.weeks[targetWeekIdx].days[targetDayIdx]
+    if (targetDay.isRest) targetDay.isRest = false // Convert rest day to workout day
+    if (!targetDay.exerciseGroups) targetDay.exerciseGroups = []
+    let maxOrder = 0
+    for (const g of targetDay.exerciseGroups) {
+      for (const ex of (g.exercises || [])) {
+        const o = parseInt(ex.order) || 0
+        if (o > maxOrder) maxOrder = o
+      }
+    }
+    exercise.order = String(maxOrder + 1)
+    targetDay.exerciseGroups.push({ type: 'single', exercises: [exercise] })
+
+    setMovingEx(null)
+    saveProgram(updated)
+  }
+
+  // Get all unique exercise names in program (for autocomplete/suggestions)
+  const allExerciseNames = useMemo(() => {
+    if (!program) return []
+    const names = new Set()
+    for (const week of (program.weeks || [])) {
+      for (const day of (week.days || [])) {
+        for (const group of (day.exerciseGroups || [])) {
+          for (const ex of (group.exercises || [])) {
+            names.add(ex.name)
+          }
+        }
+      }
+    }
+    return [...names].sort()
+  }, [program])
+
   async function saveProgram(updated) {
     setSaving(true)
     try {
@@ -591,7 +691,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
   }, [expandedDayKey, weeks])
 
   const expandedExercises = useMemo(() => {
-    if (!expandedData?.programDay || expandedData.programDay.isRest) return []
+    if (!expandedData?.programDay) return []
     const exs = []
     for (const [gi, group] of (expandedData.programDay.exerciseGroups || []).entries()) {
       for (const [ei, ex] of (group.exercises || []).entries()) {
@@ -616,6 +716,12 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
               ))}
             </select>
             {program && <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{program.name || 'Program'}</span>}
+            {program && (
+              <button onClick={() => setShowReplace(!showReplace)}
+                style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: showReplace ? 'var(--accent2)' : 'none', color: showReplace ? '#fff' : 'var(--text-dim)', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
+                ⇄ Replace
+              </button>
+            )}
             {startDateStr && <span style={{ fontSize: 11, color: 'var(--muted2)' }}>Start: {fmtShort(new Date(startDateStr + 'T00:00:00'))}</span>}
             {saving && <span style={{ fontSize: 11, color: 'var(--accent2)' }}>Saving...</span>}
             {onRefresh && (
@@ -625,6 +731,50 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
               </button>
             )}
           </div>
+
+          {/* Bulk replace panel */}
+          {showReplace && program && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'flex-end', flexWrap: 'wrap', padding: 12, background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <label style={{ fontSize: 10, color: 'var(--text-dim)', display: 'block', marginBottom: 2 }}>Find exercise</label>
+                <input list="ex-names-list" value={replaceFrom} onChange={e => setReplaceFrom(e.target.value)}
+                  placeholder="Current name..."
+                  style={{ width: '100%', fontSize: 13, padding: '6px 8px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
+                <datalist id="ex-names-list">
+                  {allExerciseNames.map(n => <option key={n} value={n} />)}
+                </datalist>
+              </div>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <label style={{ fontSize: 10, color: 'var(--text-dim)', display: 'block', marginBottom: 2 }}>Replace with</label>
+                <input value={replaceTo} onChange={e => setReplaceTo(e.target.value)}
+                  placeholder="New name..."
+                  style={{ width: '100%', fontSize: 13, padding: '6px 8px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
+              </div>
+              <div style={{ minWidth: 130 }}>
+                <label style={{ fontSize: 10, color: 'var(--text-dim)', display: 'block', marginBottom: 2 }}>From date (optional)</label>
+                <input type="date" value={replaceFromDate} onChange={e => setReplaceFromDate(e.target.value)}
+                  style={{ width: '100%', fontSize: 13, padding: '5px 8px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
+              </div>
+              <button onClick={bulkReplace} disabled={!replaceFrom.trim() || !replaceTo.trim() || saving}
+                style={{ padding: '7px 16px', borderRadius: 6, border: 'none', background: (replaceFrom.trim() && replaceTo.trim()) ? 'var(--accent2)' : 'var(--border)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: (replaceFrom.trim() && replaceTo.trim()) ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
+                Replace All
+              </button>
+            </div>
+          )}
+
+          {/* Moving exercise banner */}
+          {movingEx && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', marginBottom: 10, background: 'rgba(45,212,191,0.1)', border: '1px solid var(--teal)', borderRadius: 8, fontSize: 13 }}>
+              <span style={{ color: 'var(--teal)', fontWeight: 600 }}>→</span>
+              <span style={{ color: 'var(--text)', flex: 1 }}>
+                Moving <strong>{movingEx.exercise.name}</strong> — click a day to place it there
+              </span>
+              <button onClick={() => setMovingEx(null)}
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 10px', color: 'var(--text-dim)', fontSize: 11, cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          )}
 
           {!program ? (
             <div className="card" style={{ textAlign: 'center', padding: 40 }}>
@@ -683,16 +833,26 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                           const hasLog = !!cd.logEntry
                           const completion = hasLog ? getCompletionPct(cd.logEntry.data || {}) : null
 
+                          const isMovingSource = movingEx && cd.weekIdx === movingEx.weekIdx && cd.dayIdx === movingEx.dayIdx
+                          const isMoveTarget = movingEx && day && !isMovingSource
+
                           return (
                             <div key={cd.dateStr}
-                              onClick={() => { if (day && !isRest && exercises.length > 0) setExpandedDayKey(isExpanded ? null : cd.dateStr) }}
+                              onClick={() => {
+                                if (movingEx && day) {
+                                  if (!isMovingSource) moveExerciseToDay(cd.weekIdx, cd.dayIdx)
+                                  else setMovingEx(null)
+                                } else if (day && (exercises.length > 0 || !isRest)) {
+                                  setExpandedDayKey(isExpanded ? null : cd.dateStr)
+                                }
+                              }}
                               style={{
-                                background: today ? 'rgba(124,110,240,0.08)' : isExpanded ? 'rgba(124,110,240,0.04)' : 'var(--surface)',
-                                border: today ? '2px solid var(--accent2)' : isExpanded ? '2px solid rgba(124,110,240,0.4)' : '1px solid var(--border)',
+                                background: isMovingSource ? 'rgba(220,38,38,0.1)' : isMoveTarget ? 'rgba(45,212,191,0.08)' : today ? 'rgba(124,110,240,0.08)' : isExpanded ? 'rgba(124,110,240,0.04)' : 'var(--surface)',
+                                border: isMovingSource ? '2px solid #dc2626' : isMoveTarget ? '2px dashed var(--teal)' : today ? '2px solid var(--accent2)' : isExpanded ? '2px solid rgba(124,110,240,0.4)' : '1px solid var(--border)',
                                 borderRadius: 10, padding: 10, minHeight: 150,
-                                opacity: !day && past ? 0.35 : 1,
+                                opacity: !day && past && !movingEx ? 0.35 : 1,
                                 display: 'flex', flexDirection: 'column',
-                                cursor: (day && !isRest && exercises.length > 0) ? 'pointer' : 'default',
+                                cursor: (movingEx && day) ? 'pointer' : (day && (exercises.length > 0 || !isRest)) ? 'pointer' : 'default',
                                 transition: 'border-color 0.15s',
                               }}>
                               {/* Date header */}
@@ -759,7 +919,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
           )}
 
           {/* Expanded day editor (modal overlay) */}
-          {expandedDayKey && expandedData && expandedData.programDay && !expandedData.programDay.isRest && (
+          {expandedDayKey && expandedData && expandedData.programDay && (
             <div style={{
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
               background: 'rgba(0,0,0,0.6)', zIndex: 100,
@@ -840,6 +1000,8 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                           <button onClick={(e) => { e.stopPropagation(); moveExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 1) }}
                             disabled={fi === expandedExercises.length - 1} title="Move down"
                             style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: fi === expandedExercises.length - 1 ? 'default' : 'pointer', color: fi === expandedExercises.length - 1 ? 'var(--border)' : 'var(--accent2)', fontSize: 11, padding: '2px 6px', lineHeight: 1 }}>▼</button>
+                          <button onClick={(e) => { e.stopPropagation(); setMovingEx({ weekIdx: expandedData.weekIdx, dayIdx: expandedData.dayIdx, groupIdx: ex._gi, exIdx: ex._ei, exercise: ex }); setExpandedDayKey(null) }} title="Move to another day"
+                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', color: 'var(--text-dim)', fontSize: 10, padding: '2px 5px', lineHeight: 1 }}>→</button>
                           <button onClick={(e) => { e.stopPropagation(); removeExercise(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei) }} title="Remove"
                             style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', color: '#dc2626', fontSize: 12, padding: '2px 6px', lineHeight: 1 }}>×</button>
                         </div>
