@@ -806,7 +806,7 @@ body {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   background: #E8475F;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: flex-end;
   padding: 0 20px;
@@ -814,6 +814,9 @@ body {
   font-weight: 600;
   font-size: 13px;
   border-radius: 12px;
+}
+.swipe-container.swiping .swipe-delete-bg {
+  display: flex;
 }
 /* Warmup set styling */
 .warmup-set {
@@ -4047,11 +4050,16 @@ function initSwipeHandlers() {
     const dx = swipeStartX - e.touches[0].clientX;
     const dy = Math.abs(e.touches[0].clientY - swipeStartY);
     // If scrolling vertically, cancel swipe
-    if (!swipeLocked && dy > 10 && dy > Math.abs(dx)) {
+    if (!swipeLocked && dy > 15 && dy > Math.abs(dx)) {
+      swipeElement.classList.remove('swiping');
       swipeElement = null;
       return;
     }
-    if (dx > 10) swipeLocked = true;
+    // Require 40px of intentional horizontal movement before activating swipe
+    if (!swipeLocked && dx > 40) {
+      swipeLocked = true;
+      swipeElement.classList.add('swiping');
+    }
     if (!swipeLocked) return;
     swipeCurrentX = e.touches[0].clientX;
     const diff = swipeStartX - swipeCurrentX;
@@ -4066,26 +4074,36 @@ function initSwipeHandlers() {
 
   document.addEventListener('touchend', () => {
     if (!swipeElement) return;
-    const diff = swipeStartX - swipeCurrentX;
-    const containerWidth = swipeElement.offsetWidth;
     const header = swipeElement.querySelector('.exercise-collapse-header');
 
-    if (diff > containerWidth * 0.55) {
-      // Swiped more than 55% across — delete
-      if (header) {
-        header.style.transition = 'transform 0.2s ease-out';
-        header.style.transform = `translateX(-${containerWidth}px)`;
+    // Only process delete if swipe was actually activated
+    if (swipeLocked) {
+      const diff = swipeStartX - swipeCurrentX;
+      const containerWidth = swipeElement.offsetWidth;
+      if (diff > containerWidth * 0.7) {
+        // Swiped more than 70% across — delete
+        if (header) {
+          header.style.transition = 'transform 0.2s ease-out';
+          header.style.transform = `translateX(-${containerWidth}px)`;
+        }
+        const exKey = swipeElement.dataset.exKey;
+        const isCustom = swipeElement.dataset.isCustom === 'true';
+        setTimeout(() => deleteExercise(exKey, isCustom), 200);
+      } else {
+        // Snap back
+        if (header) {
+          header.style.transition = 'transform 0.2s ease-out';
+          header.style.transform = 'translateX(0)';
+        }
       }
-      const exKey = swipeElement.dataset.exKey;
-      const isCustom = swipeElement.dataset.isCustom === 'true';
-      setTimeout(() => deleteExercise(exKey, isCustom), 200);
     } else {
-      // Snap back
+      // Was never a swipe — ensure header is clean
       if (header) {
-        header.style.transition = 'transform 0.2s ease-out';
-        header.style.transform = 'translateX(0)';
+        header.style.transform = '';
+        header.style.transition = '';
       }
     }
+    swipeElement.classList.remove('swiping');
     swipeElement = null;
     swipeStartX = 0;
     swipeCurrentX = 0;
