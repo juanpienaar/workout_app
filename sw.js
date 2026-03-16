@@ -1,10 +1,11 @@
-const CACHE_NAME = 'numnum-v1';
+const CACHE_NAME = 'numnum-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.ico',
   '/numnum-logo.svg',
+  '/exercises.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/apple-touch-icon.png',
@@ -35,7 +36,8 @@ self.addEventListener('activate', (event) => {
 
 // Fetch strategy:
 // - API calls (/api/*): network-only (don't cache auth/data requests)
-// - App shell & static assets: stale-while-revalidate (serve cached, update in background)
+// - Google Fonts: cache-first (they're versioned/immutable)
+// - App shell & static assets: stale-while-revalidate
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -45,7 +47,21 @@ self.addEventListener('fetch', (event) => {
   // Skip API calls, auth endpoints, and admin routes
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/admin')) return;
 
-  // Skip cross-origin requests
+  // Cache Google Fonts (cross-origin, cache-first)
+  if (url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com') {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        const resp = await fetch(event.request);
+        if (resp.ok) cache.put(event.request, resp.clone());
+        return resp;
+      })
+    );
+    return;
+  }
+
+  // Skip other cross-origin requests
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
@@ -54,16 +70,13 @@ self.addEventListener('fetch', (event) => {
 
       const fetchPromise = fetch(event.request)
         .then((networkResponse) => {
-          // Update cache with fresh response
           if (networkResponse.ok) {
             cache.put(event.request, networkResponse.clone());
           }
           return networkResponse;
         })
         .catch(() => {
-          // Network failed — return cached or offline fallback
           if (cachedResponse) return cachedResponse;
-          // For navigation requests, return cached index.html
           if (event.request.mode === 'navigate') {
             return cache.match('/index.html');
           }
