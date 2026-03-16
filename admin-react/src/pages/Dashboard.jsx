@@ -355,6 +355,60 @@ function localDateStr(date) {
   return `${y}-${m}-${d}`
 }
 
+function ExerciseAutocomplete({ value, onChange, placeholder, suggestions }) {
+  const [open, setOpen] = useState(false)
+  const [highlighted, setHighlighted] = useState(-1)
+  const ref = React.useRef(null)
+
+  const filtered = value.trim()
+    ? suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase())).slice(0, 8)
+    : []
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function handleKey(e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlighted(h => Math.min(h + 1, filtered.length - 1)) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlighted(h => Math.max(h - 1, 0)) }
+    else if (e.key === 'Enter' && highlighted >= 0 && filtered[highlighted]) { onChange(filtered[highlighted]); setOpen(false); setHighlighted(-1) }
+    else if (e.key === 'Escape') { setOpen(false) }
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <input value={value} onChange={e => { onChange(e.target.value); setOpen(true); setHighlighted(-1) }}
+        onFocus={() => { if (filtered.length > 0) setOpen(true) }}
+        onKeyDown={handleKey}
+        placeholder={placeholder}
+        autoComplete="off"
+        style={{ width: '100%', fontSize: 13, padding: '6px 8px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
+      {open && filtered.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, marginTop: 2,
+          background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8,
+          maxHeight: 200, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+        }}>
+          {filtered.map((name, i) => (
+            <div key={name}
+              onMouseDown={() => { onChange(name); setOpen(false) }}
+              onMouseEnter={() => setHighlighted(i)}
+              style={{
+                padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: 'var(--text)',
+                background: i === highlighted ? 'rgba(124,110,240,0.12)' : 'transparent',
+                borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
+              }}>
+              {name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function CalendarOverview({ athletes, userData, setUserData, loading, toast, onRefresh }) {
   const [calAthlete, setCalAthlete] = useState('')
   const [expandedDayKey, setExpandedDayKey] = useState(null) // dateStr of expanded day
@@ -737,18 +791,11 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'flex-end', flexWrap: 'wrap', padding: 12, background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
               <div style={{ flex: 1, minWidth: 140 }}>
                 <label style={{ fontSize: 10, color: 'var(--text-dim)', display: 'block', marginBottom: 2 }}>Find exercise</label>
-                <input list="ex-names-list" value={replaceFrom} onChange={e => setReplaceFrom(e.target.value)}
-                  placeholder="Current name..."
-                  style={{ width: '100%', fontSize: 13, padding: '6px 8px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
-                <datalist id="ex-names-list">
-                  {allExerciseNames.map(n => <option key={n} value={n} />)}
-                </datalist>
+                <ExerciseAutocomplete value={replaceFrom} onChange={setReplaceFrom} placeholder="Current name..." suggestions={allExerciseNames} />
               </div>
               <div style={{ flex: 1, minWidth: 140 }}>
                 <label style={{ fontSize: 10, color: 'var(--text-dim)', display: 'block', marginBottom: 2 }}>Replace with</label>
-                <input value={replaceTo} onChange={e => setReplaceTo(e.target.value)}
-                  placeholder="New name..."
-                  style={{ width: '100%', fontSize: 13, padding: '6px 8px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
+                <ExerciseAutocomplete value={replaceTo} onChange={setReplaceTo} placeholder="New name..." suggestions={allExerciseNames} />
               </div>
               <div style={{ minWidth: 130 }}>
                 <label style={{ fontSize: 10, color: 'var(--text-dim)', display: 'block', marginBottom: 2 }}>From date (optional)</label>
