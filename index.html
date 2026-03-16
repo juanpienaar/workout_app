@@ -797,33 +797,23 @@ body {
   position: relative;
   overflow: hidden;
 }
-.swipe-delete-action {
+.swipe-container .exercise-collapse-header {
+  position: relative;
+  z-index: 1;
+  transition: transform 0.15s ease-out;
+}
+.swipe-delete-bg {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: #E8475F;
-  color: white;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   padding: 0 20px;
-  font-weight: 600;
-  transform: translateX(100%);
-  transition: transform 0.2s ease-out;
-  pointer-events: none;
-}
-.swipe-container.swiped .swipe-delete-action {
-  transform: translateX(0);
-  pointer-events: auto;
-}
-.swipe-delete-action button {
-  background: none;
-  border: none;
   color: white;
   font-weight: 600;
-  cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  border-radius: 12px;
 }
 /* Warmup set styling */
 .warmup-set {
@@ -2351,6 +2341,12 @@ function renderDay() {
       const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_');
       const exData = savedData[exKey] || {};
       const isCardio = !!getCardioType(ex.name);
+      // Count warmup set for strength exercises
+      if (!isCardio) {
+        totalSets++;
+        const wd = exData['set0'] || {};
+        if (wd.done) doneSets++;
+      }
       for (let s = 1; s <= ex.sets; s++) {
         totalSets++;
         const sd = exData['set' + s] || {};
@@ -2455,6 +2451,19 @@ function renderDay() {
   allGroups.length = 0;
   allGroups.push(...notSkipped, ...skipped);
 
+  // Filter out hidden (deleted) exercises
+  let hiddenExercises = [];
+  try { hiddenExercises = JSON.parse(localStorage.getItem(`hidden_exercises_${currentUser}_day${currentDayIndex}`) || '[]'); } catch {}
+  if (hiddenExercises.length > 0) {
+    for (let i = allGroups.length - 1; i >= 0; i--) {
+      const g = allGroups[i];
+      if (g.exercises.length === 1) {
+        const ek = g.exercises[0].order + '_' + g.exercises[0].name.replace(/\s+/g, '_');
+        if (hiddenExercises.includes(ek)) allGroups.splice(i, 1);
+      }
+    }
+  }
+
   let exerciseIndex = 0;
   for (const group of allGroups) {
     html += '<div class="group-container">';
@@ -2473,31 +2482,32 @@ function renderDay() {
       const exData = savedData[exKey] || {};
       const cardClass = group.type !== 'single' ? `in-${group.type}` : '';
       const collapseId = `collapse_${exKey}`;
-      // Check if any sets are done
+      // Check if any sets are done (include warmup set0 for strength)
+      const isCardioEx = !!getCardioType(ex.name);
       let setsCompleted = 0;
+      const totalSetsForEx = isCardioEx ? ex.sets : ex.sets + 1; // +1 for warmup
+      if (!isCardioEx && exData['set0']?.done) setsCompleted++;
       for (let cs = 1; cs <= ex.sets; cs++) { if (exData['set' + cs]?.done) setsCompleted++; }
-      const summaryText = `${ex.sets} sets × ${ex.reps} reps`;
+      const summaryText = isCardioEx ? `${ex.sets} sets × ${ex.reps}` : `W+${ex.sets} sets × ${ex.reps} reps`;
 
       const isSkipped = !!skippedExercises[exKey];
-      const completionLabel = setsCompleted > 0 ? `${setsCompleted}/${ex.sets}` : '';
+      const completionLabel = setsCompleted > 0 ? `${setsCompleted}/${totalSetsForEx}` : '';
       const canReorder = (group.type === 'single') && !isViewOnly;
-      html += `<div class="swipe-container" style="margin-bottom: 6px;">
-        <div class="exercise-collapse-header ${cardClass} ${isSkipped ? 'skipped-header' : ''}" onclick="toggleExerciseCollapse('${collapseId}')" data-ex-key="${exKey}" data-is-custom="${group._isCustom}">
-          ${canReorder ? `<button onclick="event.stopPropagation(); moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},-1)" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0;line-height:1;margin-right:6px;">▲</button>` : ''}
-          <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === ex.sets ? 'background:var(--green);color:#fff;' : ''}"
-            onclick="event.stopPropagation(); handleToggleTick('${exKey}', ${ex.sets}, '${collapseId}')">${setsCompleted === ex.sets ? '✓' : '+'}</div>
-          <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;">
+      html += `<div class="swipe-container" style="margin-bottom: 6px;" data-ex-key="${exKey}" data-is-custom="${group._isCustom ? 'true' : 'false'}">
+        <div class="swipe-delete-bg">Delete</div>
+        <div class="exercise-collapse-header ${cardClass} ${isSkipped ? 'skipped-header' : ''}" style="margin-bottom:0;">
+          ${canReorder ? `<button onclick="event.stopPropagation(); moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},-1)" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:8px 6px;line-height:1;margin-right:2px;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;">▲</button>` : ''}
+          <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === totalSetsForEx ? 'background:var(--green);color:#fff;' : ''}"
+            onclick="event.stopPropagation(); handleToggleTick('${exKey}', ${totalSetsForEx}, '${collapseId}')">${setsCompleted === totalSetsForEx ? '✓' : ''}</div>
+          <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="event.stopPropagation(); toggleExerciseCollapse('${collapseId}')">
             ${getEquipmentIcon(ex.name)} ${ex.name}
             ${group._isCustom ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">CUSTOM</span>' : ''}
             ${isSkipped ? `<span class="skip-badge">Skipped</span>` : ''}
           </div>
           <div class="exercise-collapse-meta" id="meta_${collapseId}">${isSkipped ? skippedExercises[exKey].reason : (completionLabel || summaryText)}</div>
-          ${!isViewOnly && !isSkipped ? `${group._isCustom ? `<button onclick="event.stopPropagation();editCustomExercise('${exKey}')" title="Edit exercise" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;font-size:14px;">✎</button>` : ''}` : ''}
+          ${!isViewOnly && !isSkipped && group._isCustom ? `<button onclick="event.stopPropagation();editCustomExercise('${exKey}')" title="Edit exercise" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;font-size:14px;">✎</button>` : ''}
           ${!isViewOnly && isSkipped ? `<button onclick="event.stopPropagation();unskipExercise('${exKey}')" title="Unskip exercise" style="background:none;border:1px solid var(--card-border);border-radius:6px;padding:2px 8px;color:var(--text-dim);font-size:11px;cursor:pointer;white-space:nowrap;">Unskip</button>` : ''}
-          ${canReorder ? `<button onclick="event.stopPropagation(); moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},1)" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0;line-height:1;margin-left:6px;">▼</button>` : ''}
-        </div>
-        <div class="swipe-delete-action" onclick="event.stopPropagation()">
-          <button onclick="deleteExercise('${exKey}', ${group._isCustom})" style="padding: 0; margin: 0;">Delete</button>
+          ${canReorder ? `<button onclick="event.stopPropagation(); moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},1)" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:8px 6px;line-height:1;margin-left:2px;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;">▼</button>` : ''}
         </div>
       </div>
       <div class="exercise-collapse-body" id="${collapseId}">
@@ -2566,6 +2576,20 @@ function renderDay() {
         html += `<div class="sets-log-header">
             <div>Set</div><div style="text-align:center">Weight</div><div style="text-align:center">Reps</div><div></div>
           </div>`;
+        // Warmup set (additional, stored as set0)
+        const warmupData = exData['set0'] || {};
+        html += `<div class="set-row warmup-set">
+          <div class="set-num" style="color:var(--nn-warm);font-weight:700;">W</div>
+          <input class="set-input" type="number" inputmode="decimal" placeholder="kg"
+            data-key="${exKey}" data-set="0" data-field="weight"
+            value="${warmupData.weight || ''}" onchange="onSetChange(this)" ${disabled}>
+          <input class="set-input" type="number" inputmode="numeric" placeholder="${ex.reps} reps"
+            data-key="${exKey}" data-set="0" data-field="reps"
+            value="${warmupData.reps || ''}" onchange="onSetChange(this)" ${disabled}>
+          <button class="set-check ${warmupData.done ? 'done' : ''}"
+            data-key="${exKey}" data-set="0"
+            onclick="toggleSet(this)" ${disabled}>✓</button>
+        </div>`;
         // Include extra sets beyond program definition
         const extraSetNums = Object.keys(exData).filter(k => k.startsWith('set')).map(k => parseInt(k.replace('set',''))).filter(n => n > ex.sets);
         const maxSet = Math.max(ex.sets, ...extraSetNums, 0);
@@ -2574,13 +2598,11 @@ function renderDay() {
         for (let s = 1; s <= maxSet; s++) {
           const setData = exData['set' + s] || {};
           const isExtra = s > ex.sets;
-          const isWarmup = s === 1;
           const targetW = tw['set' + s];
           const weightVal = setData.weight || (targetW ? targetW : '');
           const isCoachWeight = !setData.weight && targetW;
-          const displaySetNum = isWarmup ? 'W' : (s - 1);
-          html += `<div class="set-row ${isWarmup ? 'warmup-set' : ''}">
-            <div class="set-num" ${isExtra ? 'style="color:var(--accent);"' : ''}>${displaySetNum}${isExtra ? '+' : ''}</div>
+          html += `<div class="set-row">
+            <div class="set-num" ${isExtra ? 'style="color:var(--accent);"' : ''}>${s}${isExtra ? '+' : ''}</div>
             <input class="set-input" type="number" inputmode="decimal" placeholder="kg"
               data-key="${exKey}" data-set="${s}" data-field="weight"
               value="${weightVal}" ${isCoachWeight ? 'style="color:var(--nn-warm);"' : ''}
@@ -2597,7 +2619,7 @@ function renderDay() {
 
       html += `</div>
         ${!isViewOnly ? `<button onclick="addExtraSet('${exKey}','${ex.name.replace(/'/g, "\\'")}')" style="width:100%;padding:6px;border:1px dashed var(--card-border);border-radius:6px;background:none;color:var(--text-dim);font-size:12px;cursor:pointer;margin-top:4px;">+ Add Set</button>` : ''}
-        ${!isViewOnly && !isSkipped ? `<button onclick="event.stopPropagation();completeAllSets('${exKey}',${ex.sets})" title="Complete all sets" style="width:100%;padding:6px;border:1px solid var(--card-border);border-radius:6px;background:none;color:var(--text-dim);font-size:11px;cursor:pointer;white-space:nowrap;margin-top:4px;">${setsCompleted === ex.sets ? 'Undo' : 'All ✓'}</button>` : ''}
+        ${!isViewOnly && !isSkipped ? `<button onclick="event.stopPropagation();completeAllSets('${exKey}',${totalSetsForEx})" title="Complete all sets" style="width:100%;padding:6px;border:1px solid var(--card-border);border-radius:6px;background:none;color:var(--text-dim);font-size:11px;cursor:pointer;white-space:nowrap;margin-top:4px;">${setsCompleted === totalSetsForEx ? 'Undo' : 'All ✓'}</button>` : ''}
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <div class="exercise-notes" style="flex:1;min-width:150px;">
             <textarea class="notes-input" placeholder="${isViewOnly ? 'No notes' : 'Notes...'}"
@@ -3998,55 +4020,77 @@ function closeSettingsDropdown() {
   document.getElementById('settingsBackdrop').classList.remove('open');
 }
 
-// ==================== SWIPE TO DELETE (Change 1) ====================
+// ==================== SWIPE TO DELETE ====================
 let swipeStartX = 0;
 let swipeCurrentX = 0;
 let swipeElement = null;
+let swipeStartY = 0;
+let swipeLocked = false; // lock direction once determined
 
 function initSwipeHandlers() {
   document.addEventListener('touchstart', (e) => {
     const header = e.target.closest('.exercise-collapse-header');
     if (!header) return;
+    // Don't swipe if tapping a button
+    if (e.target.closest('button')) return;
     const container = header.closest('.swipe-container');
     if (!container) return;
     swipeStartX = e.touches[0].clientX;
+    swipeStartY = e.touches[0].clientY;
     swipeElement = container;
     swipeCurrentX = swipeStartX;
-  }, false);
+    swipeLocked = false;
+  }, { passive: true });
 
   document.addEventListener('touchmove', (e) => {
     if (!swipeElement) return;
+    const dx = swipeStartX - e.touches[0].clientX;
+    const dy = Math.abs(e.touches[0].clientY - swipeStartY);
+    // If scrolling vertically, cancel swipe
+    if (!swipeLocked && dy > 10 && dy > Math.abs(dx)) {
+      swipeElement = null;
+      return;
+    }
+    if (dx > 10) swipeLocked = true;
+    if (!swipeLocked) return;
     swipeCurrentX = e.touches[0].clientX;
     const diff = swipeStartX - swipeCurrentX;
-    if (diff > 0 && diff < 150) {
-      // Only allow dragging left, limit to ~150px
-      const action = swipeElement.querySelector('.swipe-delete-action');
-      if (action) {
-        const translate = Math.min(diff, 80);
-        action.style.transform = `translateX(-${translate}px)`;
+    if (diff > 0) {
+      const header = swipeElement.querySelector('.exercise-collapse-header');
+      if (header) {
+        header.style.transform = `translateX(-${diff}px)`;
+        header.style.transition = 'none';
       }
     }
-  }, false);
+  }, { passive: true });
 
-  document.addEventListener('touchend', (e) => {
+  document.addEventListener('touchend', () => {
     if (!swipeElement) return;
     const diff = swipeStartX - swipeCurrentX;
-    const action = swipeElement.querySelector('.swipe-delete-action');
-    if (action) {
-      if (diff > 40) {
-        // Threshold met - show delete button fully
-        swipeElement.classList.add('swiped');
-        action.style.transform = 'translateX(0)';
-      } else {
-        // Reset
-        swipeElement.classList.remove('swiped');
-        action.style.transform = 'translateX(100%)';
+    const containerWidth = swipeElement.offsetWidth;
+    const header = swipeElement.querySelector('.exercise-collapse-header');
+
+    if (diff > containerWidth * 0.55) {
+      // Swiped more than 55% across — delete
+      if (header) {
+        header.style.transition = 'transform 0.2s ease-out';
+        header.style.transform = `translateX(-${containerWidth}px)`;
+      }
+      const exKey = swipeElement.dataset.exKey;
+      const isCustom = swipeElement.dataset.isCustom === 'true';
+      setTimeout(() => deleteExercise(exKey, isCustom), 200);
+    } else {
+      // Snap back
+      if (header) {
+        header.style.transition = 'transform 0.2s ease-out';
+        header.style.transform = 'translateX(0)';
       }
     }
     swipeElement = null;
     swipeStartX = 0;
     swipeCurrentX = 0;
-  }, false);
+    swipeLocked = false;
+  }, { passive: true });
 }
 
 function deleteExercise(exKey, isCustom) {
