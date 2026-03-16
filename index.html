@@ -786,10 +786,48 @@ body {
   opacity: 0.4;
 }
 .exercise-collapse-header.skipped-header {
-  opacity: 0.4;
+  border: 2px solid #E8475F;
+  opacity: 0.6;
 }
 .exercise-collapse-header.skipped-header .exercise-collapse-title {
   text-decoration: line-through;
+}
+/* Swipe delete container */
+.swipe-container {
+  position: relative;
+  overflow: hidden;
+}
+.swipe-delete-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: #E8475F;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  font-weight: 600;
+  transform: translateX(100%);
+  transition: transform 0.2s ease-out;
+  pointer-events: none;
+}
+.swipe-container.swiped .swipe-delete-action {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+.swipe-delete-action button {
+  background: none;
+  border: none;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+/* Warmup set styling */
+.warmup-set {
+  border: 2px solid var(--nn-warm, #f59e0b) !important;
 }
 .skip-badge {
   display: inline-block;
@@ -2399,6 +2437,24 @@ function renderDay() {
     allGroups.push(...others, ...reordered, ...customs);
   }
 
+  // Move skipped exercises to bottom (Change 7b)
+  const skipped = [];
+  const notSkipped = [];
+  for (const group of allGroups) {
+    let isGroupSkipped = false;
+    if (group.exercises.length === 1) {
+      const exKey = group.exercises[0].order + '_' + group.exercises[0].name.replace(/\s+/g, '_');
+      isGroupSkipped = !!skippedExercises[exKey];
+    }
+    if (isGroupSkipped) {
+      skipped.push(group);
+    } else {
+      notSkipped.push(group);
+    }
+  }
+  allGroups.length = 0;
+  allGroups.push(...notSkipped, ...skipped);
+
   let exerciseIndex = 0;
   for (const group of allGroups) {
     html += '<div class="group-container">';
@@ -2425,20 +2481,24 @@ function renderDay() {
       const isSkipped = !!skippedExercises[exKey];
       const completionLabel = setsCompleted > 0 ? `${setsCompleted}/${ex.sets}` : '';
       const canReorder = (group.type === 'single') && !isViewOnly;
-      html += `<div class="exercise-collapse-header ${cardClass} ${isSkipped ? 'skipped-header' : ''}" onclick="toggleExerciseCollapse('${collapseId}')">
-        ${canReorder ? `<div style="display:flex;flex-direction:column;gap:1px;margin-right:2px;" onclick="event.stopPropagation()">
-          <button onclick="moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},-1)" style="background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;padding:0;line-height:1;">▲</button>
-          <button onclick="moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},1)" style="background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;padding:0;line-height:1;">▼</button>
-        </div>` : ''}
-        <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === ex.sets ? 'background:var(--green);color:#fff;' : ''}"
-          onclick="event.stopPropagation(); handleToggleTick('${exKey}', ${ex.sets}, '${collapseId}')">${setsCompleted === ex.sets ? '✓' : '+'}</div>
-        <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;">
-          ${getEquipmentIcon(ex.name)} ${ex.name}
-          ${group._isCustom ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">CUSTOM</span>' : ''}
-          ${isSkipped ? `<span class="skip-badge">Skipped</span>` : ''}
+      html += `<div class="swipe-container" style="margin-bottom: 6px;">
+        <div class="exercise-collapse-header ${cardClass} ${isSkipped ? 'skipped-header' : ''}" onclick="toggleExerciseCollapse('${collapseId}')" data-ex-key="${exKey}" data-is-custom="${group._isCustom}">
+          ${canReorder ? `<button onclick="event.stopPropagation(); moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},-1)" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0;line-height:1;margin-right:6px;">▲</button>` : ''}
+          <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === ex.sets ? 'background:var(--green);color:#fff;' : ''}"
+            onclick="event.stopPropagation(); handleToggleTick('${exKey}', ${ex.sets}, '${collapseId}')">${setsCompleted === ex.sets ? '✓' : '+'}</div>
+          <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;">
+            ${getEquipmentIcon(ex.name)} ${ex.name}
+            ${group._isCustom ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">CUSTOM</span>' : ''}
+            ${isSkipped ? `<span class="skip-badge">Skipped</span>` : ''}
+          </div>
+          <div class="exercise-collapse-meta" id="meta_${collapseId}">${isSkipped ? skippedExercises[exKey].reason : (completionLabel || summaryText)}</div>
+          ${!isViewOnly && !isSkipped ? `${group._isCustom ? `<button onclick="event.stopPropagation();editCustomExercise('${exKey}')" title="Edit exercise" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;font-size:14px;">✎</button>` : ''}` : ''}
+          ${!isViewOnly && isSkipped ? `<button onclick="event.stopPropagation();unskipExercise('${exKey}')" title="Unskip exercise" style="background:none;border:1px solid var(--card-border);border-radius:6px;padding:2px 8px;color:var(--text-dim);font-size:11px;cursor:pointer;white-space:nowrap;">Unskip</button>` : ''}
+          ${canReorder ? `<button onclick="event.stopPropagation(); moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},1)" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0;line-height:1;margin-left:6px;">▼</button>` : ''}
         </div>
-        <div class="exercise-collapse-meta" id="meta_${collapseId}">${isSkipped ? skippedExercises[exKey].reason : (completionLabel || summaryText)}</div>
-        ${!isViewOnly && !isSkipped ? `<button onclick="event.stopPropagation();completeAllSets('${exKey}',${ex.sets})" title="Complete all sets" style="background:none;border:1px solid var(--card-border);border-radius:6px;padding:2px 8px;color:var(--text-dim);font-size:11px;cursor:pointer;white-space:nowrap;">${setsCompleted === ex.sets ? 'Undo' : 'All ✓'}</button>` : ''}
+        <div class="swipe-delete-action" onclick="event.stopPropagation()">
+          <button onclick="deleteExercise('${exKey}', ${group._isCustom})" style="padding: 0; margin: 0;">Delete</button>
+        </div>
       </div>
       <div class="exercise-collapse-body" id="${collapseId}">
       <div class="exercise-card ${cardClass}" style="margin-top:-2px;border-top-left-radius:0;border-top-right-radius:0;">
@@ -2514,11 +2574,13 @@ function renderDay() {
         for (let s = 1; s <= maxSet; s++) {
           const setData = exData['set' + s] || {};
           const isExtra = s > ex.sets;
+          const isWarmup = s === 1;
           const targetW = tw['set' + s];
           const weightVal = setData.weight || (targetW ? targetW : '');
           const isCoachWeight = !setData.weight && targetW;
-          html += `<div class="set-row">
-            <div class="set-num" ${isExtra ? 'style="color:var(--accent);"' : ''}>${s}${isExtra ? '+' : ''}</div>
+          const displaySetNum = isWarmup ? 'W' : (s - 1);
+          html += `<div class="set-row ${isWarmup ? 'warmup-set' : ''}">
+            <div class="set-num" ${isExtra ? 'style="color:var(--accent);"' : ''}>${displaySetNum}${isExtra ? '+' : ''}</div>
             <input class="set-input" type="number" inputmode="decimal" placeholder="kg"
               data-key="${exKey}" data-set="${s}" data-field="weight"
               value="${weightVal}" ${isCoachWeight ? 'style="color:var(--nn-warm);"' : ''}
@@ -2535,6 +2597,7 @@ function renderDay() {
 
       html += `</div>
         ${!isViewOnly ? `<button onclick="addExtraSet('${exKey}','${ex.name.replace(/'/g, "\\'")}')" style="width:100%;padding:6px;border:1px dashed var(--card-border);border-radius:6px;background:none;color:var(--text-dim);font-size:12px;cursor:pointer;margin-top:4px;">+ Add Set</button>` : ''}
+        ${!isViewOnly && !isSkipped ? `<button onclick="event.stopPropagation();completeAllSets('${exKey}',${ex.sets})" title="Complete all sets" style="width:100%;padding:6px;border:1px solid var(--card-border);border-radius:6px;background:none;color:var(--text-dim);font-size:11px;cursor:pointer;white-space:nowrap;margin-top:4px;">${setsCompleted === ex.sets ? 'Undo' : 'All ✓'}</button>` : ''}
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <div class="exercise-notes" style="flex:1;min-width:150px;">
             <textarea class="notes-input" placeholder="${isViewOnly ? 'No notes' : 'Notes...'}"
@@ -2762,6 +2825,8 @@ function onExerciseNameInput(input) {
 function selectExerciseFromLibrary(name) {
   document.getElementById('customExName').value = name;
   document.getElementById('exAutocompleteList').classList.remove('open');
+  // Auto-add the exercise directly
+  addCustomExercise();
 }
 
 // Close autocomplete on outside click
@@ -2887,7 +2952,23 @@ function addCustomExercise() {
   const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
   let customs = [];
   try { customs = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
-  customs.push({name, sets, reps, tempo, rest, order: `C${customs.length + 1}`});
+
+  // Check if editing existing exercise
+  const editingExKey = window._editingExKey;
+  if (editingExKey) {
+    // Update existing exercise
+    const index = customs.findIndex(c => {
+      const cKey = c.order + '_' + c.name.replace(/\s+/g, '_');
+      return cKey === editingExKey;
+    });
+    if (index !== -1) {
+      customs[index] = { name, sets, reps, tempo, rest, order: customs[index].order };
+    }
+    window._editingExKey = null;
+  } else {
+    // Add new exercise
+    customs.push({name, sets, reps, tempo, rest, order: `C${customs.length + 1}`});
+  }
   localStorage.setItem(customKey, JSON.stringify(customs));
 
   // Also add to exercise library if not already there
@@ -2895,6 +2976,8 @@ function addCustomExercise() {
 
   // Clear form and re-render
   nameInput.value = '';
+  if (document.getElementById('customExSets')) document.getElementById('customExSets').value = '3';
+  if (document.getElementById('customExReps')) document.getElementById('customExReps').value = '10';
   if (document.getElementById('customExTempo')) document.getElementById('customExTempo').value = '';
   if (document.getElementById('customExRest')) document.getElementById('customExRest').value = '';
   renderDay();
@@ -3616,6 +3699,46 @@ function logout() {
 window.addEventListener('beforeunload', () => { if (!isViewOnly) saveCurrentDay(); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && !isViewOnly) saveCurrentDay();
+  // (Change 8) When page becomes visible, recalculate timer if running
+  if (document.visibilityState === 'visible' && timerRunning && timerEndTime) {
+    const remaining = Math.ceil((timerEndTime - Date.now()) / 1000);
+    if (remaining <= 0) {
+      // Time already passed while backgrounded - trigger alarm immediately
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerSeconds = 0;
+      const btn = document.getElementById('timerPauseBtn');
+      if (btn) btn.textContent = 'Restart';
+      // Play sound + vibration
+      if (timerSettings.vibration && navigator.vibrate) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+      }
+      if (timerSettings.sound) {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          for (let i = 0; i < 3; i++) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            gain.gain.value = 0.3;
+            osc.start(ctx.currentTime + i * 0.25);
+            osc.stop(ctx.currentTime + i * 0.25 + 0.15);
+          }
+        } catch(e) {}
+      }
+      const pill = document.getElementById('timerPill');
+      pill?.classList.add('pulse');
+      updateTimerDisplay();
+      setTimeout(() => { if (!timerRunning && timerSeconds <= 0) stopTimer(); }, 5000);
+    } else {
+      // Update remaining time and restart interval
+      timerSeconds = remaining;
+      timerEndTime = Date.now() + remaining * 1000;
+      updateTimerDisplay();
+    }
+  }
 });
 
 // ==================== REST TIMER (Non-blocking pill) ====================
@@ -3624,6 +3747,7 @@ let timerTotal = 0;
 let timerInterval = null;
 let timerRunning = false;
 let timerExpandedOpen = false;
+let timerEndTime = null; // (Change 8) Wall-clock end time for background reliability
 
 // Timer settings (persisted)
 const timerSettings = JSON.parse(localStorage.getItem('nn_timer_settings') || '{"sound":true,"vibration":true}');
@@ -3657,6 +3781,7 @@ function openTimer(restStr) {
   const seconds = parseRestTime(restStr);
   timerSeconds = seconds;
   timerTotal = seconds;
+  timerEndTime = Date.now() + seconds * 1000; // (Change 8) Set end time
   clearInterval(timerInterval);
   // Show the pill
   const pill = document.getElementById('timerPill');
@@ -3671,10 +3796,14 @@ function startTimerCountdown() {
   if (timerRunning) return;
   if (timerSeconds <= 0) timerSeconds = timerTotal;
   timerRunning = true;
+  // (Change 8) Store wall-clock end time
+  timerEndTime = Date.now() + timerSeconds * 1000;
   const btn = document.getElementById('timerPauseBtn');
   if (btn) btn.textContent = 'Pause';
   timerInterval = setInterval(() => {
-    timerSeconds--;
+    // (Change 8) Calculate remaining time from wall clock
+    timerSeconds = Math.ceil((timerEndTime - Date.now()) / 1000);
+    if (timerSeconds < 0) timerSeconds = 0;
     updateTimerDisplay();
     if (timerSeconds <= 0) {
       clearInterval(timerInterval);
@@ -3711,6 +3840,7 @@ function startTimerCountdown() {
 function setTimerPreset(seconds) {
   timerSeconds = seconds;
   timerTotal = seconds;
+  timerEndTime = Date.now() + seconds * 1000; // (Change 8) Set end time
   clearInterval(timerInterval);
   timerRunning = false;
   updateTimerDisplay();
@@ -3736,6 +3866,7 @@ function resetTimerToTotal() {
   clearInterval(timerInterval);
   timerRunning = false;
   timerSeconds = timerTotal;
+  timerEndTime = null; // (Change 8) Clear end time on reset
   updateTimerDisplay();
   const btn = document.getElementById('timerPauseBtn');
   if (btn) btn.textContent = 'Start';
@@ -3867,10 +3998,128 @@ function closeSettingsDropdown() {
   document.getElementById('settingsBackdrop').classList.remove('open');
 }
 
+// ==================== SWIPE TO DELETE (Change 1) ====================
+let swipeStartX = 0;
+let swipeCurrentX = 0;
+let swipeElement = null;
+
+function initSwipeHandlers() {
+  document.addEventListener('touchstart', (e) => {
+    const header = e.target.closest('.exercise-collapse-header');
+    if (!header) return;
+    const container = header.closest('.swipe-container');
+    if (!container) return;
+    swipeStartX = e.touches[0].clientX;
+    swipeElement = container;
+    swipeCurrentX = swipeStartX;
+  }, false);
+
+  document.addEventListener('touchmove', (e) => {
+    if (!swipeElement) return;
+    swipeCurrentX = e.touches[0].clientX;
+    const diff = swipeStartX - swipeCurrentX;
+    if (diff > 0 && diff < 150) {
+      // Only allow dragging left, limit to ~150px
+      const action = swipeElement.querySelector('.swipe-delete-action');
+      if (action) {
+        const translate = Math.min(diff, 80);
+        action.style.transform = `translateX(-${translate}px)`;
+      }
+    }
+  }, false);
+
+  document.addEventListener('touchend', (e) => {
+    if (!swipeElement) return;
+    const diff = swipeStartX - swipeCurrentX;
+    const action = swipeElement.querySelector('.swipe-delete-action');
+    if (action) {
+      if (diff > 40) {
+        // Threshold met - show delete button fully
+        swipeElement.classList.add('swiped');
+        action.style.transform = 'translateX(0)';
+      } else {
+        // Reset
+        swipeElement.classList.remove('swiped');
+        action.style.transform = 'translateX(100%)';
+      }
+    }
+    swipeElement = null;
+    swipeStartX = 0;
+    swipeCurrentX = 0;
+  }, false);
+}
+
+function deleteExercise(exKey, isCustom) {
+  if (isViewOnly) return;
+  saveCurrentDay();
+  if (isCustom) {
+    // Remove from custom exercises
+    const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+    let customs = [];
+    try { customs = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
+    customs = customs.filter(c => {
+      const cKey = c.order + '_' + c.name.replace(/\s+/g, '_');
+      return cKey !== exKey;
+    });
+    localStorage.setItem(customKey, JSON.stringify(customs));
+  } else {
+    // Hide from program exercises
+    let hiddenKey = `hidden_exercises_${currentUser}_day${currentDayIndex}`;
+    let hidden = [];
+    try { hidden = JSON.parse(localStorage.getItem(hiddenKey) || '[]'); } catch {}
+    if (!hidden.includes(exKey)) hidden.push(exKey);
+    localStorage.setItem(hiddenKey, JSON.stringify(hidden));
+  }
+  renderDay();
+}
+
+function editCustomExercise(exKey) {
+  if (isViewOnly) return;
+  // Find the custom exercise by key
+  const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+  let customs = [];
+  try { customs = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
+
+  const exercise = customs.find(c => {
+    const cKey = c.order + '_' + c.name.replace(/\s+/g, '_');
+    return cKey === exKey;
+  });
+
+  if (!exercise) return;
+
+  // Pre-fill the form with exercise data
+  document.getElementById('customExName').value = exercise.name;
+  document.getElementById('customExSets').value = exercise.sets || 3;
+  document.getElementById('customExReps').value = exercise.reps || 10;
+  if (document.getElementById('customExTempo')) document.getElementById('customExTempo').value = exercise.tempo || '';
+  if (document.getElementById('customExRest')) document.getElementById('customExRest').value = exercise.rest || '';
+
+  // Store the exKey for editing
+  window._editingExKey = exKey;
+
+  // Open the panel
+  const panel = document.getElementById('addExExpandedPanel');
+  if (panel) panel.style.display = 'block';
+
+  // Scroll to the panel
+  setTimeout(() => {
+    panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+function unskipExercise(exKey) {
+  if (isViewOnly) return;
+  delete skippedExercises[exKey];
+  saveSkippedExercises();
+  renderDay();
+}
+
 // Load saved theme on startup
 (function() {
   const saved = localStorage.getItem('workout_theme') || 'dark';
   applyTheme(saved);
+  // Init swipe handlers
+  initSwipeHandlers();
 })();
 
 // ==================== ORIENTATION LOCK (Feature 6) ====================
