@@ -498,7 +498,7 @@ body {
 .sets-log { margin-top: 12px; }
 .sets-log-header {
   display: grid;
-  grid-template-columns: 40px 1fr 1fr 44px;
+  grid-template-columns: 40px 1fr 1fr 44px 24px;
   gap: 8px;
   padding: 0 4px 6px;
   font-size: 11px;
@@ -508,11 +508,16 @@ body {
 }
 .set-row {
   display: grid;
-  grid-template-columns: 40px 1fr 1fr 44px;
+  grid-template-columns: 40px 1fr 1fr 44px 24px;
   gap: 8px;
   margin-bottom: 6px;
   align-items: center;
 }
+.set-delete-btn {
+  background: none; border: none; color: var(--text-muted); font-size: 14px;
+  cursor: pointer; padding: 0; line-height: 1; opacity: 0.5; transition: opacity 0.15s;
+}
+.set-delete-btn:hover { opacity: 1; color: #E8475F; }
 .set-num { font-size: 14px; font-weight: 700; color: var(--text-dim); text-align: center; }
 .set-input {
   width: 100%;
@@ -2541,7 +2546,7 @@ function renderDay() {
       if (cardioType === 'swimming') {
         // Swimming: laps + time
         html += `<div class="sets-log-header">
-            <div>Set</div><div style="text-align:center">Laps</div><div style="text-align:center">Time</div><div></div>
+            <div>Set</div><div style="text-align:center">Laps</div><div style="text-align:center">Time</div><div></div><div></div>
           </div>`;
         for (let s = 1; s <= ex.sets; s++) {
           const setData = exData['set' + s] || {};
@@ -2556,12 +2561,13 @@ function renderDay() {
             <button class="set-check ${setData.done ? 'done' : ''}"
               data-key="${exKey}" data-set="${s}"
               onclick="toggleSet(this)" ${disabled}>✓</button>
+            ${!isViewOnly ? `<button class="set-delete-btn" onclick="deleteSet('${exKey}',${s})" title="Delete set">×</button>` : '<span></span>'}
           </div>`;
         }
       } else if (cardioType === 'running' || cardioType === 'cycling') {
         // Running/Cycling: distance + time
         html += `<div class="sets-log-header">
-            <div>Set</div><div style="text-align:center">Distance</div><div style="text-align:center">Time</div><div></div>
+            <div>Set</div><div style="text-align:center">Distance</div><div style="text-align:center">Time</div><div></div><div></div>
           </div>`;
         for (let s = 1; s <= ex.sets; s++) {
           const setData = exData['set' + s] || {};
@@ -2576,12 +2582,13 @@ function renderDay() {
             <button class="set-check ${setData.done ? 'done' : ''}"
               data-key="${exKey}" data-set="${s}"
               onclick="toggleSet(this)" ${disabled}>✓</button>
+            ${!isViewOnly ? `<button class="set-delete-btn" onclick="deleteSet('${exKey}',${s})" title="Delete set">×</button>` : '<span></span>'}
           </div>`;
         }
       } else {
         // Standard strength: weight + reps
         html += `<div class="sets-log-header">
-            <div>Set</div><div style="text-align:center">Weight</div><div style="text-align:center">Reps</div><div></div>
+            <div>Set</div><div style="text-align:center">Weight</div><div style="text-align:center">Reps</div><div></div><div></div>
           </div>`;
         // Warmup set (additional, stored as set0)
         const warmupData = exData['set0'] || {};
@@ -2596,6 +2603,7 @@ function renderDay() {
           <button class="set-check ${warmupData.done ? 'done' : ''}"
             data-key="${exKey}" data-set="0"
             onclick="toggleSet(this)" ${disabled}>✓</button>
+          ${!isViewOnly ? `<button class="set-delete-btn" onclick="deleteSet('${exKey}',0)" title="Delete set">×</button>` : '<span></span>'}
         </div>`;
         // Include extra sets beyond program definition
         const extraSetNums = Object.keys(exData).filter(k => k.startsWith('set')).map(k => parseInt(k.replace('set',''))).filter(n => n > ex.sets);
@@ -2620,6 +2628,7 @@ function renderDay() {
             <button class="set-check ${setData.done ? 'done' : ''}"
               data-key="${exKey}" data-set="${s}"
               onclick="toggleSet(this)" ${disabled}>✓</button>
+            ${!isViewOnly ? `<button class="set-delete-btn" onclick="deleteSet('${exKey}',${s})" title="Delete set">×</button>` : '<span></span>'}
           </div>`;
         }
       }
@@ -2890,6 +2899,35 @@ function addToExerciseLibraryIfNew(name) {
 }
 
 // ==================== EXTRA SETS ====================
+function deleteSet(exKey, setNum) {
+  if (isViewOnly) return;
+  saveCurrentDay();
+  const data = loadDayData(currentDayIndex);
+  const exData = data[exKey] || {};
+
+  if (setNum === 0) {
+    // Delete warmup set
+    delete exData['set0'];
+  } else {
+    // Delete the set and shift higher sets down
+    delete exData['set' + setNum];
+    // Find all set numbers above this one
+    const allNums = Object.keys(exData)
+      .filter(k => k.startsWith('set'))
+      .map(k => parseInt(k.replace('set', '')))
+      .filter(n => n > setNum)
+      .sort((a, b) => a - b);
+    for (const n of allNums) {
+      exData['set' + (n - 1)] = exData['set' + n];
+      delete exData['set' + n];
+    }
+  }
+
+  data[exKey] = exData;
+  saveDayData(currentDayIndex, data);
+  renderDay();
+}
+
 function addExtraSet(exKey, exName) {
   if (isViewOnly) return;
   // Save current state first
