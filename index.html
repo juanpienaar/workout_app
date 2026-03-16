@@ -2553,12 +2553,12 @@ function renderDay() {
           <div class="exercise-collapse-title" style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;" onclick="event.stopPropagation(); toggleExerciseCollapse('${collapseId}')">
             ${getEquipmentIcon(ex.name)} ${ex.name}
             ${group._isCustom ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">CUSTOM</span>' : ''}
+            ${!isViewOnly && !isSkipped && group._isCustom ? `<button onclick="event.stopPropagation();editCustomExercise('${exKey}')" title="Edit exercise" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px;font-size:13px;line-height:1;">✎</button>` : ''}
             ${isSkipped ? `<span class="skip-badge">Skipped</span>` : ''}
           </div>
           <div class="exercise-collapse-toggle" id="toggle_${collapseId}" style="${setsCompleted === totalSetsForEx ? 'background:var(--green);color:#fff;' : ''}"
             onclick="event.stopPropagation(); handleToggleTick('${exKey}', ${totalSetsForEx}, '${collapseId}')">${setsCompleted === totalSetsForEx ? '✓' : ''}</div>
           <div class="exercise-collapse-meta" id="meta_${collapseId}">${isSkipped ? skippedExercises[exKey].reason : (completionLabel || summaryText)}</div>
-          ${!isViewOnly && !isSkipped && group._isCustom ? `<button onclick="event.stopPropagation();editCustomExercise('${exKey}')" title="Edit exercise" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;font-size:14px;">✎</button>` : ''}
           ${!isViewOnly && isSkipped ? `<button onclick="event.stopPropagation();unskipExercise('${exKey}')" title="Unskip exercise" style="background:none;border:1px solid var(--card-border);border-radius:6px;padding:2px 8px;color:var(--text-dim);font-size:11px;cursor:pointer;white-space:nowrap;">Unskip</button>` : ''}
           ${canReorder ? `<button onclick="event.stopPropagation(); moveExercise('${exKey}',${group._isCustom ? 'true' : 'false'},1)" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:8px 6px;line-height:1;margin-left:2px;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;">▼</button>` : ''}
         </div>
@@ -2831,6 +2831,27 @@ function renderDay() {
 
   // Load skip state for styling
   loadSkippedExercises();
+
+  // Post-render: sync all exercise header ticks with actual DOM state
+  // This catches edge cases where inline styles from render don't match reality
+  document.querySelectorAll('.exercise-collapse-toggle').forEach(toggle => {
+    const id = toggle.id; // toggle_collapse_exKey
+    if (!id) return;
+    const exKey = id.replace('toggle_collapse_', '');
+    const rows = document.querySelectorAll(`.set-check[data-key="${exKey}"]`);
+    if (rows.length === 0) return;
+    let done = 0;
+    rows.forEach(btn => { if (btn.classList.contains('done')) done++; });
+    const meta = document.getElementById(`meta_collapse_${exKey}`);
+    if (done === rows.length) {
+      toggle.style.background = 'var(--green)';
+      toggle.style.color = '#fff';
+      toggle.textContent = '✓';
+    } else if (done > 0) {
+      // Partially done — show count on meta
+      if (meta && !meta.textContent.includes('Skipped')) meta.textContent = `${done}/${rows.length}`;
+    }
+  });
 }
 
 // ==================== CARDIO PERSISTENCE ====================
