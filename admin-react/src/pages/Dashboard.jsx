@@ -1005,9 +1005,10 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
               display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 20,
             }} onClick={(e) => { if (e.target === e.currentTarget) setExpandedDayKey(null) }}>
               <div style={{
-                background: 'var(--surface)', borderRadius: 16, padding: 24,
+                background: 'var(--modal-bg, rgba(12,12,20,0.97))', borderRadius: 16, padding: 24,
                 width: '100%', maxWidth: 540, maxHeight: '80vh', overflow: 'auto',
-                border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+                border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(20px)',
               }}>
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -1047,7 +1048,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                       <div key={fi} style={{ opacity: ex._hidden ? 0.4 : 1 }}>
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
-                          background: ex._isCustom ? 'rgba(45,212,191,0.06)' : 'var(--bg)', borderRadius: isExExpanded ? '8px 8px 0 0' : 8, border: '1px solid var(--border)',
+                          background: ex._isCustom ? 'rgba(45,212,191,0.08)' : 'rgba(255,255,255,0.04)', borderRadius: isExExpanded ? '8px 8px 0 0' : 8, border: '1px solid var(--border)',
                           borderBottom: isExExpanded ? '1px dashed var(--border)' : '1px solid var(--border)',
                           cursor: 'pointer',
                         }} onClick={(e) => { if (!editingEx) setExpandedExKey(isExExpanded ? null : exKey) }}>
@@ -1116,7 +1117,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                         {/* Expanded exercise details: workout log data */}
                         {isExExpanded && (
                           <div style={{
-                            background: 'var(--bg)', borderRadius: '0 0 8px 8px', border: '1px solid var(--border)', borderTop: 'none',
+                            background: 'rgba(255,255,255,0.02)', borderRadius: '0 0 8px 8px', border: '1px solid var(--border)', borderTop: 'none',
                             padding: '8px 10px', fontSize: 12,
                           }}>
                             {Object.keys(logData).filter(k => k.startsWith('set')).length > 0 ? (
