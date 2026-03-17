@@ -1099,7 +1099,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                                 const hidden = (meta.hidden_exercises || []).filter(k => k !== exKey2)
                                 const newMeta = { ...meta, hidden_exercises: hidden }
                                 console.log('[Restore] dayKey:', dayKey, 'exKey:', exKey2, 'hidden before:', meta.hidden_exercises, 'hidden after:', hidden)
-                                const resp = await authFetch(`${API}/admin/users/${calAthlete}/workout-day/${dayKey}`, {
+                                const resp = await authFetch(`/api/admin/users/${calAthlete}/workout-day/${dayKey}`, {
                                   method: 'PUT',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ data: expandedData.logEntry?.data || {}, meta: newMeta })
