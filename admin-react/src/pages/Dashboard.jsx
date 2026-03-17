@@ -1059,7 +1059,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                     const logData = (expandedData.logEntry?.data || {})[exKey] || {}
                     const numSets = parseInt(ex.sets) || 0
                     return (
-                      <div key={fi} style={{ opacity: ex._hidden ? 0.4 : 1 }}>
+                      <div key={fi} style={{ opacity: ex._hidden ? 0.4 : 1, pointerEvents: 'all' }}>
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
                           background: ex._isCustom ? 'rgba(45,212,191,0.08)' : 'rgba(255,255,255,0.04)', borderRadius: isExExpanded ? '8px 8px 0 0' : 8, border: '1px solid var(--border)',
@@ -1089,7 +1089,8 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
 
                           {/* For hidden exercises: show Restore button instead of sets/reps */}
                           {ex._hidden ? (
-                            <button onClick={async (e) => {
+                            <button onMouseDown={(e) => e.stopPropagation()} onClick={async (e) => {
+                              e.preventDefault()
                               e.stopPropagation()
                               try {
                                 const dayKey = expandedData.logDayKey || `day_${expandedData.dayIdx}`
@@ -1097,18 +1098,26 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                                 const exKey2 = ex.order + '_' + ex.name.replace(/\s+/g, '_')
                                 const hidden = (meta.hidden_exercises || []).filter(k => k !== exKey2)
                                 const newMeta = { ...meta, hidden_exercises: hidden }
+                                console.log('[Restore] dayKey:', dayKey, 'exKey:', exKey2, 'hidden before:', meta.hidden_exercises, 'hidden after:', hidden)
                                 const resp = await authFetch(`${API}/admin/users/${calAthlete}/workout-day/${dayKey}`, {
                                   method: 'PUT',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ data: expandedData.logEntry?.data || {}, meta: newMeta })
                                 })
+                                console.log('[Restore] resp status:', resp.status)
                                 if (resp.ok) {
                                   toast.success(`Restored ${ex.name}`)
                                   onRefresh()
+                                } else {
+                                  const errText = await resp.text().catch(() => resp.status)
+                                  toast.error(`Restore failed (${resp.status}): ${errText}`)
                                 }
-                              } catch (err) { toast.error('Failed to restore: ' + (err.message || err)) }
+                              } catch (err) {
+                                console.error('[Restore] error:', err)
+                                toast.error('Failed to restore: ' + (err.message || err))
+                              }
                             }}
-                              style={{ padding: '5px 14px', borderRadius: 6, border: 'none', background: 'var(--teal, #34d399)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0, marginLeft: 'auto' }}>
+                              style={{ padding: '5px 14px', borderRadius: 6, border: 'none', background: 'var(--teal, #34d399)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0, marginLeft: 'auto', pointerEvents: 'all', position: 'relative', zIndex: 10 }}>
                               Restore
                             </button>
                           ) : (
