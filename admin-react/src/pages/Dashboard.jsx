@@ -39,8 +39,17 @@ function parseSets(exData) {
 }
 
 function isCardioExercise(name) {
-  const lower = (name || '').toLowerCase()
-  return /\b(run|running|jog|jogging|sprint|5k|10k|marathon|cycling|cycle|bike|biking|spin|swim|swimming|laps|freestyle|backstroke|breaststroke)\b/.test(lower)
+  const n = (name || '').toLowerCase()
+  if (/\b(run|running|jog|jogging|sprint|5k|10k|marathon|tempo run|interval run|fartlek|easy run|long run|hill run|threshold)\b/.test(n)) return true
+  if (/\b(cycl|bike|biking|spin|ride|assault)\b/.test(n)) return true
+  if (/\b(swim|pool|freestyle|backstroke|breaststroke|butterfly)\b/.test(n)) return true
+  if (/\b(row|erg)\b/.test(n)) return true
+  if (/\b(walk|hike|hiking|trek)\b/.test(n)) return true
+  if (/\b(elliptical|cross trainer|crosstrainer)\b/.test(n)) return true
+  if (/\b(stair|stepper|stepmill|step mill)\b/.test(n)) return true
+  if (/\b(jump rope|skipping|skip rope)\b/.test(n)) return true
+  if (/\b(ski erg|skierg)\b/.test(n)) return true
+  return false
 }
 
 function computeTonnage(exDataMap) {
@@ -532,8 +541,13 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
         }
 
         const logs = athleteData?.workout_logs || {}
-        const logEntry = Object.values(logs).find(l => l.meta?.date === ds)
-        days.push({ date, dateStr: ds, programDay, weekIdx, dayIdx, logEntry })
+        let logEntry = null, logDayKey = null
+        for (const [lk, lv] of Object.entries(logs)) {
+          if (lv.meta?.date === ds) { logEntry = lv; logDayKey = lk; break }
+        }
+        // Fallback: use daysSinceStart as the key
+        if (!logDayKey && daysSinceStart >= 0) logDayKey = `day_${daysSinceStart}`
+        days.push({ date, dateStr: ds, programDay, weekIdx, dayIdx, logEntry, logDayKey })
       }
 
       // Program week number
@@ -1073,30 +1087,57 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                             )}
                           </div>
 
-                          {/* Sets × Reps */}
-                          {isEd('sets') ? (
-                            <input value={editVal} onChange={e => setEditVal(e.target.value)}
-                              onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
-                              autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
+                          {/* For hidden exercises: show Restore button instead of sets/reps */}
+                          {ex._hidden ? (
+                            <button onClick={async (e) => {
+                              e.stopPropagation()
+                              try {
+                                const dayKey = expandedData.logDayKey || `day_${expandedData.dayIdx}`
+                                const meta = expandedData.logEntry?.meta || {}
+                                const exKey2 = ex.order + '_' + ex.name.replace(/\s+/g, '_')
+                                const hidden = (meta.hidden_exercises || []).filter(k => k !== exKey2)
+                                const newMeta = { ...meta, hidden_exercises: hidden }
+                                const resp = await authFetch(`${API}/admin/users/${calAthlete}/workout-day/${dayKey}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ data: expandedData.logEntry?.data || {}, meta: newMeta })
+                                })
+                                if (resp.ok) {
+                                  toast.success(`Restored ${ex.name}`)
+                                  onRefresh()
+                                }
+                              } catch (err) { toast.error('Failed to restore: ' + (err.message || err)) }
+                            }}
+                              style={{ padding: '5px 14px', borderRadius: 6, border: 'none', background: 'var(--teal, #34d399)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0, marginLeft: 'auto' }}>
+                              Restore
+                            </button>
                           ) : (
-                            <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: ex._isCustom ? 'default' : 'pointer', minWidth: 20, textAlign: 'center' }}
-                              onClick={(e) => { if (!ex._isCustom) { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'sets', ex.sets) } }}
-                              title="Click to edit sets">{ex.sets}</span>
-                          )}
-                          <span style={{ fontSize: 11, color: 'var(--muted2)' }}>×</span>
-                          {isEd('reps') ? (
-                            <input value={editVal} onChange={e => setEditVal(e.target.value)}
-                              onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
-                              autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
-                          ) : (
-                            <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: ex._isCustom ? 'default' : 'pointer', minWidth: 20, textAlign: 'center' }}
-                              onClick={(e) => { if (!ex._isCustom) { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'reps', ex.reps) } }}
-                              title="Click to edit reps">{ex.reps}</span>
-                          )}
+                            <>
+                              {/* Sets × Reps */}
+                              {isEd('sets') ? (
+                                <input value={editVal} onChange={e => setEditVal(e.target.value)}
+                                  onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
+                                  autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
+                              ) : (
+                                <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: ex._isCustom ? 'default' : 'pointer', minWidth: 20, textAlign: 'center' }}
+                                  onClick={(e) => { if (!ex._isCustom) { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'sets', ex.sets) } }}
+                                  title="Click to edit sets">{ex.sets}</span>
+                              )}
+                              <span style={{ fontSize: 11, color: 'var(--muted2)' }}>×</span>
+                              {isEd('reps') ? (
+                                <input value={editVal} onChange={e => setEditVal(e.target.value)}
+                                  onBlur={commitEdit} onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingEx(null) }}
+                                  autoFocus style={{ width: 36, fontSize: 12, padding: '2px 4px', background: 'var(--input-bg)', border: '1px solid var(--accent2)', borderRadius: 4, color: 'var(--text)', textAlign: 'center' }} />
+                              ) : (
+                                <span style={{ fontSize: 12, color: 'var(--text-dim)', cursor: ex._isCustom ? 'default' : 'pointer', minWidth: 20, textAlign: 'center' }}
+                                  onClick={(e) => { if (!ex._isCustom) { e.stopPropagation(); startEdit(expandedData.weekIdx, expandedData.dayIdx, ex._gi, ex._ei, 'reps', ex.reps) } }}
+                                  title="Click to edit reps">{ex.reps}</span>
+                              )}
 
-                          {/* Expand indicator */}
-                          <span style={{ fontSize: 10, color: 'var(--text-dim)', flexShrink: 0 }}>{isExExpanded ? '▾' : '▸'}</span>
-
+                              {/* Expand indicator */}
+                              <span style={{ fontSize: 10, color: 'var(--text-dim)', flexShrink: 0 }}>{isExExpanded ? '▾' : '▸'}</span>
+                            </>
+                          )}
                           {/* Move / Delete buttons (only for program exercises) */}
                           {!ex._isCustom && !ex._hidden && (
                             <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
@@ -1183,6 +1224,312 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
             </div>
           )}
         </>
+      )}
+    </div>
+  )
+}
+
+
+/* ─── Epley 1RM formula ─────────────────────────── */
+function calcEpley1RM(weight, reps) {
+  if (!weight || weight <= 0 || !reps || reps <= 0) return 0
+  if (reps === 1) return weight
+  return weight * (1 + reps / 30)
+}
+
+/* ─── Exercise History Tab ─────────────────────────── */
+function ExerciseHistoryTab({ athletes, userData }) {
+  const [selectedAthlete, setSelectedAthlete] = useState('')
+  const [selectedExercise, setSelectedExercise] = useState(null)
+
+  useEffect(() => {
+    if (!selectedAthlete && athletes.length > 0) setSelectedAthlete(athletes[0].username)
+  }, [athletes])
+
+  const athleteInfo = athletes.find(a => a.username === selectedAthlete)
+  const data = userData[selectedAthlete]
+  const logs = data?.logs || {}
+  const program = data?.assigned_program
+
+  // Build all days from program
+  const allDays = useMemo(() => {
+    if (!program?.weeks) return []
+    const days = []
+    for (const week of program.weeks) {
+      for (const day of week.days) {
+        days.push({ ...day, week: week.week })
+      }
+    }
+    return days
+  }, [program])
+
+  // Collect exercise history
+  const exerciseHistory = useMemo(() => {
+    if (!allDays.length) return {}
+    const startDateStr = athleteInfo?.startDate || data?.assigned_program_date || ''
+    const startDate = startDateStr ? new Date(startDateStr + 'T00:00:00') : null
+    const exercises = {}
+
+    for (let i = 0; i < allDays.length; i++) {
+      const dayObj = allDays[i]
+      if (dayObj.isRest) continue
+      const dayKey = `day_${i}`
+      const dayLog = logs[dayKey]
+      if (!dayLog || typeof dayLog !== 'object') continue
+      const dayData = { ...dayLog }
+      delete dayData.meta
+
+      const dateStr = startDate
+        ? new Date(startDate.getTime() + i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : `Day ${i + 1}`
+
+      // Get custom exercises from meta
+      const meta = logs[dayKey]?.meta || {}
+      const customExercises = meta.custom_exercises || []
+
+      // Build exercise list: program + custom
+      const allExGroups = [...(dayObj.exerciseGroups || [])]
+      for (const ce of customExercises) {
+        allExGroups.push({ type: 'single', _isCustom: true, exercises: [{ order: ce.order, name: ce.name, sets: ce.sets, reps: String(ce.reps) }] })
+      }
+
+      for (const group of allExGroups) {
+        for (const ex of (group.exercises || [])) {
+          const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_')
+          const exData = dayData[exKey]
+          if (!exData || typeof exData !== 'object') continue
+
+          const cardio = isCardioExercise(ex.name)
+          const isCustom = !!group._isCustom
+          if (!exercises[ex.name]) exercises[ex.name] = { isCardio: cardio, isCustom, entries: [] }
+
+          const entry = { date: dateStr, dayIndex: i, week: dayObj.week, day: dayObj.day, sets: [], notes: exData.notes || '' }
+
+          if (cardio) {
+            entry.cardioData = {}
+            for (const [k, v] of Object.entries(exData)) {
+              if (k !== 'notes' && k.startsWith('set')) entry.cardioData[k] = v
+            }
+            if (Object.keys(entry.cardioData).length > 0) exercises[ex.name].entries.push(entry)
+          } else {
+            for (let s = 0; s <= (parseInt(ex.sets) || 4) + 5; s++) {
+              const sd = exData['set' + s]
+              if (sd && (sd.weight || sd.reps)) {
+                entry.sets.push({ set: s, weight: parseFloat(sd.weight) || 0, reps: parseInt(sd.reps) || 0, done: sd.done })
+              }
+            }
+            if (entry.sets.length > 0) exercises[ex.name].entries.push(entry)
+          }
+        }
+      }
+    }
+    return exercises
+  }, [allDays, logs, athleteInfo, data])
+
+  const exerciseNames = Object.keys(exerciseHistory).sort((a, b) => {
+    const ac = exerciseHistory[a].isCardio ? 1 : 0
+    const bc = exerciseHistory[b].isCardio ? 1 : 0
+    if (ac !== bc) return ac - bc
+    return a.localeCompare(b)
+  })
+
+  function renderExerciseDetail(name) {
+    const ex = exerciseHistory[name]
+    if (!ex) return null
+    const entries = ex.entries
+
+    if (ex.isCardio) {
+      // Cardio detail
+      let bestDistance = 0, bestCalories = 0
+      for (const e of entries) {
+        for (const [k, v] of Object.entries(e.cardioData || {})) {
+          if (v.distance && parseFloat(v.distance) > bestDistance) bestDistance = parseFloat(v.distance)
+          if (v.calories && parseFloat(v.calories) > bestCalories) bestCalories = parseFloat(v.calories)
+        }
+      }
+      return (
+        <div>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+            {bestDistance > 0 && <div className="card" style={{ flex: 1, textAlign: 'center', padding: 16 }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--teal)' }}>{bestDistance}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Best Distance</div>
+            </div>}
+            {bestCalories > 0 && <div className="card" style={{ flex: 1, textAlign: 'center', padding: 16 }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--teal)' }}>{bestCalories}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Best Calories</div>
+            </div>}
+            <div className="card" style={{ flex: 1, textAlign: 'center', padding: 16 }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--teal)' }}>{entries.length}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Sessions</div>
+            </div>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 12, color: 'var(--text-dim)', borderBottom: '1px solid var(--card-border)' }}>Date</th>
+              <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 12, color: 'var(--text-dim)', borderBottom: '1px solid var(--card-border)' }}>Details</th>
+            </tr></thead>
+            <tbody>
+              {entries.map((e, i) => {
+                const parts = []
+                for (const [k, v] of Object.entries(e.cardioData || {})) {
+                  if (v.distance) parts.push(`${v.distance}km`)
+                  if (v.time) parts.push(v.time)
+                  if (v.calories) parts.push(`${v.calories}cal`)
+                }
+                return (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--card-border)' }}>
+                    <td style={{ padding: '8px 12px', fontSize: 13 }}>{e.date}</td>
+                    <td style={{ padding: '8px 12px', fontSize: 13 }}>{parts.join(' · ') || 'Logged'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+
+    // Strength detail
+    let best1RM = 0, heaviestW = 0, heaviestR = 0
+    for (const e of entries) {
+      for (const s of e.sets) {
+        const orm = calcEpley1RM(s.weight, s.reps)
+        if (orm > best1RM) best1RM = orm
+        if (s.weight > heaviestW) { heaviestW = s.weight; heaviestR = s.reps }
+      }
+    }
+    best1RM = Math.round(best1RM)
+
+    const pctReps = { 100: 1, 95: 2, 90: 4, 85: 6, 80: 8, 75: 10, 70: 12, 65: 15, 60: 20 }
+
+    return (
+      <div>
+        {/* 1RM Card */}
+        <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+          <div className="card" style={{ flex: 1, textAlign: 'center', padding: 16, background: 'linear-gradient(135deg, var(--accent), var(--accent2, #a78bfa))' }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{best1RM}kg</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Est. 1RM (Epley)</div>
+          </div>
+          <div className="card" style={{ flex: 1, textAlign: 'center', padding: 16 }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent2)' }}>{heaviestW}kg</div>
+            <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Heaviest Set</div>
+          </div>
+          <div className="card" style={{ flex: 1, textAlign: 'center', padding: 16 }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent2)' }}>{entries.length}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Sessions</div>
+          </div>
+        </div>
+
+        {/* Two columns: percentage table + history */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {/* Percentage Table */}
+          {best1RM > 0 && (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--card-border)', fontSize: 12, fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Training Percentages</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr>
+                  <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, color: 'var(--text-dim)' }}>%</th>
+                  <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, color: 'var(--text-dim)' }}>Weight</th>
+                  <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, color: 'var(--text-dim)' }}>~Reps</th>
+                </tr></thead>
+                <tbody>
+                  {[100, 95, 90, 85, 80, 75, 70, 65, 60].map(pct => (
+                    <tr key={pct} style={{ borderTop: '1px solid var(--card-border)' }}>
+                      <td style={{ padding: '6px 12px', fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{pct}%</td>
+                      <td style={{ padding: '6px 12px', fontSize: 13 }}>{(best1RM * pct / 100).toFixed(1)}kg</td>
+                      <td style={{ padding: '6px 12px', fontSize: 13, color: 'var(--text-dim)' }}>~{pctReps[pct]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Session History */}
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--card-border)', fontSize: 12, fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Session History (Heaviest Set)</div>
+            <div style={{ padding: '8px 0' }}>
+              {entries.map((e, i) => {
+                let bestW = 0, bestR = 0
+                for (const s of e.sets) { if (s.weight > bestW) { bestW = s.weight; bestR = s.reps } }
+                const barPct = heaviestW > 0 ? Math.round(bestW / heaviestW * 100) : 0
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-dim)', minWidth: 80 }}>{e.date}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ height: 18, borderRadius: 3, background: 'linear-gradient(90deg, var(--accent), var(--accent2, #a78bfa))', width: `${barPct}%`, minWidth: 4 }} />
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, minWidth: 70, textAlign: 'right' }}>{bestW}kg×{bestR}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* Athlete selector */}
+      <div style={{ marginBottom: 16 }}>
+        <select value={selectedAthlete} onChange={e => { setSelectedAthlete(e.target.value); setSelectedExercise(null) }}
+          style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--card-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14 }}>
+          {athletes.filter(a => a.role === 'athlete').map(a => (
+            <option key={a.username} value={a.username}>{a.username}</option>
+          ))}
+        </select>
+      </div>
+
+      {selectedExercise ? (
+        <div>
+          <button onClick={() => setSelectedExercise(null)}
+            style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 14, padding: '8px 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+            ‹ All Exercises
+          </button>
+          <h3 style={{ margin: '8px 0 16px', fontSize: 18 }}>
+            {selectedExercise}
+            {exerciseHistory[selectedExercise]?.isCustom && <span style={{ fontSize: 9, background: 'var(--accent)', color: '#fff', padding: '1px 6px', borderRadius: 4, fontWeight: 600, marginLeft: 8, verticalAlign: 'middle' }}>CUSTOM</span>}
+          </h3>
+          {renderExerciseDetail(selectedExercise)}
+        </div>
+      ) : (
+        <div>
+          {exerciseNames.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', padding: 40, color: 'var(--text-dim)' }}>
+              No exercise data logged yet for this athlete.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+              {exerciseNames.map(name => {
+                const ex = exerciseHistory[name]
+                const entries = ex.entries
+                let subtitle = ''
+                if (ex.isCardio) {
+                  subtitle = `${entries.length} session${entries.length !== 1 ? 's' : ''}`
+                } else {
+                  let heaviest = 0
+                  for (const e of entries) for (const s of e.sets) if (s.weight > heaviest) heaviest = s.weight
+                  let best = 0
+                  for (const e of entries) for (const s of e.sets) { const o = calcEpley1RM(s.weight, s.reps); if (o > best) best = o }
+                  subtitle = `${entries.length} session${entries.length !== 1 ? 's' : ''} · Best: ${heaviest}kg · 1RM: ${Math.round(best)}kg`
+                }
+                return (
+                  <div key={name} className="card" onClick={() => setSelectedExercise(name)}
+                    style={{ cursor: 'pointer', padding: '14px 16px', borderLeft: `3px solid ${ex.isCardio ? 'var(--teal)' : 'var(--accent)'}`, transition: 'border-color 0.2s' }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {name}
+                      {ex.isCardio && <span style={{ fontSize: 9, background: 'var(--teal)', color: '#fff', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>CARDIO</span>}
+                      {ex.isCustom && <span style={{ fontSize: 9, background: 'var(--accent)', color: '#fff', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>CUSTOM</span>}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>{subtitle}</div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -1461,6 +1808,7 @@ export default function Dashboard() {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'athletes', label: 'Athletes' },
+    { id: 'exercise-history', label: 'Exercise History' },
     { id: 'messages', label: 'Messages' },
   ]
 
@@ -1475,6 +1823,11 @@ export default function Dashboard() {
       {/* ─── OVERVIEW TAB — Calendar View ─── */}
       {activeTab === 'overview' && (
         <CalendarOverview athletes={athletes} userData={userData} setUserData={setUserData} loading={loading} toast={toast} onRefresh={() => loadAllData(true)} />
+      )}
+
+      {/* ─── EXERCISE HISTORY TAB ─── */}
+      {activeTab === 'exercise-history' && (
+        <ExerciseHistoryTab athletes={athletes} userData={userData} />
       )}
 
       {/* ─── ATHLETES TAB ─── */}

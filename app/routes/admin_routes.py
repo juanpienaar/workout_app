@@ -3,6 +3,7 @@
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -195,6 +196,22 @@ async def get_user_full_data(username: str, coach: Annotated[dict, Depends(requi
     """Full user data for coach dashboard — workout logs, whoop, metrics."""
     data = load_user_data(username)
     return data
+
+
+@router.put("/users/{username}/workout-day/{day_key}")
+async def update_user_workout_day(username: str, day_key: str, body: dict, coach: Annotated[dict, Depends(require_coach)]):
+    """Coach can update a specific workout day's data/meta for an athlete (e.g. restore hidden exercises)."""
+    data = load_user_data(username)
+    if day_key not in data.get("workout_logs", {}):
+        data.setdefault("workout_logs", {})[day_key] = {}
+    entry = data["workout_logs"][day_key]
+    if "data" in body:
+        entry["data"] = body["data"]
+    if "meta" in body:
+        entry["meta"] = body["meta"]
+    entry["saved_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    save_user_data(username, data)
+    return {"ok": True}
 
 
 @router.get("/users/{username}/target-weights")
