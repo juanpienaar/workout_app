@@ -903,9 +903,9 @@ body {
 .swipe-container.swiping .swipe-delete-bg {
   display: flex;
 }
-/* Warmup set styling */
+/* Warmup set styling — subtle background instead of border */
 .warmup-set {
-  border: 2px solid var(--nn-warm, #f59e0b) !important;
+  background: rgba(245, 158, 11, 0.06);
 }
 .skip-badge {
   display: inline-block;
@@ -1486,6 +1486,10 @@ body {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
             Lock Orientation
           </button>
+          <button class="settings-dropdown-item" id="weightAutofillItem" onclick="toggleWeightAutofill(); closeSettingsDropdown();">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+            <span id="weightAutofillLabel">Weight Autofill: On</span>
+          </button>
           <button class="settings-dropdown-item" id="whoopSettingsItem" onclick="toggleWhoopPanel(); closeSettingsDropdown();" style="display:none;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             Whoop
@@ -1824,6 +1828,28 @@ async function init() {
   // Load exercises database for muscle mapping
   loadExercisesDB();
 
+  // Check for coach impersonation via URL params (?impersonate=1&at=...&rt=...&user=...)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('impersonate') === '1') {
+    const impAt = urlParams.get('at');
+    const impRt = urlParams.get('rt');
+    const impUser = urlParams.get('user');
+    if (impAt && impRt && impUser && programData.users[impUser]) {
+      accessToken = impAt;
+      refreshToken = impRt;
+      // Store in session only (not persistent)
+      sessionStorage.setItem('nn_access_token', impAt);
+      sessionStorage.setItem('nn_refresh_token', impRt);
+      sessionStorage.setItem('nn_user', impUser);
+      window._isCoachView = true;
+      isViewOnly = false;
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+      await selectUser(impUser);
+      return;
+    }
+  }
+
   // Check for stored JWT tokens — log in immediately if we have them,
   // validate in the background (don't block on network)
   const stored = getStoredTokens();
@@ -1900,7 +1926,7 @@ async function doLogin() {
     const resp = await fetch(`${SERVER_URL}/api/auth/login`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({email, password}),
+      body: JSON.stringify({email, password, remember}),
     });
     const data = await resp.json();
 
@@ -2158,6 +2184,21 @@ async function selectUser(name) {
 
   archiveView = 'current';
   showWorkout();
+
+  // Show coach impersonation banner if applicable
+  if (window._isCoachView) {
+    let banner = document.getElementById('coachViewBanner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'coachViewBanner';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(52,211,153,0.9);color:#000;text-align:center;padding:6px 12px;font-size:12px;font-weight:600;z-index:9999;backdrop-filter:blur(8px);';
+      banner.innerHTML = `Viewing as <strong>${name}</strong> (Coach Mode) <button onclick="window.close()" style="margin-left:12px;background:#000;color:#fff;border:none;border-radius:4px;padding:2px 10px;font-size:11px;cursor:pointer;">Close</button>`;
+      document.body.prepend(banner);
+      // Offset the app content
+      document.body.style.paddingTop = '32px';
+    }
+  }
+
   // Non-blocking: load these in the background after UI is visible
   setTimeout(() => {
     loadExercisesDB();
@@ -3683,12 +3724,12 @@ async function pullDataFromServer() {
       const idx = parseInt(match[1]);
       const meta = entry.meta || {};
 
-      // Hidden exercises
-      if (meta.hidden_exercises && meta.hidden_exercises.length > 0) {
+      // Hidden exercises — always trust server (coach may have restored exercises)
+      if (meta.hidden_exercises !== undefined) {
         const hk = `hidden_exercises_${currentUser}_day${idx}`;
-        const existing = localStorage.getItem(hk);
-        if (!existing || existing === '[]') {
-          localStorage.setItem(hk, JSON.stringify(meta.hidden_exercises));
+        const serverVal = JSON.stringify(meta.hidden_exercises);
+        if (localStorage.getItem(hk) !== serverVal) {
+          localStorage.setItem(hk, serverVal);
           metaRestored++;
         }
       }
@@ -3796,7 +3837,7 @@ function collectCurrentData() {
 function onSetChange(input) {
   saveCurrentDay();
   updateDayDetailStats();
-  // Feature 11: Auto-confirm set when weight entered and reps pre-populated
+  // Feature: Auto-confirm set when weight entered and reps pre-populated
   if (input.dataset.field === 'weight' && input.value) {
     const row = input.closest('.set-row');
     if (row) {
@@ -3809,7 +3850,29 @@ function onSetChange(input) {
         toggleSet(checkBtn);
       }
     }
+    // Feature: Weight autofill — fill subsequent empty weight inputs with the same weight
+    if (getWeightAutofill()) {
+      const setNum = parseInt(input.dataset.set);
+      const exKey = input.dataset.key;
+      const allWeightInputs = document.querySelectorAll(`.set-input[data-key="${exKey}"][data-field="weight"]`);
+      allWeightInputs.forEach(inp => {
+        const sn = parseInt(inp.dataset.set);
+        if (sn > setNum && !inp.value) {
+          inp.value = input.value;
+        }
+      });
+      saveCurrentDay();
+    }
   }
+}
+
+function getWeightAutofill() {
+  if (!currentUser) return true; // default on
+  return localStorage.getItem(`weight_autofill_${currentUser}`) !== 'off';
+}
+function setWeightAutofill(on) {
+  if (!currentUser) return;
+  localStorage.setItem(`weight_autofill_${currentUser}`, on ? 'on' : 'off');
 }
 function onNotesChange(ta) { saveCurrentDay(); }
 
@@ -3882,6 +3945,14 @@ function toggleSet(btn) {
       const repsInput = row.querySelector('.set-input[data-field="reps"]');
       if (repsInput && !repsInput.value && repsInput.placeholder) {
         repsInput.value = repsInput.placeholder;
+      }
+    }
+    // Auto-mark warmup as done if a working set is completed and warmup isn't done
+    const setNum = parseInt(btn.dataset.set);
+    if (setNum > 0) {
+      const warmupBtn = document.querySelector(`.set-check[data-key="${btn.dataset.key}"][data-set="0"]`);
+      if (warmupBtn && !warmupBtn.classList.contains('done')) {
+        warmupBtn.classList.add('done');
       }
     }
   }
@@ -4558,6 +4629,13 @@ function toggleSettingsDropdown() {
   const theme = document.documentElement.getAttribute('data-theme') || 'dark';
   const label = document.getElementById('themeToggleLabel');
   if (label) label.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+  // Update weight autofill label
+  const afLabel = document.getElementById('weightAutofillLabel');
+  if (afLabel) afLabel.textContent = `Weight Autofill: ${getWeightAutofill() ? 'On' : 'Off'}`;
+}
+function toggleWeightAutofill() {
+  const isOn = getWeightAutofill();
+  setWeightAutofill(!isOn);
 }
 function closeSettingsDropdown() {
   document.getElementById('settingsDropdown').classList.remove('open');
@@ -4690,6 +4768,9 @@ function deleteExercise(exKey, isCustom) {
     localStorage.setItem(hiddenKey, JSON.stringify(hidden));
   }
   renderDay();
+  // Sync hidden state to server immediately so dashboard sees the change
+  const data = loadDayData(currentDayIndex);
+  syncDayToServer(currentDayIndex, data);
 }
 
 // Show/hide the restore exercises menu item based on whether any exercises are hidden
@@ -4770,9 +4851,9 @@ function restoreExercise(exKey, dayIndex) {
   try { hidden = JSON.parse(localStorage.getItem(hiddenKey) || '[]'); } catch {}
   hidden = hidden.filter(k => k !== exKey);
   localStorage.setItem(hiddenKey, JSON.stringify(hidden));
-  // Re-sync to server
+  // Always sync to server (meta contains hidden_exercises even when data is empty)
   const data = loadDayData(dayIndex);
-  if (Object.keys(data).length > 0) syncDayToServer(dayIndex, data);
+  syncDayToServer(dayIndex, data);
   // Re-render if we're on that day
   if (dayIndex === currentDayIndex && viewMode === 'day') renderDay();
   updateRestoreExVisibility();
@@ -4782,7 +4863,7 @@ function restoreAllForDay(dayIndex) {
   const hiddenKey = `hidden_exercises_${currentUser}_day${dayIndex}`;
   localStorage.setItem(hiddenKey, '[]');
   const data = loadDayData(dayIndex);
-  if (Object.keys(data).length > 0) syncDayToServer(dayIndex, data);
+  syncDayToServer(dayIndex, data);
   if (dayIndex === currentDayIndex && viewMode === 'day') renderDay();
   updateRestoreExVisibility();
 }

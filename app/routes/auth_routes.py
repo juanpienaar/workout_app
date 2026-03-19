@@ -44,7 +44,7 @@ async def login(request: Request, req: LoginRequest):
     role = user_info.get("role", "athlete")
     token_data = {"sub": user_name, "role": role}
     access_token = create_access_token(token_data)
-    refresh_token = create_refresh_token(token_data)
+    refresh_token = create_refresh_token(token_data, remember=req.remember)
 
     return LoginResponse(
         access_token=access_token,

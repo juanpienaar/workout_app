@@ -827,6 +827,20 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                 ↻ Refresh
               </button>
             )}
+            {calAthlete && (
+              <button onClick={async () => {
+                try {
+                  const resp = await authFetch(`/api/admin/users/${calAthlete}/impersonate`, { method: 'POST' })
+                  if (!resp.ok) { toast.error('Failed to impersonate'); return }
+                  const data = await resp.json()
+                  const url = `/?impersonate=1&at=${encodeURIComponent(data.access_token)}&rt=${encodeURIComponent(data.refresh_token)}&user=${encodeURIComponent(data.user_name)}`
+                  window.open(url, '_blank')
+                } catch (err) { toast.error('Impersonate failed: ' + err.message) }
+              }} title="View athlete app as this user"
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--teal, #34d399)', cursor: 'pointer', padding: '4px 10px', fontSize: 11, fontWeight: 600 }}>
+                👁 View as Athlete
+              </button>
+            )}
           </div>
 
           {/* Bulk replace panel */}

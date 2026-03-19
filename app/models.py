@@ -9,6 +9,7 @@ from typing import Optional, Any
 class LoginRequest(BaseModel):
     email: str
     password: str
+    remember: bool = False
 
 class LoginResponse(BaseModel):
     access_token: str

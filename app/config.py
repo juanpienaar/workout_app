@@ -16,6 +16,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_urlsafe(64))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
+REFRESH_TOKEN_REMEMBER_DAYS = 90  # "Stay logged in" gets a much longer refresh token
 
 # CORS
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", f"http://localhost:{PORT},http://127.0.0.1:{PORT},https://numnum.fit")

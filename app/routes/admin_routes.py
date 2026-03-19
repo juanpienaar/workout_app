@@ -214,6 +214,21 @@ async def update_user_workout_day(username: str, day_key: str, body: dict, coach
     return {"ok": True}
 
 
+@router.post("/users/{username}/impersonate")
+async def impersonate_athlete(username: str, coach: Annotated[dict, Depends(require_coach)]):
+    """Generate short-lived tokens so the coach can view the athlete app as that user."""
+    from ..auth import create_access_token, create_refresh_token
+    from datetime import timedelta
+    users = load_users()
+    if username not in users:
+        raise HTTPException(status_code=404, detail="User not found")
+    role = users[username].get("role", "athlete")
+    token_data = {"sub": username, "role": role, "impersonated_by": coach["sub"]}
+    access_token = create_access_token(token_data, expires_delta=timedelta(hours=2))
+    refresh_token = create_refresh_token(token_data)
+    return {"access_token": access_token, "refresh_token": refresh_token, "user_name": username}
+
+
 @router.get("/users/{username}/target-weights")
 async def get_target_weights(username: str, coach: Annotated[dict, Depends(require_coach)]):
     """Get coach-set target weights for an athlete."""
