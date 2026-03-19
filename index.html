@@ -1505,6 +1505,20 @@ body {
     </div>
   </div>
 
+  <!-- Coach Athlete Switcher (only visible for coaches) -->
+  <div id="coachAthleteBar" style="display:none;padding:8px 16px;background:var(--surface,#1a1a2e);border-bottom:1px solid var(--card-border);display:none;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--text-dim);font-weight:600;">Viewing:</span>
+      <select id="coachAthleteSelect" onchange="coachSwitchAthlete(this.value)"
+        style="padding:5px 10px;border-radius:6px;border:1px solid var(--card-border);background:var(--card);color:var(--text);font-size:13px;font-weight:600;flex:1;max-width:200px;">
+      </select>
+      <span id="coachViewingLabel" style="font-size:10px;color:var(--green);font-weight:600;display:none;">COACH VIEW</span>
+      <button id="coachBackBtn" onclick="coachBackToSelf()" style="display:none;padding:4px 10px;border-radius:6px;border:1px solid var(--card-border);background:none;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;">
+        ← Back to My View
+      </button>
+    </div>
+  </div>
+
   <!-- Rest Timer Pill (non-blocking) -->
   <div id="timerPill" class="timer-pill" onclick="toggleTimerExpanded()">
     <div>
@@ -2210,6 +2224,8 @@ async function selectUser(name) {
         updateRestoreExVisibility();
       });
     }
+    // Initialize coach athlete bar if user is a coach
+    initCoachBar();
   }, 100);
 }
 
@@ -5559,6 +5575,109 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', () => {
   console.log('[net] Gone offline — data will queue locally');
 });
+
+// ==================== COACH ATHLETE VIEW ====================
+let _coachOriginalUser = null;
+let _coachOriginalTokens = null;
+
+function initCoachBar() {
+  const userInfo = programData?.users?.[currentUser];
+  if (!userInfo || userInfo.role !== 'coach') return;
+
+  // Build athlete list
+  const athletes = Object.entries(programData.users)
+    .filter(([_, info]) => info.role === 'athlete')
+    .map(([name]) => name);
+  if (athletes.length === 0) return;
+
+  const bar = document.getElementById('coachAthleteBar');
+  const select = document.getElementById('coachAthleteSelect');
+  if (!bar || !select) return;
+
+  // Populate dropdown: "My Program" first, then athletes
+  select.innerHTML = `<option value="">My Program</option>` +
+    athletes.map(a => `<option value="${a}">${a}</option>`).join('');
+
+  bar.style.display = 'block';
+}
+
+async function coachSwitchAthlete(athleteName) {
+  const viewLabel = document.getElementById('coachViewingLabel');
+  const backBtn = document.getElementById('coachBackBtn');
+
+  if (!athleteName) {
+    // Switch back to coach's own view
+    coachBackToSelf();
+    return;
+  }
+
+  // Save coach's original state
+  if (!_coachOriginalUser) {
+    _coachOriginalUser = currentUser;
+    _coachOriginalTokens = { at: accessToken, rt: refreshToken };
+  }
+
+  try {
+    // Get impersonation tokens from the admin API — use coach's original token
+    const resp = await fetch(`${SERVER_URL}/api/admin/users/${encodeURIComponent(athleteName)}/impersonate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${_coachOriginalTokens.at}`
+      }
+    });
+    if (!resp.ok) {
+      alert('Could not load athlete view');
+      return;
+    }
+    const data = await resp.json();
+
+    // Switch to athlete's tokens
+    accessToken = data.access_token;
+    refreshToken = data.refresh_token;
+
+    // Clear cached athlete program so it reloads
+    delete athletePrograms[athleteName];
+
+    // Set view-only mode so coach can't accidentally edit
+    isViewOnly = true;
+
+    await selectUser(athleteName);
+
+    // Show coach UI elements
+    viewLabel.style.display = '';
+    backBtn.style.display = '';
+  } catch (e) {
+    console.error('[coach] Switch failed:', e);
+    alert('Failed to switch athlete: ' + e.message);
+  }
+}
+
+function coachBackToSelf() {
+  if (!_coachOriginalUser || !_coachOriginalTokens) return;
+
+  const viewLabel = document.getElementById('coachViewingLabel');
+  const backBtn = document.getElementById('coachBackBtn');
+  const select = document.getElementById('coachAthleteSelect');
+
+  // Restore coach tokens
+  accessToken = _coachOriginalTokens.at;
+  refreshToken = _coachOriginalTokens.rt;
+  isViewOnly = false;
+
+  // Clear cached program
+  delete athletePrograms[_coachOriginalUser];
+
+  selectUser(_coachOriginalUser);
+
+  // Reset UI
+  if (select) select.value = '';
+  if (viewLabel) viewLabel.style.display = 'none';
+  if (backBtn) backBtn.style.display = 'none';
+
+  _coachOriginalUser = null;
+  _coachOriginalTokens = null;
+}
 
 // ==================== START ====================
 init();
