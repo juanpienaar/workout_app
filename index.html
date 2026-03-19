@@ -30,7 +30,7 @@
 /* Dark theme (default) — Obsidian Flow */
 :root, [data-theme="dark"] {
   --bg: #080810;
-  --card: rgba(255,255,255,0.025);
+  --card: #12121e;
   --card-border: rgba(255,255,255,0.08);
   --accent: #7c6ef0;
   --accent-dim: #6558d4;
@@ -41,7 +41,8 @@
   --text-muted: #5c5775;
   --green: #34d399;
   --yellow: #fbbf24;
-  --input-bg: rgba(255,255,255,0.03);
+  --input-bg: #0e0e1a;
+  --surface: #1a1a2e;
   --dropdown-bg: #1a1a2e;
 }
 
@@ -4733,12 +4734,12 @@ function initSwipeHandlers() {
 
 function confirmDeleteExercise(exKey, isCustom, exName) {
   const modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-  modal.innerHTML = `<div style="background:var(--card);border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center;">
-    <h3 style="margin-bottom:8px;">Remove Exercise?</h3>
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);';
+  modal.innerHTML = `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,0.4);">
+    <h3 style="margin-bottom:8px;color:var(--text);">Remove Exercise?</h3>
     <p style="color:var(--text-dim);font-size:14px;margin-bottom:20px;">${isCustom ? 'This will permanently delete' : 'This will hide'} <strong>${exName}</strong>${isCustom ? '' : '. You can restore it later from the settings menu.'}.</p>
     <div style="display:flex;gap:10px;">
-      <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--card-border);background:var(--card);color:var(--text);font-size:14px;cursor:pointer;">Cancel</button>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--card-border);background:var(--surface,#1a1a2e);color:var(--text);font-size:14px;cursor:pointer;">Cancel</button>
       <button onclick="deleteExercise('${exKey}',${isCustom});this.closest('[style*=fixed]').remove()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#E8475F;color:#fff;font-weight:600;font-size:14px;cursor:pointer;">Remove</button>
     </div>
   </div>`;
