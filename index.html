@@ -4818,28 +4818,32 @@ function showRestoreExercises() {
     return;
   }
 
-  // Build modal
-  let html = `<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)this.remove()" id="restoreExModal">
-    <div style="background:var(--card);border-radius:16px;padding:24px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
-    <h3 style="margin-bottom:4px;">Restore Exercises</h3>
+  // Build modal — use solid colors since --card is semi-transparent
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const modalBg = isDark ? '#1a1a2e' : '#ffffff';
+  const itemBg = isDark ? '#252540' : '#f3f4f6';
+  const closeBg = isDark ? '#1e1e34' : '#f9fafb';
+  let html = `<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.remove()" id="restoreExModal">
+    <div style="background:${modalBg};border-radius:16px;padding:24px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;border:1px solid var(--card-border);box-shadow:0 16px 48px rgba(0,0,0,0.4);" onclick="event.stopPropagation()">
+    <h3 style="margin-bottom:4px;color:var(--text);">Restore Exercises</h3>
     <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">Tap an exercise to restore it, or restore all at once.</p>`;
 
   for (const day of hiddenByDay) {
     html += `<div style="margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="font-weight:600;font-size:14px;">${day.dayLabel}</div>
+        <div style="font-weight:600;font-size:14px;color:var(--text);">${day.dayLabel}</div>
         <button onclick="restoreAllForDay(${day.dayIndex});document.getElementById('restoreExModal').remove();renderDay();" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--accent);background:none;color:var(--accent);cursor:pointer;">Restore All</button>
       </div>`;
     for (const ex of day.exercises) {
-      html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border-radius:8px;margin-bottom:4px;">
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:${itemBg};border-radius:8px;margin-bottom:4px;">
         <span style="font-size:14px;text-decoration:line-through;color:var(--text-dim);">${ex.name}</span>
-        <button onclick="restoreExercise('${ex.exKey}',${ex.dayIndex});this.closest('[style*=surface]').remove();updateRestoreModalCount();" style="padding:4px 12px;border-radius:6px;border:none;background:var(--green,#34d399);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Restore</button>
+        <button onclick="restoreExercise('${ex.exKey}',${ex.dayIndex});this.parentElement.remove();updateRestoreModalCount();" style="padding:4px 12px;border-radius:6px;border:none;background:#34d399;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Restore</button>
       </div>`;
     }
     html += '</div>';
   }
 
-  html += `<button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--card-border);background:var(--card);color:var(--text);font-size:14px;cursor:pointer;margin-top:8px;">Close</button>
+  html += `<button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--card-border);background:${closeBg};color:var(--text);font-size:14px;cursor:pointer;margin-top:8px;">Close</button>
     </div></div>`;
 
   document.body.insertAdjacentHTML('beforeend', html);
