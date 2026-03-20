@@ -2198,6 +2198,17 @@ async function selectUser(name) {
   try { window._targetWeights = JSON.parse(localStorage.getItem(`target_weights_${currentUser}`) || '{}'); } catch { window._targetWeights = {}; }
 
   archiveView = 'current';
+
+  // CRITICAL: Pull data from server BEFORE rendering to prevent data loss
+  // When localStorage is wiped (app update, cache clear, new device), this restores all data
+  if (program && accessToken) {
+    try {
+      await pullDataFromServer();
+    } catch (e) {
+      console.warn('[init] pullDataFromServer failed, continuing with local data:', e);
+    }
+  }
+
   showWorkout();
 
   // Show coach impersonation banner if applicable
@@ -2214,15 +2225,13 @@ async function selectUser(name) {
     }
   }
 
-  // Non-blocking: load these in the background after UI is visible
+  // Non-blocking background tasks
   setTimeout(() => {
     loadExercisesDB();
     initWhoop();
     if (program) {
-      pullDataFromServer().then(() => {
-        syncAllToServer();
-        updateRestoreExVisibility();
-      });
+      syncAllToServer();
+      updateRestoreExVisibility();
     }
     // Initialize coach athlete bar if user is a coach
     initCoachBar();
@@ -3750,7 +3759,7 @@ async function pullDataFromServer() {
           metaRestored++;
         }
       }
-      // Custom exercises
+      // Custom exercises — always restore from server if local is empty
       if (meta.custom_exercises && meta.custom_exercises.length > 0) {
         const ck = `custom_exercises_${currentUser}_day${idx}`;
         const existing = localStorage.getItem(ck);
@@ -3759,7 +3768,7 @@ async function pullDataFromServer() {
           metaRestored++;
         }
       }
-      // Exercise order
+      // Exercise order — always restore from server if local is empty
       if (meta.exercise_order && meta.exercise_order.length > 0) {
         const ok = `exercise_order_${currentUser}_day${idx}`;
         const existing = localStorage.getItem(ok);
@@ -3768,12 +3777,24 @@ async function pullDataFromServer() {
           metaRestored++;
         }
       }
+      // Skipped exercises
+      if (meta.skipped_exercises) {
+        const sk = `skipped_exercises_${currentUser}_day${idx}`;
+        const existing = localStorage.getItem(sk);
+        if (!existing || existing === '{}') {
+          localStorage.setItem(sk, JSON.stringify(meta.skipped_exercises));
+          metaRestored++;
+        }
+      }
     }
     if (merged > 0 || metaRestored > 0) {
       console.log(`[sync] Restored/merged ${merged} days, ${metaRestored} meta entries from server`);
+    }
+    // Always re-render after pull — data may have been restored from server after cache clear
+    try {
       if (viewMode === 'week') renderWeekOverview();
       else if (viewMode === 'day') renderDay();
-    }
+    } catch (e) { console.warn('[sync] Re-render after pull failed:', e); }
     // Fetch coach messages
     fetchMessages();
   } catch (e) {
