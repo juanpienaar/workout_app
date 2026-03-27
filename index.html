@@ -2750,6 +2750,7 @@ function renderDay() {
           ${ex.rpe ? `<div class="meta-item" onclick="showRpeTooltip(event, ${ex.rpe})" style="cursor:pointer;"><div class="meta-value" style="color:var(--accent2,#a78bfa)">${ex.rpe}</div><div class="meta-label">RPE</div></div>` : ''}
         </div>
         <div class="exercise-instruction">${ex.instruction}</div>
+        ${renderLastSession(ex.name, !!getCardioType(ex.name))}
         <div class="sets-log">`;
 
       const cardioType = getCardioType(ex.name);
@@ -3435,6 +3436,67 @@ function getEquipmentIcon(name) {
   if (n.includes('push-up') || n.includes('pushup') || n.includes('plank') || n.includes('bodyweight') || n.includes('pull-up') || n.includes('pullup') || n.includes('dip') || n.includes('lunge') || n.includes('crunch') || n.includes('sit-up'))
     return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8"/><path d="M8 12h8"/><path d="M9 21l3-5 3 5"/></svg>';
   return '';
+}
+
+// Look up last-completed session data for an exercise by name
+// Scans all days before currentDayIndex for the most recent completed sets
+function getLastSessionData(exerciseName) {
+  if (!programData || !currentUser) return null;
+  const normName = exerciseName.replace(/\s+/g, '_');
+  // Search backwards from the day before current
+  for (let di = currentDayIndex - 1; di >= 0; di--) {
+    const dayData = loadDayData(di);
+    if (!dayData || Object.keys(dayData).length === 0) continue;
+    // Find matching exercise key (format: order_Name_With_Underscores)
+    for (const key of Object.keys(dayData)) {
+      const parts = key.split('_');
+      const keyName = parts.slice(1).join('_');
+      if (keyName === normName) {
+        const exEntry = dayData[key];
+        // Collect completed sets (not warmup set0)
+        const sets = [];
+        let hasCompleted = false;
+        const setNums = Object.keys(exEntry)
+          .filter(k => k.startsWith('set') && k !== 'set0')
+          .map(k => parseInt(k.replace('set', '')))
+          .sort((a, b) => a - b);
+        for (const sn of setNums) {
+          const sd = exEntry['set' + sn];
+          if (sd && sd.done) {
+            hasCompleted = true;
+            sets.push({ set: sn, weight: sd.weight || '', reps: sd.reps || '' });
+          }
+        }
+        if (hasCompleted) {
+          // Figure out which day this was
+          const day = allDays[di];
+          const userInfo = programData.users[currentUser];
+          const startDate = userInfo.startDate ? new Date(userInfo.startDate + 'T00:00:00') : null;
+          const dayDate = startDate ? new Date(startDate.getTime() + di * 86400000) : null;
+          const dateLabel = dayDate
+            ? dayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : `W${day.week}D${day.day}`;
+          return { sets, dateLabel, dayIndex: di };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// Render last-session reference HTML for an exercise
+function renderLastSession(exerciseName, isCardio) {
+  const last = getLastSessionData(exerciseName);
+  if (!last) return '';
+  const setsHtml = last.sets.map(s => {
+    if (isCardio) {
+      return `<span>${s.weight} × ${s.reps}</span>`;
+    }
+    return `<span>${s.weight}kg × ${s.reps}</span>`;
+  }).join(' · ');
+  return `<div style="padding:6px 0 2px;font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    <span style="font-weight:600;">Last (${last.dateLabel}):</span> ${setsHtml}
+  </div>`;
 }
 
 function getExerciseBodyPart(exName) {
