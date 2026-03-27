@@ -431,6 +431,8 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
   const [replaceFromDate, setReplaceFromDate] = useState('')
   const [movingEx, setMovingEx] = useState(null) // { weekIdx, dayIdx, groupIdx, exIdx, exercise }
   const [expandedExKey, setExpandedExKey] = useState(null) // exKey of expanded exercise in modal
+  const [reviewModal, setReviewModal] = useState(null) // { type: 'daily'|'weekly', loading, data, error }
+  const [reviewContent, setReviewContent] = useState('')
   const scrollRef = React.useRef(null)
   const currentWeekRef = React.useRef(null)
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -450,6 +452,84 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
     // Append any exercises not in the order array
     Object.values(keyToEx).forEach(ex => ordered.push(ex))
     return ordered
+  }
+
+  // ── Review functions ──────────────────────────────────────────
+  async function triggerReview(type) {
+    if (!calAthlete) return
+    setReviewModal({ type, loading: true, data: null, error: null })
+    setReviewContent('')
+    try {
+      let data
+      if (type === 'daily') {
+        // Find the most recent logged day for this athlete
+        const logs = athleteData?.workout_logs || {}
+        const dayNums = Object.keys(logs)
+          .filter(k => k.startsWith('day_'))
+          .map(k => parseInt(k.replace('day_', '')))
+          .sort((a, b) => b - a)
+        if (dayNums.length === 0) {
+          setReviewModal({ type, loading: false, data: null, error: 'No workout logs found for this athlete.' })
+          return
+        }
+        const latestDayKey = `day_${dayNums[0]}`
+        const resp = await authFetch(`/api/admin/users/${calAthlete}/workout-history?day_key=${latestDayKey}&prior_weeks=4`)
+        if (!resp.ok) throw new Error('Failed to fetch workout history')
+        data = await resp.json()
+        data._reviewDayKey = latestDayKey
+      } else {
+        // Weekly stats
+        const resp = await authFetch(`/api/admin/users/${calAthlete}/weekly-stats?compare_weeks=4`)
+        if (!resp.ok) throw new Error('Failed to fetch weekly stats')
+        data = await resp.json()
+      }
+      setReviewModal({ type, loading: false, data, error: null })
+    } catch (err) {
+      setReviewModal({ type, loading: false, data: null, error: err.message })
+    }
+  }
+
+  async function saveReview() {
+    if (!reviewModal?.data || !reviewContent.trim()) return
+    const today = new Date().toISOString().split('T')[0]
+    const metrics = reviewModal.type === 'daily'
+      ? { day_key: reviewModal.data._reviewDayKey }
+      : { week: reviewModal.data.current_week }
+    try {
+      const resp = await authFetch(`/api/admin/users/${calAthlete}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: reviewModal.type,
+          content: reviewContent,
+          date: today,
+          metrics,
+          generated_by: 'coach',
+        }),
+      })
+      if (!resp.ok) throw new Error('Failed to save review')
+      const result = await resp.json()
+      toast.success(`${reviewModal.type === 'daily' ? 'Daily' : 'Weekly'} review saved!`)
+
+      // Optionally email the review
+      if (confirm('Send review via email to athlete?')) {
+        const emailResp = await authFetch('/api/admin/send-review-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: calAthlete,
+            review_id: result.review.id,
+            send_to_coach: true,
+            send_to_athlete: true,
+          }),
+        })
+        if (emailResp.ok) toast.success('Review email sent!')
+        else toast.error('Review saved but email failed')
+      }
+      setReviewModal(null)
+    } catch (err) {
+      toast.error('Save failed: ' + err.message)
+    }
   }
 
   // Auto-select first athlete
@@ -839,6 +919,18 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
               }} title="View athlete app as this user"
                 style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--teal, #34d399)', cursor: 'pointer', padding: '4px 10px', fontSize: 11, fontWeight: 600 }}>
                 👁 View as Athlete
+              </button>
+            )}
+            {calAthlete && (
+              <button onClick={() => triggerReview('daily')} title="Generate a daily review for latest workout"
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--accent2, #a78bfa)', cursor: 'pointer', padding: '4px 10px', fontSize: 11, fontWeight: 600 }}>
+                📋 Daily Review
+              </button>
+            )}
+            {calAthlete && (
+              <button onClick={() => triggerReview('weekly')} title="Generate a weekly review with trends"
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--accent2, #a78bfa)', cursor: 'pointer', padding: '4px 10px', fontSize: 11, fontWeight: 600 }}>
+                📊 Weekly Review
               </button>
             )}
           </div>
@@ -1247,6 +1339,98 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
             </div>
           )}
         </>
+      )}
+
+      {/* ── Review Modal ── */}
+      {reviewModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setReviewModal(null)}>
+          <div style={{ background: 'var(--card, #1a1a2e)', border: '1px solid var(--border)', borderRadius: 16, padding: 24, maxWidth: 640, width: '100%', maxHeight: '80vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18 }}>
+                {reviewModal.type === 'daily' ? '📋 Daily Review' : '📊 Weekly Review'} — {calAthlete}
+              </h3>
+              <button onClick={() => setReviewModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 20 }}>×</button>
+            </div>
+
+            {reviewModal.loading && (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-dim)' }}>Loading workout data...</div>
+            )}
+
+            {reviewModal.error && (
+              <div style={{ textAlign: 'center', padding: 20, color: '#ef4444' }}>{reviewModal.error}</div>
+            )}
+
+            {reviewModal.data && !reviewModal.loading && (
+              <>
+                {/* Data summary */}
+                <div style={{ background: 'var(--surface, rgba(255,255,255,0.03))', borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13 }}>
+                  {reviewModal.type === 'daily' ? (
+                    <>
+                      <div style={{ fontWeight: 600, marginBottom: 8 }}>Workout: {reviewModal.data._reviewDayKey}</div>
+                      {reviewModal.data.current?.stats?.map((s, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+                          <span>{s.name}</span>
+                          <span style={{ color: 'var(--text-dim)' }}>{s.total_sets}×{s.best_weight_kg}kg · {s.total_volume_kg}kg vol</span>
+                        </div>
+                      ))}
+                      {reviewModal.data.prior_weeks?.length > 0 && (
+                        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-dim)' }}>
+                          Comparing with {reviewModal.data.prior_weeks.length} prior session{reviewModal.data.prior_weeks.length !== 1 ? 's' : ''}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontWeight: 600, marginBottom: 8 }}>Week {reviewModal.data.current_week}</div>
+                      {reviewModal.data.weeks?.slice(-1).map((w, i) => (
+                        <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                          <div><div style={{ fontWeight: 700, fontSize: 16 }}>{w.total_sessions}/{w.sessions_target}</div><div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Sessions</div></div>
+                          <div><div style={{ fontWeight: 700, fontSize: 16 }}>{w.total_sets}</div><div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Sets</div></div>
+                          <div><div style={{ fontWeight: 700, fontSize: 16 }}>{Math.round(w.total_volume_kg)}</div><div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Volume (kg)</div></div>
+                          <div><div style={{ fontWeight: 700, fontSize: 16 }}>{w.completion_pct}%</div><div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Completion</div></div>
+                        </div>
+                      ))}
+                      {reviewModal.data.momentum && (
+                        <div style={{ marginTop: 10, fontSize: 12 }}>
+                          Momentum: <span style={{ fontWeight: 600, color: reviewModal.data.momentum.direction === 'increasing' ? 'var(--teal, #34d399)' : reviewModal.data.momentum.direction === 'decreasing' ? '#ef4444' : 'var(--text-dim)' }}>
+                            {reviewModal.data.momentum.direction}
+                          </span>
+                          {reviewModal.data.momentum.volume_trend !== 0 && (
+                            <span style={{ color: 'var(--text-dim)' }}> ({reviewModal.data.momentum.volume_trend > 0 ? '+' : ''}{reviewModal.data.momentum.volume_trend}kg)</span>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Review text area */}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>Your Review</label>
+                  <textarea value={reviewContent} onChange={e => setReviewContent(e.target.value)}
+                    placeholder={reviewModal.type === 'daily'
+                      ? "Write your daily review... e.g. Great session! Bench press up 2.5kg from last week. Technique looking solid on squats."
+                      : "Write your weekly review... e.g. Excellent consistency this week — 5/5 sessions completed. Volume trending up 8% over last 4 weeks."
+                    }
+                    style={{ width: '100%', minHeight: 150, padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--input-bg, #0e0e1a)', color: 'var(--text)', fontSize: 14, resize: 'vertical', lineHeight: 1.6 }} />
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                  <button onClick={() => setReviewModal(null)}
+                    style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', color: 'var(--text-dim)', fontSize: 13, cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                  <button onClick={saveReview} disabled={!reviewContent.trim()}
+                    style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: reviewContent.trim() ? 'var(--accent2, #7c6ef0)' : 'var(--border)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: reviewContent.trim() ? 'pointer' : 'default' }}>
+                    Save & Send Review
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
