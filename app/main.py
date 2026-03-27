@@ -18,7 +18,7 @@ from starlette.responses import RedirectResponse
 from . import config
 from .encryption import migrate_tokens_file
 from .logger import log_event
-from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes, admin_routes
+from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes, admin_routes, review_routes
 
 app = FastAPI(title="NumNum Workout", version="1.0.0")
 
@@ -74,6 +74,7 @@ app.include_router(coach_routes.router)
 app.include_router(verify_routes.router)
 app.include_router(whoop_routes.router)
 app.include_router(admin_routes.router)
+app.include_router(review_routes.router)
 
 
 # ---- Health check ----
