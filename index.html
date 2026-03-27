@@ -1415,7 +1415,7 @@ body {
         <span>Stay logged in</span>
       </label>
       <div class="login-error" id="loginError"></div>
-      <button class="btn" onclick="doLogin()">Sign In</button>
+      <button class="btn" id="loginBtn" onclick="doLogin()">Sign In</button>
     </div>
   </div>
 </div>
@@ -1938,18 +1938,23 @@ async function doLogin() {
 
   errorEl.textContent = 'Signing in...';
 
+  // Disable button to prevent double-tap
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) loginBtn.disabled = true;
+
   try {
-    const resp = await fetch(`${SERVER_URL}/api/auth/login`, {
+    const resp = await fetchWithTimeout(`${SERVER_URL}/api/auth/login`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({email, password, remember}),
-    });
+    }, 15000);
     const data = await resp.json();
 
     if (!resp.ok) {
       errorEl.textContent = data.detail || 'Invalid email or password.';
       document.getElementById('loginPassword').value = '';
       document.getElementById('loginPassword').focus();
+      if (loginBtn) loginBtn.disabled = false;
       return;
     }
 
@@ -1963,7 +1968,12 @@ async function doLogin() {
       await selectUser(data.user_name);
     }
   } catch (e) {
-    errorEl.textContent = 'Could not reach server. Try again.';
+    if (e.name === 'AbortError') {
+      errorEl.textContent = 'Server is waking up — please try again in a few seconds.';
+    } else {
+      errorEl.textContent = 'Could not reach server. Try again.';
+    }
+    if (loginBtn) loginBtn.disabled = false;
   }
 }
 
@@ -1979,9 +1989,9 @@ async function loadAthleteProgram() {
   }
 
   try {
-    const resp = await fetch(`${SERVER_URL}/api/my-program`, {
+    const resp = await fetchWithTimeout(`${SERVER_URL}/api/my-program`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
+    }, 10000);
     if (!resp.ok) {
       console.warn('[program] Failed to load from /my-program:', resp.status);
       return null;
