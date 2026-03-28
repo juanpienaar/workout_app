@@ -115,4 +115,9 @@ export const API = {
 
   // Logs
   getLogs: (limit = 50, type = null) => authFetch(`/api/admin/logs?limit=${limit}${type ? `&type=${type}` : ''}`).then(r => r.json()),
+
+  // Nutrition – Meal Plans
+  assignMealPlan: (username, planId) => authFetch('/api/nutrition/meal-plans/assign', { method: 'POST', body: JSON.stringify({ username, plan_id: planId }) }).then(r => r.json()),
+  unassignMealPlan: (username) => authFetch('/api/nutrition/meal-plans/assign', { method: 'POST', body: JSON.stringify({ username, plan_id: null }) }).then(r => r.json()),
+  renameMealPlan: (username, planId, name) => authFetch('/api/nutrition/meal-plans/rename', { method: 'POST', body: JSON.stringify({ username, plan_id: planId, name }) }).then(r => r.json()),
 }

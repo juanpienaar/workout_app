@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { authFetch } from '../api'
+import { API } from '../api'
 import { Icon } from '../components/Icons'
 import Modal from '../components/Modal'
 import { useToast } from '../components/Toast'
@@ -171,7 +172,7 @@ function OverviewTab({ athletes, loading, onSelect, selected, onEditProfile, onR
               </div>
 
               {/* Status badges */}
-              <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
                 <span className={`badge ${a.has_profile ? 'badge-athlete' : ''}`}
                   style={!a.has_profile ? { background: 'var(--red-dim)', border: '1px solid rgba(248,113,113,0.25)', color: 'var(--red)' } : {}}>
                   {a.has_profile ? 'Profile' : 'No Profile'}
@@ -182,6 +183,23 @@ function OverviewTab({ athletes, loading, onSelect, selected, onEditProfile, onR
                 </span>
                 {ps?.diet_type && ps.diet_type !== 'none' && (
                   <span className="badge badge-coach">{DIET_LABELS[ps.diet_type] || ps.diet_type}</span>
+                )}
+              </div>
+
+              {/* Active Meal Plan */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, fontSize: 11 }}>
+                <span style={{ fontSize: 14 }}>📅</span>
+                {a.active_meal_plan ? (
+                  <span style={{ color: 'var(--teal)', fontWeight: 500 }}>
+                    {a.active_meal_plan.name}
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 4 }}>
+                      ({a.active_meal_plan.days} days)
+                    </span>
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    No meal plan{a.meal_plan_count > 0 ? ` · ${a.meal_plan_count} available` : ''}
+                  </span>
                 )}
               </div>
 
@@ -783,8 +801,11 @@ function MealPlansTab({ athletes, toast }) {
   const [restrictions, setRestrictions] = useState('')
   const [selectedStores, setSelectedStores] = useState([])
   const [customStore, setCustomStore] = useState('')
+  const [planName, setPlanName] = useState('')
   const [fixedMeals, setFixedMeals] = useState([])
   const [generating, setGenerating] = useState(false)
+  const [renamingPlan, setRenamingPlan] = useState(null) // plan id being renamed
+  const [renameValue, setRenameValue] = useState('')
 
   const loadPlans = async (username) => {
     setSelected(username)
@@ -845,6 +866,7 @@ function MealPlansTab({ athletes, toast }) {
 
   const startWizard = () => {
     setWizardStep(1)
+    setPlanName('')
     setFixedMeals([])
     setPreferences('')
     setRestrictions('')
@@ -876,6 +898,7 @@ function MealPlansTab({ athletes, toast }) {
         method: 'POST',
         body: JSON.stringify({
           username: selected,
+          plan_name: planName.trim() || `${numDays}-Day Plan`,
           num_days: numDays,
           meals_per_day: selectedMealTypes.length,
           meal_types: selectedMealTypes,
@@ -913,7 +936,34 @@ function MealPlansTab({ athletes, toast }) {
     } catch { toast('Failed to delete', 'error') }
   }
 
+  const handleAssign = async (planId) => {
+    try {
+      await API.assignMealPlan(selected, planId)
+      toast(`Plan assigned to ${selected}`)
+      loadPlans(selected)
+    } catch { toast('Failed to assign plan', 'error') }
+  }
+
+  const handleUnassign = async () => {
+    try {
+      await API.unassignMealPlan(selected)
+      toast('Plan unassigned')
+      loadPlans(selected)
+    } catch { toast('Failed to unassign', 'error') }
+  }
+
+  const handleRename = async (planId) => {
+    if (!renameValue.trim()) return
+    try {
+      await API.renameMealPlan(selected, planId, renameValue.trim())
+      setPlans(prev => prev.map(p => p.id === planId ? { ...p, name: renameValue.trim() } : p))
+      setRenamingPlan(null)
+      toast('Plan renamed')
+    } catch { toast('Failed to rename', 'error') }
+  }
+
   const selectedInfo = athletes.find(a => a.username === selected)
+  const activePlanId = selectedInfo?.active_meal_plan?.id || null
   const allStoresDisplay = [...selectedStores, ...(customStore.trim() ? [customStore.trim()] : [])]
 
   return (
@@ -963,6 +1013,13 @@ function MealPlansTab({ athletes, toast }) {
               <div className="card-header">
                 <h3 style={{ fontSize: 14 }}>Step 1: Plan Configuration</h3>
                 <span className="badge" style={{ background: 'var(--surface3)', fontSize: 11 }}>for {selected}</span>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label>Plan name</label>
+                <input value={planName} onChange={e => setPlanName(e.target.value)}
+                  placeholder={`e.g. ${selected}'s Cut Plan, Bulk Week 1`}
+                  style={{ maxWidth: 350 }} />
               </div>
 
               <div className="form-group" style={{ marginBottom: 16 }}>
@@ -1153,12 +1210,28 @@ function MealPlansTab({ athletes, toast }) {
                   const stores = plan.stores || (plan.store ? [plan.store] : [])
 
                   return (
-                    <div key={plan.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div key={plan.id} className="card" style={{ padding: 0, overflow: 'hidden', border: activePlanId === plan.id ? '1px solid rgba(45,212,191,0.4)' : undefined }}>
                       <div className="program-header" onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}>
-                        <div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <h3 style={{ fontSize: 15 }}>{days.length}-Day Meal Plan</h3>
-                            {plan.assigned_to && <span className="badge badge-coach" style={{ fontSize: 10 }}>Assigned to {plan.assigned_to}</span>}
+                            {renamingPlan === plan.id ? (
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                                <input value={renameValue} onChange={e => setRenameValue(e.target.value)}
+                                  onKeyDown={e => e.key === 'Enter' && handleRename(plan.id)}
+                                  autoFocus style={{ fontSize: 14, fontWeight: 600, padding: '4px 8px', width: 220 }} />
+                                <button className="btn btn-primary btn-sm" style={{ fontSize: 11, padding: '4px 10px' }}
+                                  onClick={() => handleRename(plan.id)}>Save</button>
+                                <button className="btn btn-sm" style={{ fontSize: 11, padding: '4px 8px', opacity: 0.6 }}
+                                  onClick={() => setRenamingPlan(null)}>Cancel</button>
+                              </div>
+                            ) : (
+                              <h3 style={{ fontSize: 15, cursor: 'text' }}
+                                onDoubleClick={e => { e.stopPropagation(); setRenamingPlan(plan.id); setRenameValue(plan.name || `${days.length}-Day Plan`) }}>
+                                {plan.name || `${days.length}-Day Meal Plan`}
+                              </h3>
+                            )}
+                            {activePlanId === plan.id && <span className="badge" style={{ fontSize: 10, background: 'rgba(45,212,191,0.15)', color: 'var(--teal)', border: '1px solid rgba(45,212,191,0.3)' }}>Active</span>}
+                            <span className="badge" style={{ fontSize: 10, background: 'var(--surface3)' }}>{days.length} days</span>
                             {stores.map(s => <span key={s} className="badge" style={{ fontSize: 10, background: 'var(--surface3)' }}>🛒 {s}</span>)}
                           </div>
                           <div className="meta">
@@ -1232,30 +1305,67 @@ function MealPlansTab({ athletes, toast }) {
                           })}
 
                           {/* Shopping lists — one per store */}
-                          {(plan.shopping_lists || (plan.shopping_list ? [{ store: plan.store || 'Shopping List', items: plan.shopping_list }] : [])).map((sl, si) => (
-                            <div key={si} className="card" style={{ marginTop: 12, padding: 16 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
-                                </svg>
-                                {sl.store || 'Shopping List'}
-                              </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                                {(sl.items || []).map((item, i) => (
-                                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                    <span>{item.item}</span>
-                                    <span style={{ color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace", fontSize: 11 }}>
-                                      {item.quantity}
-                                      {item.price && <span style={{ color: 'var(--teal)', marginLeft: 6 }}>{item.price}</span>}
-                                      {item.category && <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>({item.category})</span>}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
+                          {(plan.shopping_lists || (plan.shopping_list ? [{ store: plan.store || 'Shopping List', items: plan.shopping_list }] : [])).map((sl, si) => {
+                            const items = sl.items || []
+                            // Calculate total cost from price strings (extract numbers)
+                            const totalCost = items.reduce((sum, item) => {
+                              if (!item.price) return sum
+                              const match = item.price.replace(/[^\d.,]/g, '').replace(',', '.')
+                              const num = parseFloat(match)
+                              return sum + (isNaN(num) ? 0 : num)
+                            }, 0)
+                            const currencySymbol = items.find(i => i.price)?.price?.match(/[£$€R]/)?.[0] || '£'
 
-                          <div style={{ marginTop: 12, textAlign: 'right' }}>
+                            return (
+                              <div key={si} className="card" style={{ marginTop: 12, padding: 16 }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+                                    </svg>
+                                    {sl.store || 'Shopping List'}
+                                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({items.length} items)</span>
+                                  </div>
+                                  {totalCost > 0 && (
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', fontFamily: "'Space Mono', monospace" }}>
+                                      Total: {currencySymbol}{totalCost.toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                                  {items.map((item, i) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                      <span>{item.item}</span>
+                                      <span style={{ color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace", fontSize: 11 }}>
+                                        {item.quantity}
+                                        {item.price && <span style={{ color: 'var(--teal)', marginLeft: 6 }}>{item.price}</span>}
+                                        {item.category && <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>({item.category})</span>}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })}
+
+                          <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              {activePlanId === plan.id ? (
+                                <button className="btn btn-sm" onClick={() => handleUnassign()}
+                                  style={{ fontSize: 12, border: '1px solid rgba(45,212,191,0.3)', color: 'var(--teal)' }}>
+                                  Unassign from {selected}
+                                </button>
+                              ) : (
+                                <button className="btn btn-primary btn-sm" onClick={() => handleAssign(plan.id)}
+                                  style={{ fontSize: 12 }}>
+                                  Assign to {selected}
+                                </button>
+                              )}
+                              <button className="btn btn-sm" onClick={() => { setRenamingPlan(plan.id); setRenameValue(plan.name || `${days.length}-Day Plan`) }}
+                                style={{ fontSize: 12, opacity: 0.7 }}>
+                                Rename
+                              </button>
+                            </div>
                             <button className="btn btn-danger btn-sm" onClick={() => handleDelete(plan.id)}>Delete Plan</button>
                           </div>
                         </div>

@@ -653,6 +653,7 @@ class FixedMeal(BaseModel):
 
 class CoachMealPlanRequest(BaseModel):
     username: str
+    plan_name: str = ""                # optional name for the plan
     num_days: int = 7
     meals_per_day: int = 4
     meal_types: list[str] = []
@@ -749,8 +750,11 @@ async def coach_generate_meal_plan(
         logger.error(traceback.format_exc())
         raise HTTPException(500, f"AI generation failed: {type(e).__name__}: {e}")
 
+    plan_id = f"plan_{uuid.uuid4().hex[:8]}"
+    plan_name = req.plan_name.strip() if req.plan_name else f"{req.num_days}-Day Meal Plan"
     plan_record = {
-        "id": f"plan_{uuid.uuid4().hex[:8]}",
+        "id": plan_id,
+        "name": plan_name,
         "assigned_to": req.username,
         **plan,
         "fixed_meals": fixed_meals_data,
@@ -798,7 +802,58 @@ async def delete_meal_plan(
     nutrition["meal_plans"] = [p for p in nutrition.get("meal_plans", []) if p["id"] != plan_id]
     if len(nutrition["meal_plans"]) == original:
         raise HTTPException(404, "Meal plan not found")
+    # If deleted plan was the active one, unassign it
+    if nutrition.get("active_meal_plan") == plan_id:
+        nutrition["active_meal_plan"] = None
     save_user_data(target_user, user_data)
+    return {"ok": True}
+
+
+class AssignMealPlanRequest(BaseModel):
+    username: str
+    plan_id: Optional[str] = None  # None to unassign
+
+
+@router.post("/meal-plans/assign")
+async def assign_meal_plan(
+    req: AssignMealPlanRequest,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Assign (or unassign) a meal plan to an athlete."""
+    user_data = load_user_data(req.username)
+    nutrition = _get_nutrition(user_data)
+
+    if req.plan_id:
+        plan = next((p for p in nutrition.get("meal_plans", []) if p.get("id") == req.plan_id), None)
+        if not plan:
+            raise HTTPException(404, "Meal plan not found for this athlete")
+        nutrition["active_meal_plan"] = req.plan_id
+    else:
+        nutrition["active_meal_plan"] = None
+
+    save_user_data(req.username, user_data)
+    return {"ok": True}
+
+
+class RenameMealPlanRequest(BaseModel):
+    username: str
+    plan_id: str
+    name: str
+
+
+@router.post("/meal-plans/rename")
+async def rename_meal_plan(
+    req: RenameMealPlanRequest,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Rename a meal plan."""
+    user_data = load_user_data(req.username)
+    nutrition = _get_nutrition(user_data)
+    plan = next((p for p in nutrition.get("meal_plans", []) if p.get("id") == req.plan_id), None)
+    if not plan:
+        raise HTTPException(404, "Meal plan not found")
+    plan["name"] = req.name
+    save_user_data(req.username, user_data)
     return {"ok": True}
 
 
@@ -841,6 +896,13 @@ async def coach_nutrition_overview(
                 "fat_pct": round((totals.get("fat_g", 0) / targets["daily_fat_g"]) * 100, 1) if targets.get("daily_fat_g") else None,
             }
 
+        # Active meal plan info
+        meal_plans = nutrition.get("meal_plans", [])
+        active_plan_id = nutrition.get("active_meal_plan")
+        active_plan = None
+        if active_plan_id:
+            active_plan = next((p for p in meal_plans if p.get("id") == active_plan_id), None)
+
         athletes.append({
             "username": username,
             "program": info.get("program", ""),
@@ -857,6 +919,13 @@ async def coach_nutrition_overview(
             "today_totals": totals,
             "today_entries": len(today_log.get("entries", [])),
             "compliance": compliance,
+            "active_meal_plan": {
+                "id": active_plan["id"],
+                "name": active_plan.get("name", f"{len(active_plan.get('days', []))}-Day Plan"),
+                "days": len(active_plan.get("days", [])),
+                "created_by": active_plan.get("created_by"),
+            } if active_plan else None,
+            "meal_plan_count": len(meal_plans),
         })
 
     return {"ok": True, "date": today, "athletes": athletes}
