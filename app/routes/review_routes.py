@@ -743,3 +743,331 @@ async def get_pending_weekly_reviews(
                 })
 
     return {"pending": pending}
+
+
+# ══════════════════════════════════════════════════════════════════
+# AUTO-REVIEW GENERATION (server-side, no LLM needed)
+# ══════════════════════════════════════════════════════════════════
+
+def _generate_daily_review_text(username: str, exercises: list, prior_weeks: list) -> str:
+    """Generate a data-driven daily review from workout data."""
+    if not exercises:
+        return f"No exercise data found for {username}'s latest session."
+
+    lines = [f"Daily Review for {username}\n"]
+
+    total_vol = 0
+    best_lift = ""
+    best_weight = 0.0
+    for ex in exercises:
+        vol = _compute_exercise_volume(ex)
+        total_vol += vol["total_volume_kg"]
+        if vol["best_weight_kg"] > best_weight:
+            best_weight = vol["best_weight_kg"]
+            best_lift = vol["name"]
+
+    num_exercises = len(exercises)
+    total_sets = sum(len(ex.get("sets", [])) for ex in exercises)
+    lines.append(f"You completed {num_exercises} exercises across {total_sets} sets for a total volume of {round(total_vol)}kg.")
+
+    if best_lift:
+        lines.append(f"Heaviest lift: {best_lift} at {best_weight}kg.")
+
+    if prior_weeks:
+        prior_vols = []
+        for pw in prior_weeks:
+            pv = sum(_compute_exercise_volume(ex)["total_volume_kg"] for ex in pw.get("exercises", []))
+            prior_vols.append(pv)
+        if prior_vols:
+            avg_prior = sum(prior_vols) / len(prior_vols)
+            if avg_prior > 0:
+                change_pct = round(((total_vol - avg_prior) / avg_prior) * 100, 1)
+                if change_pct > 5:
+                    lines.append(f"Volume is up {change_pct}% compared to your average of {round(avg_prior)}kg over the last {len(prior_vols)} session(s) — great progress!")
+                elif change_pct < -5:
+                    lines.append(f"Volume is down {abs(change_pct)}% compared to your recent average of {round(avg_prior)}kg. Could be recovery — if not, push a bit harder next time.")
+                else:
+                    lines.append(f"Volume is consistent with your recent sessions (avg {round(avg_prior)}kg) — solid consistency.")
+
+        improvements = []
+        for ex in exercises:
+            ev = _compute_exercise_volume(ex)
+            for pw in prior_weeks:
+                for pex in pw.get("exercises", []):
+                    if pex.get("name") == ex.get("name"):
+                        pev = _compute_exercise_volume(pex)
+                        if ev["best_weight_kg"] > pev["best_weight_kg"] and pev["best_weight_kg"] > 0:
+                            improvements.append(f"{ev['name']} (+{round(ev['best_weight_kg'] - pev['best_weight_kg'], 1)}kg)")
+                        break
+                if improvements:
+                    break
+        if improvements:
+            lines.append(f"Weight increases: {', '.join(improvements[:3])}. Keep it up!")
+
+    lines.append("\nKeep pushing — consistency builds results!")
+    return "\n".join(lines)
+
+
+def _generate_weekly_review_text(username: str, week_stats: dict, prior_stats: list, momentum: dict) -> str:
+    """Generate a data-driven weekly review."""
+    lines = [f"Weekly Review for {username}\n"]
+
+    sessions = week_stats.get("total_sessions", 0)
+    target = week_stats.get("sessions_target", 0)
+    volume = round(week_stats.get("total_volume_kg", 0))
+    completion = week_stats.get("completion_pct", 0)
+
+    lines.append(f"Sessions: {sessions}/{target} completed ({completion}% completion).")
+    lines.append(f"Total volume: {volume}kg across {week_stats.get('total_sets', 0)} sets.")
+
+    direction = momentum.get("direction", "stable")
+    vol_trend = momentum.get("volume_trend", 0)
+    vol_pct = momentum.get("volume_change_pct")
+
+    if direction == "increasing":
+        lines.append(f"Momentum: Trending UP — volume increased by {round(vol_trend)}kg from last week.")
+    elif direction == "decreasing":
+        lines.append(f"Momentum: Volume dropped by {abs(round(vol_trend))}kg from last week. If planned recovery, great. Otherwise, aim to push back up.")
+    elif direction == "mixed":
+        lines.append(f"Momentum: Mixed — some metrics up, some down. Volume change: {round(vol_trend)}kg.")
+    else:
+        lines.append("Momentum: Stable and consistent — great discipline!")
+
+    if vol_pct is not None:
+        if vol_pct > 0:
+            lines.append(f"Longer-term trend: volume up {vol_pct}% over the recent training block.")
+        elif vol_pct < 0:
+            lines.append(f"Longer-term trend: volume down {abs(vol_pct)}% — worth monitoring.")
+
+    if prior_stats and len(prior_stats) >= 2:
+        traj = " → ".join(f"{round(w.get('total_volume_kg', 0))}kg" for w in prior_stats[-4:])
+        lines.append(f"Volume trajectory: {traj}")
+
+    if completion >= 90:
+        lines.append("\nExcellent consistency — keep it going!")
+    elif completion >= 70:
+        lines.append("\nGood week. Try to hit all sessions next week!")
+    elif sessions > 0:
+        lines.append("\nYou showed up — that matters. Let's aim higher next week.")
+
+    return "\n".join(lines)
+
+
+def _send_review_email(recipient: str, subject: str, content: str) -> Optional[str]:
+    """Send an email, return error string or None on success."""
+    import os
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASSWORD", os.environ.get("SMTP_PASS", ""))
+
+    if not smtp_user or not smtp_pass:
+        return "SMTP not configured"
+
+    try:
+        html_body = f"""<html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px 12px 0 0; color: white;">
+                <h1 style="margin: 0; font-size: 22px;">NumNum Workout Review</h1>
+            </div>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #e9ecef; border-top: none;">
+                <div style="white-space: pre-wrap; line-height: 1.6;">{content}</div>
+            </div>
+            <p style="text-align: center; color: #999; font-size: 12px; margin-top: 20px;">Sent by NumNum Workout — numnum.fit</p>
+        </body></html>"""
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = smtp_user
+        msg["To"] = recipient
+        msg.attach(MIMEText(content, "plain"))
+        msg.attach(MIMEText(html_body, "html"))
+
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, recipient, msg.as_string())
+        return None
+    except Exception as e:
+        return str(e)
+
+
+@router.get("/cron/daily-reviews")
+async def cron_daily_reviews(key: str = Query(..., description="SECRET_KEY for auth")):
+    """Server-side cron: generate + email daily reviews for all pending athletes.
+
+    Call: GET /api/admin/cron/daily-reviews?key=YOUR_SECRET_KEY
+    """
+    import os
+    if key != os.environ.get("SECRET_KEY", ""):
+        raise HTTPException(403, "Invalid key")
+
+    coach_email = os.environ.get("COACH_EMAIL", "")
+    users = load_users()
+    results = []
+
+    for username, info in users.items():
+        if info.get("role") == "coach":
+            continue
+
+        user_data = load_user_data(username)
+        logs = user_data.get("workout_logs", {})
+        days_per_week = _get_days_per_week(user_data)
+
+        day_nums = sorted(
+            (int(k.replace("day_", "")) for k in logs if k.startswith("day_")),
+            reverse=True,
+        )
+        if not day_nums:
+            continue
+
+        latest_day_key = f"day_{day_nums[0]}"
+        reviews = user_data.get("reviews", [])
+        already = any(
+            r.get("type") == "daily" and r.get("metrics", {}).get("day_key") == latest_day_key
+            for r in reviews
+        )
+        if already:
+            continue
+
+        current_exercises = _extract_exercise_data(logs[latest_day_key])
+        if not current_exercises:
+            continue
+
+        prior = _find_same_workout_prior_weeks(logs, latest_day_key, days_per_week, 4)
+        review_text = _generate_daily_review_text(username, current_exercises, prior)
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        review = {
+            "id": f"rev_{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+            "type": "daily", "content": review_text, "date": today,
+            "metrics": {"day_key": latest_day_key},
+            "generated_by": "cron",
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "emailed": False,
+        }
+        reviews.append(review)
+        if len(reviews) > 200:
+            user_data["reviews"] = reviews[-200:]
+
+        athlete_email = info.get("email", "")
+        recipients, errors = [], []
+        for addr in [coach_email, athlete_email]:
+            if addr:
+                err = _send_review_email(addr, f"NumNum Daily Review — {username} — {today}", review_text)
+                if err:
+                    errors.append(err)
+                else:
+                    recipients.append(addr)
+
+        review["emailed"] = len(recipients) > 0
+        review["emailed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        review["emailed_to"] = recipients
+        save_user_data(username, user_data)
+
+        results.append({"username": username, "day_key": latest_day_key, "emailed_to": recipients, "errors": errors})
+
+    return {"ok": True, "reviewed": len(results), "results": results}
+
+
+@router.get("/cron/weekly-reviews")
+async def cron_weekly_reviews(key: str = Query(..., description="SECRET_KEY for auth")):
+    """Server-side cron: generate + email weekly reviews.
+
+    Call: GET /api/admin/cron/weekly-reviews?key=YOUR_SECRET_KEY
+    """
+    import os
+    if key != os.environ.get("SECRET_KEY", ""):
+        raise HTTPException(403, "Invalid key")
+
+    coach_email = os.environ.get("COACH_EMAIL", "")
+    users = load_users()
+    results = []
+
+    for username, info in users.items():
+        if info.get("role") == "coach":
+            continue
+
+        user_data = load_user_data(username)
+        logs = user_data.get("workout_logs", {})
+        days_per_week = _get_days_per_week(user_data)
+        current_week = _determine_current_week(user_data)
+        review_week = max(0, current_week - 1)
+
+        if current_week == 0:
+            continue
+
+        reviews = user_data.get("reviews", [])
+        already = any(
+            r.get("type") == "weekly" and r.get("metrics", {}).get("week") == review_week
+            for r in reviews
+        )
+        if already:
+            continue
+
+        week_keys = _get_week_day_keys(review_week, days_per_week)
+        week_stats = _compute_weekly_stats(logs, week_keys)
+        if week_stats["total_sessions"] == 0:
+            continue
+
+        all_weeks_stats = []
+        for w in range(max(0, review_week - 3), review_week + 1):
+            wk = _get_week_day_keys(w, days_per_week)
+            ws = _compute_weekly_stats(logs, wk)
+            ws["week"] = w
+            all_weeks_stats.append(ws)
+
+        momentum = {"direction": "stable", "volume_trend": 0.0, "frequency_trend": 0.0}
+        if len(all_weeks_stats) >= 2:
+            recent, prev = all_weeks_stats[-1], all_weeks_stats[-2]
+            vol_change = recent["total_volume_kg"] - prev["total_volume_kg"]
+            freq_change = recent["total_sessions"] - prev["total_sessions"]
+            momentum["volume_trend"] = round(vol_change, 1)
+            momentum["frequency_trend"] = freq_change
+            if vol_change > 0 and freq_change >= 0:
+                momentum["direction"] = "increasing"
+            elif vol_change < 0 and freq_change <= 0:
+                momentum["direction"] = "decreasing"
+            elif vol_change > 0 or freq_change > 0:
+                momentum["direction"] = "mixed"
+        if len(all_weeks_stats) >= 4:
+            recent_avg = sum(w["total_volume_kg"] for w in all_weeks_stats[-2:]) / 2
+            older_avg = sum(w["total_volume_kg"] for w in all_weeks_stats[:-2]) / max(len(all_weeks_stats) - 2, 1)
+            if older_avg > 0:
+                momentum["volume_change_pct"] = round(((recent_avg - older_avg) / older_avg) * 100, 1)
+
+        review_text = _generate_weekly_review_text(username, week_stats, all_weeks_stats, momentum)
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        review = {
+            "id": f"rev_{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+            "type": "weekly", "content": review_text, "date": today,
+            "metrics": {"week": review_week, "total_sessions": week_stats["total_sessions"],
+                        "total_volume_kg": week_stats["total_volume_kg"],
+                        "completion_pct": week_stats["completion_pct"],
+                        "momentum_direction": momentum["direction"]},
+            "generated_by": "cron",
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "emailed": False,
+        }
+        reviews.append(review)
+        if len(reviews) > 200:
+            user_data["reviews"] = reviews[-200:]
+
+        athlete_email = info.get("email", "")
+        recipients, errors = [], []
+        for addr in [coach_email, athlete_email]:
+            if addr:
+                err = _send_review_email(addr, f"NumNum Weekly Review — {username} — Week {review_week}", review_text)
+                if err:
+                    errors.append(err)
+                else:
+                    recipients.append(addr)
+
+        review["emailed"] = len(recipients) > 0
+        review["emailed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        review["emailed_to"] = recipients
+        save_user_data(username, user_data)
+
+        results.append({"username": username, "week": review_week, "emailed_to": recipients, "errors": errors})
+
+    return {"ok": True, "reviewed": len(results), "results": results}
