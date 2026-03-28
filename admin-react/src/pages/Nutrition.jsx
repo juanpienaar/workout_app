@@ -795,18 +795,23 @@ function MealPlansTab({ athletes, toast }) {
     if (!selected) return
     setGenerating(true)
     try {
-      const res = await authFetch('/api/nutrition/meal-plans/generate-for', {
+      const r = await authFetch('/api/nutrition/meal-plans/generate-for', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: selected, num_days: numDays, preferences, restrictions }),
-      }).then(r => r.json())
-      if (res.ok) {
+      })
+      const res = await r.json()
+      if (r.ok && res.ok) {
         setPlans(prev => [...prev, res.meal_plan])
         setShowGenerate(false)
         setExpandedPlan(res.meal_plan.id)
         toast(`Meal plan generated for ${selected}!`)
       } else {
-        toast(res.detail || 'Failed to generate', 'error')
+        // Handle Pydantic validation errors (detail is array) and string errors
+        const detail = res.detail
+        const msg = Array.isArray(detail)
+          ? detail.map(d => d.msg || d).join('; ')
+          : (typeof detail === 'string' ? detail : 'Failed to generate')
+        toast(msg, 'error')
       }
     } catch (e) {
       toast(e.message || 'Failed to generate meal plan', 'error')

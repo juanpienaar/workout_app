@@ -614,7 +614,12 @@ async def generate_meal_plan(
         pref_parts.append(req.preferences)
     combined_prefs = ". ".join(pref_parts)
 
-    plan = await generate_meal_plan(targets, req.num_days, combined_prefs, combined_restrictions)
+    try:
+        plan = await generate_meal_plan(targets, req.num_days, combined_prefs, combined_restrictions)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"AI generation failed: {e}")
 
     plan_record = {
         "id": f"plan_{uuid.uuid4().hex[:8]}",
@@ -690,7 +695,16 @@ async def coach_generate_meal_plan(
     if req.preferences:
         pref_parts.append(req.preferences)
 
-    plan = await _gen(targets, req.num_days, ". ".join(pref_parts), ". ".join(diet_restrictions))
+    import logging
+    logger = logging.getLogger("numnum.nutrition")
+    try:
+        plan = await _gen(targets, req.num_days, ". ".join(pref_parts), ". ".join(diet_restrictions))
+    except ValueError as e:
+        logger.error(f"Meal plan generation failed for {req.username}: {e}")
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.error(f"Meal plan generation error for {req.username}: {e}")
+        raise HTTPException(500, f"AI generation failed: {e}")
 
     plan_record = {
         "id": f"plan_{uuid.uuid4().hex[:8]}",
