@@ -199,7 +199,7 @@ async def get_profile(
     current_user: Annotated[dict, Depends(get_current_user)],
     username: Optional[str] = Query(None),
 ):
-    """Get athlete's nutrition profile."""
+    """Get athlete's nutrition profile, including latest metrics weight."""
     target_user = username or current_user["name"]
     if target_user != current_user["name"] and current_user.get("role") != "coach":
         raise HTTPException(403, "Can only view own profile")
@@ -208,7 +208,27 @@ async def get_profile(
     nutrition = _get_nutrition(user_data)
     profile = nutrition.get("profile")
     calc = _calc_tdee(profile) if profile else None
-    return {"ok": True, "profile": profile, "calculated": calc}
+
+    # Pull latest weight from body metrics (logged via main app)
+    latest_metrics_weight = None
+    metrics = user_data.get("metrics", [])
+    for m in reversed(metrics):
+        if m.get("weight"):
+            latest_metrics_weight = m["weight"]
+            break
+
+    # Also include user info from users.json
+    users = load_users()
+    user_info = users.get(target_user, {})
+
+    return {
+        "ok": True,
+        "username": target_user,
+        "program": user_info.get("program", ""),
+        "profile": profile,
+        "calculated": calc,
+        "latest_metrics_weight": latest_metrics_weight,
+    }
 
 
 @router.post("/profile")
@@ -662,8 +682,17 @@ async def coach_nutrition_overview(
         user_data = load_user_data(username)
         nutrition = _get_nutrition(user_data)
         targets = nutrition.get("targets")
+        profile = nutrition.get("profile")
         today_log = nutrition["logs"].get(today, {"entries": [], "totals": {}})
         totals = today_log.get("totals", {})
+
+        # Pull latest weight from metrics if available
+        latest_weight = None
+        metrics = user_data.get("metrics", [])
+        for m in reversed(metrics):
+            if m.get("weight"):
+                latest_weight = m["weight"]
+                break
 
         compliance = None
         if targets and totals:
@@ -676,7 +705,16 @@ async def coach_nutrition_overview(
 
         athletes.append({
             "username": username,
+            "program": info.get("program", ""),
             "has_targets": targets is not None,
+            "has_profile": profile is not None,
+            "profile_summary": {
+                "goal": profile.get("goal") if profile else None,
+                "diet_type": profile.get("diet_type") if profile else None,
+                "current_weight_kg": profile.get("current_weight_kg") if profile else None,
+                "activity_level": profile.get("activity_level") if profile else None,
+            } if profile else None,
+            "latest_metrics_weight": latest_weight,
             "targets": targets,
             "today_totals": totals,
             "today_entries": len(today_log.get("entries", [])),

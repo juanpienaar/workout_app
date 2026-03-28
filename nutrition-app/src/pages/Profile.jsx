@@ -39,9 +39,12 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const [metricsWeight, setMetricsWeight] = useState(null)
+
   useEffect(() => {
     authFetch('/api/nutrition/profile').then(r => r.json()).then(res => {
       const p = res.profile
+      if (res.latest_metrics_weight) setMetricsWeight(res.latest_metrics_weight)
       if (p) {
         setProfile({
           goal: p.goal || 'maintain', current_weight_kg: p.current_weight_kg || '',
@@ -50,6 +53,9 @@ export default function Profile() {
           activity_level: p.activity_level || 'moderate', diet_type: p.diet_type || 'none',
           allergies: p.allergies || '', additional_preferences: p.additional_preferences || '',
         })
+      } else if (res.latest_metrics_weight) {
+        // Pre-fill weight from metrics if no profile yet
+        setProfile(prev => ({ ...prev, current_weight_kg: res.latest_metrics_weight }))
       }
       if (res.calculated) setCalc(res.calculated)
       setLoading(false)
@@ -117,6 +123,12 @@ export default function Profile() {
             <input type="number" value={profile.current_weight_kg}
               onChange={e => setProfile(p => ({ ...p, current_weight_kg: e.target.value }))}
               placeholder="e.g. 80" />
+            {metricsWeight && parseFloat(profile.current_weight_kg) !== metricsWeight && (
+              <div style={{ fontSize: 10, color: 'var(--accent2)', marginTop: 4, cursor: 'pointer' }}
+                onClick={() => setProfile(p => ({ ...p, current_weight_kg: metricsWeight }))}>
+                Use {metricsWeight}kg from weigh-ins
+              </div>
+            )}
           </div>
           <div className="input-group">
             <label>Height (cm)</label>

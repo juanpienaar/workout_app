@@ -52,6 +52,9 @@ function OverviewTab() {
           <thead>
             <tr style={{ borderBottom: '1px solid var(--glass-border)' }}>
               <th style={thStyle}>Athlete</th>
+              <th style={thStyle}>Profile</th>
+              <th style={thStyle}>Goal</th>
+              <th style={thStyle}>Diet</th>
               <th style={thStyle}>Targets</th>
               <th style={thStyle}>Calories</th>
               <th style={thStyle}>Protein</th>
@@ -65,9 +68,30 @@ function OverviewTab() {
               const t = a.targets || {}
               const tot = a.today_totals || {}
               const c = a.compliance || {}
+              const ps = a.profile_summary
               return (
                 <tr key={a.username} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                  <td style={tdStyle}><span style={{ fontWeight: 500 }}>{a.username}</span></td>
+                  <td style={tdStyle}>
+                    <div style={{ fontWeight: 500 }}>{a.username}</div>
+                    {a.program && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{a.program}</div>}
+                  </td>
+                  <td style={tdStyle}>{a.has_profile ? <Dot color="var(--green)" /> : <Dot color="var(--red)" />}</td>
+                  <td style={tdStyle}>
+                    {ps?.goal ? (
+                      <span style={{
+                        padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500,
+                        background: ps.goal === 'lose' ? 'rgba(248,113,113,0.15)' : ps.goal === 'gain' ? 'rgba(45,212,191,0.15)' : 'rgba(167,139,250,0.15)',
+                        color: ps.goal === 'lose' ? '#f87171' : ps.goal === 'gain' ? '#2dd4bf' : '#a78bfa',
+                      }}>
+                        {ps.goal === 'lose' ? '↓ Lose' : ps.goal === 'gain' ? '↑ Gain' : '= Maintain'}
+                      </span>
+                    ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                  </td>
+                  <td style={tdStyle}>
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                      {ps?.diet_type && ps.diet_type !== 'none' ? DIET_LABELS[ps.diet_type] || ps.diet_type : '—'}
+                    </span>
+                  </td>
                   <td style={tdStyle}>{a.has_targets ? <Dot color="var(--green)" /> : <Dot color="var(--red)" />}</td>
                   <td style={tdStyle}>
                     <MacroCell val={tot.calories} target={t.daily_calories} pct={c.calories_pct} unit="kcal" />
@@ -90,6 +114,12 @@ function OverviewTab() {
       </div>
     </div>
   )
+}
+
+const DIET_LABELS = {
+  none: 'No restrictions', vegetarian: 'Vegetarian', vegan: 'Vegan',
+  pescatarian: 'Pescatarian', keto: 'Keto', banting: 'Banting',
+  paleo: 'Paleo', no_red_meat: 'No red meat', halal: 'Halal', kosher: 'Kosher',
 }
 
 function MacroCell({ val, target, pct, unit }) {
@@ -135,6 +165,9 @@ function TargetsTab() {
   const [selected, setSelected] = useState('')
   const [section, setSection] = useState('profile') // 'profile' | 'targets'
 
+  // Athlete info from overview
+  const [athleteInfo, setAthleteInfo] = useState(null)
+
   // Profile state
   const [profile, setProfile] = useState({
     goal: 'maintain', current_weight_kg: '', target_weight_kg: '', target_weeks: '',
@@ -142,6 +175,7 @@ function TargetsTab() {
     diet_type: 'none', allergies: '', additional_preferences: '',
   })
   const [calc, setCalc] = useState(null)
+  const [metricsWeight, setMetricsWeight] = useState(null)
 
   // Targets state
   const [targets, setTargets] = useState({ daily_calories: '', daily_protein_g: '', daily_carbs_g: '', daily_fat_g: '', daily_fiber_g: '', notes: '' })
@@ -160,11 +194,22 @@ function TargetsTab() {
     setSelected(username)
     setMessage('')
     setCalc(null)
+    setMetricsWeight(null)
+
+    // Get athlete info from the overview data
+    const info = athletes.find(a => a.username === username)
+    setAthleteInfo(info)
+
     try {
       const [profileRes, targetRes] = await Promise.all([
         authFetch(`/api/nutrition/profile?username=${encodeURIComponent(username)}`).then(r => r.json()),
         authFetch(`/api/nutrition/targets?username=${encodeURIComponent(username)}`).then(r => r.json()),
       ])
+
+      if (profileRes.latest_metrics_weight) {
+        setMetricsWeight(profileRes.latest_metrics_weight)
+      }
+
       const p = profileRes.profile
       if (p) {
         setProfile({
@@ -175,7 +220,16 @@ function TargetsTab() {
           allergies: p.allergies || '', additional_preferences: p.additional_preferences || '',
         })
       } else {
-        setProfile({ goal: 'maintain', current_weight_kg: '', target_weight_kg: '', target_weeks: '', height_cm: '', age: '', sex: 'male', activity_level: 'moderate', diet_type: 'none', allergies: '', additional_preferences: '' })
+        // No profile yet — pre-fill weight from metrics if available
+        const defaultProfile = {
+          goal: 'maintain', current_weight_kg: '', target_weight_kg: '', target_weeks: '',
+          height_cm: '', age: '', sex: 'male', activity_level: 'moderate',
+          diet_type: 'none', allergies: '', additional_preferences: '',
+        }
+        if (profileRes.latest_metrics_weight) {
+          defaultProfile.current_weight_kg = profileRes.latest_metrics_weight
+        }
+        setProfile(defaultProfile)
       }
       if (profileRes.calculated) setCalc(profileRes.calculated)
 
@@ -187,6 +241,12 @@ function TargetsTab() {
         setTargets({ daily_calories: '', daily_protein_g: '', daily_carbs_g: '', daily_fat_g: '', daily_fiber_g: '', notes: '' })
       }
     } catch { /* ignore */ }
+  }
+
+  const useMetricsWeight = () => {
+    if (metricsWeight) {
+      setProfile(p => ({ ...p, current_weight_kg: metricsWeight }))
+    }
   }
 
   const saveProfile = async () => {
@@ -208,7 +268,7 @@ function TargetsTab() {
         }),
       }).then(r => r.json())
       if (res.ok) {
-        setMessage('Profile saved!')
+        setMessage(`Profile saved for ${selected}!`)
         setCalc(res.calculated)
       } else {
         setMessage('Error: ' + (res.detail || 'failed'))
@@ -247,7 +307,7 @@ function TargetsTab() {
           },
         }),
       }).then(r => r.json())
-      if (res.ok) { setMessage('Targets saved!'); setCurrentTargets(res.targets) }
+      if (res.ok) { setMessage(`Targets saved for ${selected}!`); setCurrentTargets(res.targets) }
       else { setMessage('Error: ' + (res.detail || 'failed')) }
     } catch (e) { setMessage('Error: ' + e.message) }
     setSaving(false)
@@ -260,15 +320,42 @@ function TargetsTab() {
         <label style={labelStyle}>Select athlete</label>
         <select value={selected} onChange={e => loadAthlete(e.target.value)} style={inputStyle}>
           <option value="">Choose athlete...</option>
-          {athletes.map(a => <option key={a.username} value={a.username}>{a.username}</option>)}
+          {athletes.map(a => (
+            <option key={a.username} value={a.username}>
+              {a.username} {a.has_profile ? '' : '(no profile)'} — {a.program || 'No program'}
+            </option>
+          ))}
         </select>
       </div>
 
       {selected && (
         <>
+          {/* Athlete header card */}
+          <div style={{
+            padding: '14px 18px', marginBottom: 16, borderRadius: 10,
+            background: 'linear-gradient(135deg, rgba(124,110,240,0.08), rgba(147,51,234,0.08))',
+            border: '1px solid var(--glass-border)',
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{selected}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-dim)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              {athleteInfo?.program && <span>Program: {athleteInfo.program}</span>}
+              {metricsWeight && <span>Latest weigh-in: {metricsWeight}kg</span>}
+              {athleteInfo?.has_profile ? (
+                <span style={{ color: 'var(--green)' }}>Profile set</span>
+              ) : (
+                <span style={{ color: 'var(--red)' }}>No profile yet</span>
+              )}
+              {athleteInfo?.has_targets ? (
+                <span style={{ color: 'var(--green)' }}>Targets set</span>
+              ) : (
+                <span style={{ color: 'var(--red)' }}>No targets yet</span>
+              )}
+            </div>
+          </div>
+
           {/* Section toggle */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-            {[['profile', 'Profile & Goal'], ['targets', 'Macro Targets']].map(([key, label]) => (
+            {[['profile', `Profile & Goal`], ['targets', 'Macro Targets']].map(([key, label]) => (
               <button key={key} onClick={() => setSection(key)} style={{
                 padding: '7px 16px', borderRadius: 6, border: '1px solid var(--glass-border)',
                 background: section === key ? 'var(--accent)' : 'var(--surface)',
@@ -297,8 +384,19 @@ function TargetsTab() {
 
               {/* Body stats */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div><label style={labelStyle}>Current weight (kg)</label>
-                  <input type="number" value={profile.current_weight_kg} onChange={e => setProfile(p => ({ ...p, current_weight_kg: e.target.value }))} style={inputStyle} /></div>
+                <div>
+                  <label style={labelStyle}>
+                    Current weight (kg)
+                    {metricsWeight && parseFloat(profile.current_weight_kg) !== metricsWeight && (
+                      <button onClick={useMetricsWeight} style={{
+                        marginLeft: 6, padding: '1px 6px', borderRadius: 4, border: '1px solid var(--accent)',
+                        background: 'transparent', color: 'var(--accent)', cursor: 'pointer',
+                        fontFamily: 'inherit', fontSize: 10,
+                      }}>Use {metricsWeight}kg from metrics</button>
+                    )}
+                  </label>
+                  <input type="number" value={profile.current_weight_kg} onChange={e => setProfile(p => ({ ...p, current_weight_kg: e.target.value }))} style={inputStyle} />
+                </div>
                 <div><label style={labelStyle}>Height (cm)</label>
                   <input type="number" value={profile.height_cm} onChange={e => setProfile(p => ({ ...p, height_cm: e.target.value }))} style={inputStyle} /></div>
                 <div><label style={labelStyle}>Age</label>
@@ -351,12 +449,12 @@ function TargetsTab() {
                 padding: '10px 24px', borderRadius: 8, border: 'none',
                 background: 'linear-gradient(135deg, #7c6ef0, #9333ea)', color: 'white',
                 cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-              }}>{saving ? 'Saving...' : 'Save Profile'}</button>
+              }}>{saving ? 'Saving...' : `Save Profile for ${selected}`}</button>
 
               {/* Calculated TDEE display */}
               {calc && (
                 <div style={{ marginTop: 20, padding: 16, background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--glass-border)' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Calculated Recommendations</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Calculated Recommendations for {selected}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>BMR</div>
@@ -379,7 +477,7 @@ function TargetsTab() {
                     padding: '7px 16px', borderRadius: 6, border: '1px solid var(--accent)',
                     background: 'transparent', color: 'var(--accent)', cursor: 'pointer',
                     fontFamily: 'inherit', fontSize: 12, fontWeight: 500,
-                  }}>Apply as Macro Targets</button>
+                  }}>Apply as Macro Targets for {selected}</button>
                 </div>
               )}
             </>
@@ -408,10 +506,10 @@ function TargetsTab() {
                 marginTop: 16, padding: '10px 24px', borderRadius: 8, border: 'none',
                 background: 'linear-gradient(135deg, #7c6ef0, #9333ea)', color: 'white',
                 cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-              }}>{saving ? 'Saving...' : 'Save Targets'}</button>
+              }}>{saving ? 'Saving...' : `Save Targets for ${selected}`}</button>
               {currentTargets && (
                 <div style={{ marginTop: 20, padding: 14, background: 'var(--surface)', borderRadius: 10, fontSize: 12, color: 'var(--text-dim)' }}>
-                  Current targets set by {currentTargets.set_by} on {new Date(currentTargets.set_at).toLocaleDateString()}
+                  Current targets for <strong>{selected}</strong> set by {currentTargets.set_by} on {new Date(currentTargets.set_at).toLocaleDateString()}
                 </div>
               )}
             </>
