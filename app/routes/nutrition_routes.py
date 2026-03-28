@@ -630,6 +630,81 @@ async def generate_meal_plan(
     return {"ok": True, "meal_plan": plan_record}
 
 
+class CoachMealPlanRequest(BaseModel):
+    username: str
+    num_days: int = 7
+    preferences: str = ""
+    restrictions: str = ""
+
+
+@router.post("/meal-plans/generate-for")
+async def coach_generate_meal_plan(
+    req: CoachMealPlanRequest,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Coach generates a meal plan for a specific athlete."""
+    from ..services.nutrition_ai import generate_meal_plan as _gen
+
+    users = load_users()
+    if req.username not in users:
+        raise HTTPException(404, "Athlete not found")
+
+    user_data = load_user_data(req.username)
+    nutrition = _get_nutrition(user_data)
+
+    # Use targets if set, otherwise calculate from profile
+    targets = nutrition.get("targets")
+    profile = nutrition.get("profile")
+    calc = _calc_tdee(profile) if profile else None
+
+    if not targets and calc:
+        targets = {
+            "daily_calories": calc["recommended_calories"],
+            "daily_protein_g": calc["recommended_protein_g"],
+            "daily_carbs_g": calc["recommended_carbs_g"],
+            "daily_fat_g": calc["recommended_fat_g"],
+        }
+    if not targets:
+        raise HTTPException(400, f"No nutrition targets set for {req.username}. Set their profile or targets first.")
+
+    # Build restrictions from profile
+    diet_restrictions = []
+    if profile:
+        dt = profile.get("diet_type", "none")
+        if dt != "none":
+            diet_restrictions.append(DIET_LABELS.get(dt, dt))
+        if profile.get("allergies"):
+            diet_restrictions.append(f"Allergies: {profile['allergies']}")
+        if profile.get("additional_preferences"):
+            diet_restrictions.append(profile["additional_preferences"])
+    if req.restrictions:
+        diet_restrictions.append(req.restrictions)
+
+    pref_parts = []
+    if profile:
+        goal = profile.get("goal", "maintain")
+        if goal == "lose":
+            pref_parts.append("Focus on high-protein, satiating meals for weight loss")
+        elif goal == "gain":
+            pref_parts.append("Include calorie-dense, nutrient-rich meals for muscle gain")
+    if req.preferences:
+        pref_parts.append(req.preferences)
+
+    plan = await _gen(targets, req.num_days, ". ".join(pref_parts), ". ".join(diet_restrictions))
+
+    plan_record = {
+        "id": f"plan_{uuid.uuid4().hex[:8]}",
+        **plan,
+        "created_at": _now_iso(),
+        "created_by": coach["name"],
+    }
+    nutrition["meal_plans"].append(plan_record)
+    if len(nutrition["meal_plans"]) > 10:
+        nutrition["meal_plans"] = nutrition["meal_plans"][-10:]
+    save_user_data(req.username, user_data)
+    return {"ok": True, "meal_plan": plan_record}
+
+
 @router.post("/ai/suggest-recipes")
 async def suggest_recipes_from_ingredients(
     req: RecipeFromIngredientsRequest,
@@ -650,15 +725,20 @@ async def suggest_recipes_from_ingredients(
 async def delete_meal_plan(
     plan_id: str,
     current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None),
 ):
-    """Delete a meal plan."""
-    user_data = load_user_data(current_user["name"])
+    """Delete a meal plan. Coach can delete for any athlete via ?username=."""
+    target_user = username or current_user["name"]
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only delete own meal plans")
+
+    user_data = load_user_data(target_user)
     nutrition = _get_nutrition(user_data)
     original = len(nutrition.get("meal_plans", []))
     nutrition["meal_plans"] = [p for p in nutrition.get("meal_plans", []) if p["id"] != plan_id]
     if len(nutrition["meal_plans"]) == original:
         raise HTTPException(404, "Meal plan not found")
-    save_user_data(current_user["name"], user_data)
+    save_user_data(target_user, user_data)
     return {"ok": True}
 
 
