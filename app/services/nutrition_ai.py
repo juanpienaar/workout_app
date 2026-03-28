@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import urllib.error
 import urllib.request
 from functools import partial
 from typing import Optional
@@ -16,7 +17,10 @@ def _call_claude_sync(prompt: str, max_tokens: int = 2048) -> str:
     """Call Claude API synchronously (run in executor). Returns text response."""
     api_key = config.ANTHROPIC_API_KEY
     if not api_key:
+        logger.error("ANTHROPIC_API_KEY is not set!")
         raise ValueError("ANTHROPIC_API_KEY not configured")
+
+    logger.info(f"Calling Claude API: model=claude-sonnet-4-20250514, max_tokens={max_tokens}, prompt_len={len(prompt)}")
 
     body = json.dumps({
         "model": "claude-sonnet-4-20250514",
@@ -33,10 +37,34 @@ def _call_claude_sync(prompt: str, max_tokens: int = 2048) -> str:
     req.add_header("x-api-key", api_key)
     req.add_header("anthropic-version", "2023-06-01")
 
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        data = json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            raw = resp.read().decode()
+            data = json.loads(raw)
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode() if e.fp else "no body"
+        logger.error(f"Claude API HTTP error: {e.code} {e.reason} — {error_body[:500]}")
+        raise ValueError(f"Claude API error {e.code}: {error_body[:200]}")
+    except urllib.error.URLError as e:
+        logger.error(f"Claude API URL error: {e.reason}")
+        raise ValueError(f"Cannot reach Claude API: {e.reason}")
+    except Exception as e:
+        logger.error(f"Claude API unexpected error: {type(e).__name__}: {e}")
+        raise
 
+    stop_reason = data.get("stop_reason", "unknown")
+    usage = data.get("usage", {})
     text = data.get("content", [{}])[0].get("text", "")
+
+    logger.info(
+        f"Claude API response: stop_reason={stop_reason}, "
+        f"input_tokens={usage.get('input_tokens', '?')}, "
+        f"output_tokens={usage.get('output_tokens', '?')}, "
+        f"response_len={len(text)}, first_100={text[:100]!r}"
+    )
+
+    if stop_reason == "max_tokens":
+        logger.warning(f"Claude response TRUNCATED (hit max_tokens={max_tokens})")
 
     # Log API cost
     _log_cost(data)
@@ -127,19 +155,27 @@ Keep ingredient lists concise (3-6 items per meal). Keep instructions brief.
 JSON structure:
 {{"days":[{{"day":1,"meals":[...],"day_totals":{{...}}}}],"shopping_list":[...]}}"""
 
+    logger.info(f"Generating {num_days}-day meal plan: cal={targets.get('daily_calories')}, max_tokens={max_tokens}")
+
     loop = asyncio.get_event_loop()
     text = await loop.run_in_executor(None, partial(_call_claude_sync, prompt, max_tokens))
 
+    logger.info(f"Got Claude response for meal plan: len={len(text)}")
+
     try:
         plan = _parse_json_response(text)
-    except json.JSONDecodeError:
-        logger.error(f"Failed to parse meal plan JSON (len={len(text)}): {text[:500]}")
+        logger.info(f"Parsed meal plan OK: {len(plan.get('days', []))} days")
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parse failed: {e}")
+        logger.error(f"Response first 1000 chars: {text[:1000]}")
+        logger.error(f"Response last 200 chars: {text[-200:]}")
         # Try to salvage truncated JSON by closing brackets
         try:
             plan = _salvage_truncated_json(text)
-            logger.info("Salvaged truncated meal plan JSON")
-        except Exception:
-            raise ValueError("AI returned malformed data. Try fewer days (3 or 5) or try again.")
+            logger.info(f"Salvaged truncated meal plan JSON: {len(plan.get('days', []))} days")
+        except Exception as se:
+            logger.error(f"Salvage also failed: {se}")
+            raise ValueError(f"AI returned malformed data (response len={len(text)}). Try fewer days (3 or 5) or try again.")
 
     return plan
 

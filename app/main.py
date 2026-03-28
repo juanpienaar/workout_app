@@ -1,8 +1,15 @@
 """FastAPI application entry point."""
 
 import json
+import logging
 import shutil
 from fastapi import FastAPI
+
+# Configure logging so numnum.* loggers output to stdout (Railway captures stdout)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse

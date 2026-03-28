@@ -1,6 +1,7 @@
 """Nutrition routes — food logging, macro tracking, recipes, meal plans."""
 
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Annotated, Optional
@@ -17,6 +18,8 @@ from ..models import (
     MealPlanGenerateRequest, RecipeFromIngredientsRequest,
     NutritionProfile,
 )
+
+logger = logging.getLogger("numnum.nutrition")
 
 router = APIRouter(prefix="/api/nutrition", tags=["nutrition"])
 
@@ -695,16 +698,20 @@ async def coach_generate_meal_plan(
     if req.preferences:
         pref_parts.append(req.preferences)
 
-    import logging
-    logger = logging.getLogger("numnum.nutrition")
+    logger.info(f"Coach {coach['name']} generating meal plan for {req.username}: {req.num_days} days")
+    logger.info(f"Targets: {targets}")
+    logger.info(f"Preferences: {'. '.join(pref_parts)}, Restrictions: {'. '.join(diet_restrictions)}")
     try:
         plan = await _gen(targets, req.num_days, ". ".join(pref_parts), ". ".join(diet_restrictions))
+        logger.info(f"Meal plan generated OK for {req.username}")
     except ValueError as e:
-        logger.error(f"Meal plan generation failed for {req.username}: {e}")
+        logger.error(f"Meal plan generation ValueError for {req.username}: {e}")
         raise HTTPException(400, str(e))
     except Exception as e:
-        logger.error(f"Meal plan generation error for {req.username}: {e}")
-        raise HTTPException(500, f"AI generation failed: {e}")
+        logger.error(f"Meal plan generation unexpected error for {req.username}: {type(e).__name__}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(500, f"AI generation failed: {type(e).__name__}: {e}")
 
     plan_record = {
         "id": f"plan_{uuid.uuid4().hex[:8]}",
