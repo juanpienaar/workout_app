@@ -6,6 +6,7 @@ import { ToastProvider } from './components/Toast'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Programs from './pages/Programs'
+import Nutrition from './pages/Nutrition'
 import Settings from './pages/Settings'
 
 // Apply saved theme on load
@@ -74,6 +75,7 @@ function AppInner() {
         <Route element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="programs" element={<Programs />} />
+          <Route path="nutrition" element={<Nutrition />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Route>
