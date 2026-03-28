@@ -33,7 +33,7 @@ def _call_claude_sync(prompt: str, max_tokens: int = 2048) -> str:
     req.add_header("x-api-key", api_key)
     req.add_header("anthropic-version", "2023-06-01")
 
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    with urllib.request.urlopen(req, timeout=120) as resp:
         data = json.loads(resp.read().decode())
 
     text = data.get("content", [{}])[0].get("text", "")
@@ -98,6 +98,9 @@ async def generate_meal_plan(
     restrictions: str = "",
 ) -> dict:
     """Generate a meal plan that hits the given macro targets."""
+    # Scale tokens based on number of days — 7-day plans need ~8k tokens
+    max_tokens = min(2048 + num_days * 1024, 16384)
+
     prompt = f"""Create a {num_days}-day meal plan with these daily macro targets:
 - Calories: {targets.get('daily_calories', 2000)} kcal
 - Protein: {targets.get('daily_protein_g', 150)}g
@@ -109,40 +112,58 @@ async def generate_meal_plan(
 
 For each day, provide 4 meals (breakfast, lunch, dinner, snack).
 For each meal provide:
-- meal_type: "breakfast" | "lunch" | "dinner" | "snack"
-- name: short description
-- ingredients: list of {{ food_name, serving_size, calories, protein_g, carbs_g, fat_g }}
-- instructions: brief cooking instructions (2-3 sentences)
-- prep_time_min: estimated prep time in minutes
-- meal_macros: {{ calories, protein_g, carbs_g, fat_g }}
+- meal_type: "breakfast"|"lunch"|"dinner"|"snack"
+- name: short name (max 6 words)
+- ingredients: list of {{food_name, serving_size, calories, protein_g, carbs_g, fat_g}}
+- instructions: 1-2 sentence cooking summary
+- prep_time_min: number
+- meal_macros: {{calories, protein_g, carbs_g, fat_g}}
 
-Also provide a shopping_list: list of {{ item, quantity, category }}
+Also provide shopping_list: list of {{item, quantity, category}}
 
-Return as JSON:
-{{
-  "days": [
-    {{
-      "day": 1,
-      "meals": [ ... ],
-      "day_totals": {{ calories, protein_g, carbs_g, fat_g }}
-    }}
-  ],
-  "shopping_list": [ ... ]
-}}
+IMPORTANT: Return ONLY valid JSON, no markdown, no explanation, no text before or after.
+Keep ingredient lists concise (3-6 items per meal). Keep instructions brief.
 
-Make meals practical, varied, and easy to prepare. Use common ingredients.
-Return ONLY the JSON, no other text."""
+JSON structure:
+{{"days":[{{"day":1,"meals":[...],"day_totals":{{...}}}}],"shopping_list":[...]}}"""
 
     loop = asyncio.get_event_loop()
-    text = await loop.run_in_executor(None, partial(_call_claude_sync, prompt, 4096))
+    text = await loop.run_in_executor(None, partial(_call_claude_sync, prompt, max_tokens))
 
     try:
         plan = _parse_json_response(text)
     except json.JSONDecodeError:
-        logger.error(f"Failed to parse meal plan JSON: {text[:200]}")
-        raise ValueError("Failed to generate meal plan. Please try again.")
+        logger.error(f"Failed to parse meal plan JSON (len={len(text)}): {text[:500]}")
+        # Try to salvage truncated JSON by closing brackets
+        try:
+            plan = _salvage_truncated_json(text)
+            logger.info("Salvaged truncated meal plan JSON")
+        except Exception:
+            raise ValueError("AI returned malformed data. Try fewer days (3 or 5) or try again.")
 
     return plan
+
+
+def _salvage_truncated_json(text: str) -> dict:
+    """Try to fix truncated JSON from Claude by closing open brackets."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+        text = text.rsplit("```", 1)[0]
+    # Close open brackets/braces
+    open_braces = text.count("{") - text.count("}")
+    open_brackets = text.count("[") - text.count("]")
+    # Trim to last complete item (find last comma before EOF)
+    if open_braces > 0 or open_brackets > 0:
+        # Try to find a reasonable truncation point
+        for i in range(len(text) - 1, max(0, len(text) - 200), -1):
+            if text[i] == "}":
+                candidate = text[:i+1] + "]" * open_brackets + "}" * max(0, open_braces - 1)
+                try:
+                    return json.loads(candidate)
+                except json.JSONDecodeError:
+                    continue
+    raise ValueError("Cannot salvage")
 
 
 # ────────────────────────────────────────────
