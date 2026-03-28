@@ -1,172 +1,269 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { authFetch } from '../api'
+import { Icon } from '../components/Icons'
+import Modal from '../components/Modal'
+import { useToast } from '../components/Toast'
 
-/* ── Nutrition Coach Dashboard ── */
-
-export default function Nutrition() {
-  const [tab, setTab] = useState('overview')
-  return (
-    <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
-      <h1 className="page-title" style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Nutrition</h1>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {['overview', 'targets', 'logs'].map(t => (
-          <button key={t} className={`tab-btn ${tab === t ? 'active' : ''}`}
-            onClick={() => setTab(t)}
-            style={{
-              padding: '8px 18px', borderRadius: 8, border: '1px solid var(--glass-border)',
-              background: tab === t ? 'var(--accent)' : 'var(--surface)',
-              color: tab === t ? 'white' : 'var(--text-dim)',
-              cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
-            }}>
-            {t === 'overview' ? 'Overview' : t === 'targets' ? 'Set Targets' : 'Athlete Logs'}
-          </button>
-        ))}
-      </div>
-      {tab === 'overview' && <OverviewTab />}
-      {tab === 'targets' && <TargetsTab />}
-      {tab === 'logs' && <LogsTab />}
-    </div>
-  )
-}
-
-/* ── Overview Tab ── */
-function OverviewTab() {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    authFetch('/api/nutrition/coach/overview').then(r => r.json()).then(d => {
-      setData(d)
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [])
-
-  if (loading) return <div style={{ color: 'var(--text-dim)' }}>Loading...</div>
-  if (!data?.athletes?.length) return <div style={{ color: 'var(--text-dim)' }}>No athletes found.</div>
-
-  return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 4 }}>Today: {data.date}</div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--glass-border)' }}>
-              <th style={thStyle}>Athlete</th>
-              <th style={thStyle}>Profile</th>
-              <th style={thStyle}>Goal</th>
-              <th style={thStyle}>Diet</th>
-              <th style={thStyle}>Targets</th>
-              <th style={thStyle}>Calories</th>
-              <th style={thStyle}>Protein</th>
-              <th style={thStyle}>Carbs</th>
-              <th style={thStyle}>Fat</th>
-              <th style={thStyle}>Entries</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.athletes.map(a => {
-              const t = a.targets || {}
-              const tot = a.today_totals || {}
-              const c = a.compliance || {}
-              const ps = a.profile_summary
-              return (
-                <tr key={a.username} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                  <td style={tdStyle}>
-                    <div style={{ fontWeight: 500 }}>{a.username}</div>
-                    {a.program && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{a.program}</div>}
-                  </td>
-                  <td style={tdStyle}>{a.has_profile ? <Dot color="var(--green)" /> : <Dot color="var(--red)" />}</td>
-                  <td style={tdStyle}>
-                    {ps?.goal ? (
-                      <span style={{
-                        padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500,
-                        background: ps.goal === 'lose' ? 'rgba(248,113,113,0.15)' : ps.goal === 'gain' ? 'rgba(45,212,191,0.15)' : 'rgba(167,139,250,0.15)',
-                        color: ps.goal === 'lose' ? '#f87171' : ps.goal === 'gain' ? '#2dd4bf' : '#a78bfa',
-                      }}>
-                        {ps.goal === 'lose' ? '↓ Lose' : ps.goal === 'gain' ? '↑ Gain' : '= Maintain'}
-                      </span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                      {ps?.diet_type && ps.diet_type !== 'none' ? DIET_LABELS[ps.diet_type] || ps.diet_type : '—'}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>{a.has_targets ? <Dot color="var(--green)" /> : <Dot color="var(--red)" />}</td>
-                  <td style={tdStyle}>
-                    <MacroCell val={tot.calories} target={t.daily_calories} pct={c.calories_pct} unit="kcal" />
-                  </td>
-                  <td style={tdStyle}>
-                    <MacroCell val={tot.protein_g} target={t.daily_protein_g} pct={c.protein_pct} unit="g" />
-                  </td>
-                  <td style={tdStyle}>
-                    <MacroCell val={tot.carbs_g} target={t.daily_carbs_g} pct={c.carbs_pct} unit="g" />
-                  </td>
-                  <td style={tdStyle}>
-                    <MacroCell val={tot.fat_g} target={t.daily_fat_g} pct={c.fat_pct} unit="g" />
-                  </td>
-                  <td style={tdStyle}>{a.today_entries || 0}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
+/* ── Constants ── */
 
 const DIET_LABELS = {
   none: 'No restrictions', vegetarian: 'Vegetarian', vegan: 'Vegan',
   pescatarian: 'Pescatarian', keto: 'Keto', banting: 'Banting',
   paleo: 'Paleo', no_red_meat: 'No red meat', halal: 'Halal', kosher: 'Kosher',
 }
-
-function MacroCell({ val, target, pct, unit }) {
-  if (!target) return <span style={{ color: 'var(--text-muted)' }}>—</span>
-  const v = Math.round(val || 0)
-  const t = Math.round(target)
-  const color = !pct ? 'var(--text-dim)' :
-    pct >= 80 && pct <= 120 ? 'var(--green)' :
-    pct >= 50 ? 'var(--yellow)' : 'var(--red)'
-  return (
-    <span>
-      <span style={{ color, fontWeight: 600 }}>{v}</span>
-      <span style={{ color: 'var(--text-muted)' }}> / {t}{unit}</span>
-    </span>
-  )
-}
-
-function Dot({ color }) {
-  return <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: color }} />
-}
-
-const thStyle = { textAlign: 'left', padding: '10px 12px', color: 'var(--text-dim)', fontWeight: 500, whiteSpace: 'nowrap' }
-const tdStyle = { padding: '10px 12px', whiteSpace: 'nowrap' }
-
-
-/* ── Targets Tab ── */
-const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: 8, color: 'var(--text)', fontFamily: 'inherit', fontSize: 14 }
-const labelStyle = { display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-dim)', marginBottom: 4 }
 const DIET_OPTIONS = [
   ['none', 'No restrictions'], ['vegetarian', 'Vegetarian'], ['vegan', 'Vegan'],
   ['pescatarian', 'Pescatarian'], ['keto', 'Keto'], ['banting', 'Banting / Low-carb'],
   ['paleo', 'Paleo'], ['no_red_meat', 'No red meat'], ['halal', 'Halal'], ['kosher', 'Kosher'],
 ]
-const GOAL_OPTIONS = [['lose', 'Lose weight'], ['maintain', 'Maintain'], ['gain', 'Gain weight']]
+const GOAL_OPTIONS = [
+  { value: 'lose', label: 'Lose', icon: '↓', color: '#f87171', bg: 'rgba(248,113,113,0.15)' },
+  { value: 'maintain', label: 'Maintain', icon: '=', color: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
+  { value: 'gain', label: 'Gain', icon: '↑', color: '#2dd4bf', bg: 'rgba(45,212,191,0.15)' },
+]
 const ACTIVITY_OPTIONS = [
   ['sedentary', 'Sedentary (desk job)'], ['light', 'Light (1-2x/week)'],
   ['moderate', 'Moderate (3-5x/week)'], ['active', 'Active (6-7x/week)'],
   ['very_active', 'Very active (2x/day)'],
 ]
 
-function TargetsTab() {
-  const [athletes, setAthletes] = useState([])
-  const [selected, setSelected] = useState('')
-  const [section, setSection] = useState('profile') // 'profile' | 'targets'
+/* ── Tab Bar (matching Dashboard) ── */
+function TabBar({ tabs, activeTab, onTabChange }) {
+  return (
+    <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--glass-border)', marginBottom: 24 }}>
+      {tabs.map(tab => (
+        <button key={tab.id} onClick={() => onTabChange(tab.id)} style={{
+          padding: '10px 20px', background: 'none', border: 'none',
+          color: activeTab === tab.id ? 'var(--accent2)' : 'var(--text-dim)',
+          borderBottom: activeTab === tab.id ? '2px solid var(--accent)' : 'none',
+          cursor: 'pointer', fontSize: 14, fontFamily: "'Sora', sans-serif",
+          fontWeight: activeTab === tab.id ? 600 : 400, transition: 'all 0.2s ease',
+        }}>
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
-  // Athlete info from overview
-  const [athleteInfo, setAthleteInfo] = useState(null)
+/* ── Main Nutrition Page ── */
+
+export default function Nutrition() {
+  const toast = useToast()
+  const [activeTab, setActiveTab] = useState('overview')
+  const [athletes, setAthletes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState(null)
+  const [profileModal, setProfileModal] = useState(null) // athlete username for profile edit
+
+  async function loadData(silent = false) {
+    if (!silent) setLoading(true)
+    try {
+      const d = await authFetch('/api/nutrition/coach/overview').then(r => r.json())
+      setAthletes(d.athletes || [])
+    } catch { if (!silent) toast('Failed to load nutrition data', 'error') }
+    setLoading(false)
+  }
+
+  useEffect(() => { loadData() }, [])
+  useEffect(() => { if (activeTab === 'overview') loadData(true) }, [activeTab])
+
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'logs', label: 'Food Logs' },
+  ]
+
+  return (
+    <div>
+      <div className="page-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+        </svg>
+        Nutrition
+      </div>
+
+      <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {activeTab === 'overview' && (
+        <OverviewTab
+          athletes={athletes} loading={loading}
+          onSelect={setSelected} selected={selected}
+          onEditProfile={u => setProfileModal(u)}
+          onRefresh={() => loadData(true)}
+        />
+      )}
+      {activeTab === 'logs' && <LogsTab athletes={athletes} />}
+
+      {profileModal && (
+        <ProfileModal
+          username={profileModal}
+          onClose={() => { setProfileModal(null); loadData(true) }}
+          toast={toast}
+        />
+      )}
+    </div>
+  )
+}
+
+
+/* ── Overview Tab — Athlete cards grid ── */
+
+function OverviewTab({ athletes, loading, onSelect, selected, onEditProfile, onRefresh }) {
+  if (loading) return <div style={{ color: 'var(--text-dim)', padding: 32 }}>Loading...</div>
+  if (!athletes.length) return <div style={{ color: 'var(--text-dim)', padding: 32 }}>No athletes found.</div>
+
+  return (
+    <>
+      {/* Summary stats row */}
+      <div className="stats-row" style={{ marginBottom: 24 }}>
+        <div className="stat-card">
+          <div className="stat-value">{athletes.length}</div>
+          <div className="stat-label">Athletes</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{athletes.filter(a => a.has_profile).length}</div>
+          <div className="stat-label">Profiles Set</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{athletes.filter(a => a.has_targets).length}</div>
+          <div className="stat-label">Targets Set</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{athletes.reduce((s, a) => s + (a.today_entries || 0), 0)}</div>
+          <div className="stat-label">Entries Today</div>
+        </div>
+      </div>
+
+      {/* Athlete cards grid */}
+      <div className="athlete-grid">
+        {athletes.map(a => {
+          const ps = a.profile_summary
+          const goal = GOAL_OPTIONS.find(g => g.value === ps?.goal)
+          const t = a.targets || {}
+          const tot = a.today_totals || {}
+          const isSelected = selected === a.username
+
+          return (
+            <div key={a.username} className="athlete-card"
+              onClick={() => onSelect(isSelected ? null : a.username)}
+              style={isSelected ? { borderColor: 'rgba(124,110,240,0.45)', boxShadow: '0 8px 32px rgba(124,110,240,0.15)' } : {}}>
+
+              {/* Header: avatar + name + badges */}
+              <div className="athlete-card-header">
+                <div className="athlete-avatar">
+                  {a.username.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="athlete-name">{a.username}</div>
+                  <div className="athlete-program">{a.program || 'No program'}</div>
+                </div>
+                {goal && (
+                  <span style={{
+                    padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 600,
+                    background: goal.bg, color: goal.color,
+                    fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+                  }}>
+                    {goal.icon} {goal.label.toUpperCase()}
+                  </span>
+                )}
+              </div>
+
+              {/* Status badges */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                <span className={`badge ${a.has_profile ? 'badge-athlete' : ''}`}
+                  style={!a.has_profile ? { background: 'var(--red-dim)', border: '1px solid rgba(248,113,113,0.25)', color: 'var(--red)' } : {}}>
+                  {a.has_profile ? 'Profile' : 'No Profile'}
+                </span>
+                <span className={`badge ${a.has_targets ? 'badge-athlete' : ''}`}
+                  style={!a.has_targets ? { background: 'var(--red-dim)', border: '1px solid rgba(248,113,113,0.25)', color: 'var(--red)' } : {}}>
+                  {a.has_targets ? 'Targets' : 'No Targets'}
+                </span>
+                {ps?.diet_type && ps.diet_type !== 'none' && (
+                  <span className="badge badge-coach">{DIET_LABELS[ps.diet_type] || ps.diet_type}</span>
+                )}
+              </div>
+
+              {/* Macro stats */}
+              <div className="athlete-card-label">Today's Intake</div>
+              <div className="athlete-week-stats">
+                <div className="athlete-stat">
+                  <div className="athlete-stat-val" style={{ fontSize: 16 }}>
+                    {a.has_targets ? Math.round(tot.calories || 0) : '—'}
+                  </div>
+                  <div className="athlete-stat-lbl">kcal</div>
+                  {a.has_targets && t.daily_calories > 0 && (
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                      / {Math.round(t.daily_calories)}
+                    </div>
+                  )}
+                </div>
+                <div className="athlete-stat">
+                  <div className="athlete-stat-val" style={{ fontSize: 16 }}>
+                    {a.has_targets ? Math.round(tot.protein_g || 0) : '—'}
+                  </div>
+                  <div className="athlete-stat-lbl">Protein</div>
+                  {a.has_targets && t.daily_protein_g > 0 && (
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                      / {Math.round(t.daily_protein_g)}g
+                    </div>
+                  )}
+                </div>
+                <div className="athlete-stat">
+                  <div className="athlete-stat-val" style={{ fontSize: 16 }}>
+                    {a.has_targets ? Math.round(tot.carbs_g || 0) : '—'}
+                  </div>
+                  <div className="athlete-stat-lbl">Carbs</div>
+                  {a.has_targets && t.daily_carbs_g > 0 && (
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                      / {Math.round(t.daily_carbs_g)}g
+                    </div>
+                  )}
+                </div>
+                <div className="athlete-stat">
+                  <div className="athlete-stat-val" style={{ fontSize: 16 }}>
+                    {a.has_targets ? Math.round(tot.fat_g || 0) : '—'}
+                  </div>
+                  <div className="athlete-stat-lbl">Fat</div>
+                  {a.has_targets && t.daily_fat_g > 0 && (
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                      / {Math.round(t.daily_fat_g)}g
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Expanded detail when selected */}
+              {isSelected && (
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--glass-border)' }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); onEditProfile(a.username) }}>
+                      {a.has_profile ? 'Edit Profile & Targets' : 'Set Profile & Targets'}
+                    </button>
+                  </div>
+                  {a.latest_metrics_weight && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-dim)' }}>
+                      Latest weigh-in: <strong style={{ color: 'var(--teal)' }}>{a.latest_metrics_weight}kg</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+
+/* ── Profile & Targets Modal ── */
+
+function ProfileModal({ username, onClose, toast }) {
+  const [section, setSection] = useState('profile')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [metricsWeight, setMetricsWeight] = useState(null)
+  const [athleteProgram, setAthleteProgram] = useState('')
 
   // Profile state
   const [profile, setProfile] = useState({
@@ -175,88 +272,60 @@ function TargetsTab() {
     diet_type: 'none', allergies: '', additional_preferences: '',
   })
   const [calc, setCalc] = useState(null)
-  const [metricsWeight, setMetricsWeight] = useState(null)
 
   // Targets state
-  const [targets, setTargets] = useState({ daily_calories: '', daily_protein_g: '', daily_carbs_g: '', daily_fat_g: '', daily_fiber_g: '', notes: '' })
+  const [targets, setTargets] = useState({
+    daily_calories: '', daily_protein_g: '', daily_carbs_g: '',
+    daily_fat_g: '', daily_fiber_g: '', notes: ''
+  })
   const [currentTargets, setCurrentTargets] = useState(null)
 
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
-
   useEffect(() => {
-    authFetch('/api/nutrition/coach/overview').then(r => r.json()).then(d => {
-      setAthletes(d.athletes || [])
-    })
-  }, [])
+    ;(async () => {
+      try {
+        const [profileRes, targetRes] = await Promise.all([
+          authFetch(`/api/nutrition/profile?username=${encodeURIComponent(username)}`).then(r => r.json()),
+          authFetch(`/api/nutrition/targets?username=${encodeURIComponent(username)}`).then(r => r.json()),
+        ])
 
-  const loadAthlete = async (username) => {
-    setSelected(username)
-    setMessage('')
-    setCalc(null)
-    setMetricsWeight(null)
+        if (profileRes.latest_metrics_weight) setMetricsWeight(profileRes.latest_metrics_weight)
+        if (profileRes.program) setAthleteProgram(profileRes.program)
 
-    // Get athlete info from the overview data
-    const info = athletes.find(a => a.username === username)
-    setAthleteInfo(info)
-
-    try {
-      const [profileRes, targetRes] = await Promise.all([
-        authFetch(`/api/nutrition/profile?username=${encodeURIComponent(username)}`).then(r => r.json()),
-        authFetch(`/api/nutrition/targets?username=${encodeURIComponent(username)}`).then(r => r.json()),
-      ])
-
-      if (profileRes.latest_metrics_weight) {
-        setMetricsWeight(profileRes.latest_metrics_weight)
-      }
-
-      const p = profileRes.profile
-      if (p) {
-        setProfile({
-          goal: p.goal || 'maintain', current_weight_kg: p.current_weight_kg || '',
-          target_weight_kg: p.target_weight_kg || '', target_weeks: p.target_weeks || '',
-          height_cm: p.height_cm || '', age: p.age || '', sex: p.sex || 'male',
-          activity_level: p.activity_level || 'moderate', diet_type: p.diet_type || 'none',
-          allergies: p.allergies || '', additional_preferences: p.additional_preferences || '',
-        })
-      } else {
-        // No profile yet — pre-fill weight from metrics if available
-        const defaultProfile = {
-          goal: 'maintain', current_weight_kg: '', target_weight_kg: '', target_weeks: '',
-          height_cm: '', age: '', sex: 'male', activity_level: 'moderate',
-          diet_type: 'none', allergies: '', additional_preferences: '',
+        const p = profileRes.profile
+        if (p) {
+          setProfile({
+            goal: p.goal || 'maintain', current_weight_kg: p.current_weight_kg || '',
+            target_weight_kg: p.target_weight_kg || '', target_weeks: p.target_weeks || '',
+            height_cm: p.height_cm || '', age: p.age || '', sex: p.sex || 'male',
+            activity_level: p.activity_level || 'moderate', diet_type: p.diet_type || 'none',
+            allergies: p.allergies || '', additional_preferences: p.additional_preferences || '',
+          })
+        } else if (profileRes.latest_metrics_weight) {
+          setProfile(prev => ({ ...prev, current_weight_kg: profileRes.latest_metrics_weight }))
         }
-        if (profileRes.latest_metrics_weight) {
-          defaultProfile.current_weight_kg = profileRes.latest_metrics_weight
+        if (profileRes.calculated) setCalc(profileRes.calculated)
+
+        const t = targetRes.targets
+        setCurrentTargets(t)
+        if (t) {
+          setTargets({
+            daily_calories: t.daily_calories || '', daily_protein_g: t.daily_protein_g || '',
+            daily_carbs_g: t.daily_carbs_g || '', daily_fat_g: t.daily_fat_g || '',
+            daily_fiber_g: t.daily_fiber_g || '', notes: t.notes || '',
+          })
         }
-        setProfile(defaultProfile)
-      }
-      if (profileRes.calculated) setCalc(profileRes.calculated)
-
-      const t = targetRes.targets
-      setCurrentTargets(t)
-      if (t) {
-        setTargets({ daily_calories: t.daily_calories || '', daily_protein_g: t.daily_protein_g || '', daily_carbs_g: t.daily_carbs_g || '', daily_fat_g: t.daily_fat_g || '', daily_fiber_g: t.daily_fiber_g || '', notes: t.notes || '' })
-      } else {
-        setTargets({ daily_calories: '', daily_protein_g: '', daily_carbs_g: '', daily_fat_g: '', daily_fiber_g: '', notes: '' })
-      }
-    } catch { /* ignore */ }
-  }
-
-  const useMetricsWeight = () => {
-    if (metricsWeight) {
-      setProfile(p => ({ ...p, current_weight_kg: metricsWeight }))
-    }
-  }
+      } catch { toast('Failed to load athlete data', 'error') }
+      setLoading(false)
+    })()
+  }, [username])
 
   const saveProfile = async () => {
-    if (!selected) return
-    setSaving(true); setMessage('')
+    setSaving(true)
     try {
       const res = await authFetch('/api/nutrition/profile/set', {
         method: 'POST',
         body: JSON.stringify({
-          username: selected,
+          username,
           profile: {
             ...profile,
             current_weight_kg: parseFloat(profile.current_weight_kg) || null,
@@ -268,12 +337,35 @@ function TargetsTab() {
         }),
       }).then(r => r.json())
       if (res.ok) {
-        setMessage(`Profile saved for ${selected}!`)
+        toast(`Profile saved for ${username}`)
         setCalc(res.calculated)
-      } else {
-        setMessage('Error: ' + (res.detail || 'failed'))
-      }
-    } catch (e) { setMessage('Error: ' + e.message) }
+      } else toast(res.detail || 'Save failed', 'error')
+    } catch (e) { toast(e.message, 'error') }
+    setSaving(false)
+  }
+
+  const saveTargets = async () => {
+    setSaving(true)
+    try {
+      const res = await authFetch('/api/nutrition/targets', {
+        method: 'POST',
+        body: JSON.stringify({
+          username,
+          targets: {
+            daily_calories: parseFloat(targets.daily_calories) || 0,
+            daily_protein_g: parseFloat(targets.daily_protein_g) || 0,
+            daily_carbs_g: parseFloat(targets.daily_carbs_g) || 0,
+            daily_fat_g: parseFloat(targets.daily_fat_g) || 0,
+            daily_fiber_g: targets.daily_fiber_g ? parseFloat(targets.daily_fiber_g) : null,
+            notes: targets.notes,
+          },
+        }),
+      }).then(r => r.json())
+      if (res.ok) {
+        toast(`Targets saved for ${username}`)
+        setCurrentTargets(res.targets)
+      } else toast(res.detail || 'Save failed', 'error')
+    } catch (e) { toast(e.message, 'error') }
     setSaving(false)
   }
 
@@ -289,260 +381,242 @@ function TargetsTab() {
     setSection('targets')
   }
 
-  const saveTargets = async () => {
-    if (!selected) return
-    setSaving(true); setMessage('')
-    try {
-      const res = await authFetch('/api/nutrition/targets', {
-        method: 'POST',
-        body: JSON.stringify({
-          username: selected,
-          targets: {
-            daily_calories: parseFloat(targets.daily_calories) || 0,
-            daily_protein_g: parseFloat(targets.daily_protein_g) || 0,
-            daily_carbs_g: parseFloat(targets.daily_carbs_g) || 0,
-            daily_fat_g: parseFloat(targets.daily_fat_g) || 0,
-            daily_fiber_g: targets.daily_fiber_g ? parseFloat(targets.daily_fiber_g) : null,
-            notes: targets.notes,
-          },
-        }),
-      }).then(r => r.json())
-      if (res.ok) { setMessage(`Targets saved for ${selected}!`); setCurrentTargets(res.targets) }
-      else { setMessage('Error: ' + (res.detail || 'failed')) }
-    } catch (e) { setMessage('Error: ' + e.message) }
-    setSaving(false)
-  }
-
   return (
-    <div style={{ maxWidth: 600 }}>
-      {/* Athlete selector */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Select athlete</label>
-        <select value={selected} onChange={e => loadAthlete(e.target.value)} style={inputStyle}>
-          <option value="">Choose athlete...</option>
-          {athletes.map(a => (
-            <option key={a.username} value={a.username}>
-              {a.username} {a.has_profile ? '' : '(no profile)'} — {a.program || 'No program'}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {selected && (
-        <>
-          {/* Athlete header card */}
-          <div style={{
-            padding: '14px 18px', marginBottom: 16, borderRadius: 10,
-            background: 'linear-gradient(135deg, rgba(124,110,240,0.08), rgba(147,51,234,0.08))',
-            border: '1px solid var(--glass-border)',
-          }}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{selected}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-dim)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              {athleteInfo?.program && <span>Program: {athleteInfo.program}</span>}
-              {metricsWeight && <span>Latest weigh-in: {metricsWeight}kg</span>}
-              {athleteInfo?.has_profile ? (
-                <span style={{ color: 'var(--green)' }}>Profile set</span>
-              ) : (
-                <span style={{ color: 'var(--red)' }}>No profile yet</span>
-              )}
-              {athleteInfo?.has_targets ? (
-                <span style={{ color: 'var(--green)' }}>Targets set</span>
-              ) : (
-                <span style={{ color: 'var(--red)' }}>No targets yet</span>
-              )}
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="modal" style={{ width: 640, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
+        {/* Modal header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <div className="athlete-avatar" style={{ width: 38, height: 38, fontSize: 15 }}>
+            {username.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 18 }}>{username}</h3>
+            {athleteProgram && <div style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace" }}>{athleteProgram}</div>}
+          </div>
+          {metricsWeight && (
+            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace", textTransform: 'uppercase' }}>Latest Weigh-in</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--teal)', fontFamily: "'Space Mono', monospace" }}>{metricsWeight}kg</div>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Section toggle */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-            {[['profile', `Profile & Goal`], ['targets', 'Macro Targets']].map(([key, label]) => (
-              <button key={key} onClick={() => setSection(key)} style={{
-                padding: '7px 16px', borderRadius: 6, border: '1px solid var(--glass-border)',
-                background: section === key ? 'var(--accent)' : 'var(--surface)',
-                color: section === key ? 'white' : 'var(--text-dim)',
-                cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 500,
-              }}>{label}</button>
-            ))}
-          </div>
+        {loading ? (
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-dim)' }}>Loading...</div>
+        ) : (
+          <>
+            {/* Section tabs */}
+            <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--glass-border)', marginBottom: 20 }}>
+              {[['profile', 'Profile & Goal'], ['targets', 'Macro Targets']].map(([key, label]) => (
+                <button key={key} onClick={() => setSection(key)} style={{
+                  padding: '8px 0', background: 'none', border: 'none',
+                  color: section === key ? 'var(--accent2)' : 'var(--text-dim)',
+                  borderBottom: section === key ? '2px solid var(--accent)' : 'none',
+                  cursor: 'pointer', fontSize: 13, fontFamily: "'Sora', sans-serif",
+                  fontWeight: section === key ? 600 : 400, transition: 'all 0.2s ease',
+                }}>{label}</button>
+              ))}
+            </div>
 
-          {section === 'profile' && (
-            <>
-              {/* Goal */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Goal</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {GOAL_OPTIONS.map(([val, label]) => (
-                    <button key={val} onClick={() => setProfile(p => ({ ...p, goal: val }))} style={{
-                      flex: 1, padding: '10px 8px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
-                      border: profile.goal === val ? '2px solid var(--accent)' : '1px solid var(--glass-border)',
-                      background: profile.goal === val ? 'var(--accent-dim, rgba(124,110,240,0.15))' : 'var(--surface)',
-                      color: profile.goal === val ? 'var(--accent)' : 'var(--text-dim)',
-                    }}>{label}</button>
+            {/* ── Profile Section ── */}
+            {section === 'profile' && (
+              <>
+                {/* Goal selector cards */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                  {GOAL_OPTIONS.map(opt => (
+                    <button key={opt.value}
+                      onClick={() => setProfile(p => ({ ...p, goal: opt.value }))}
+                      className="type-card"
+                      style={{
+                        flex: 1,
+                        ...(profile.goal === opt.value ? {
+                          borderColor: opt.color + '80',
+                          background: opt.bg,
+                          boxShadow: `0 4px 16px ${opt.bg}`,
+                        } : {}),
+                      }}>
+                      <div className="type-icon" style={{
+                        fontSize: 20,
+                        ...(profile.goal === opt.value ? { background: opt.bg, borderColor: opt.color + '40' } : {}),
+                      }}>
+                        {opt.icon}
+                      </div>
+                      <div className="type-name" style={profile.goal === opt.value ? { color: opt.color } : {}}>
+                        {opt.label} weight
+                      </div>
+                    </button>
                   ))}
                 </div>
-              </div>
 
-              {/* Body stats */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={labelStyle}>
+                {/* Body stats */}
+                <div className="form-group">
+                  <label>
                     Current weight (kg)
                     {metricsWeight && parseFloat(profile.current_weight_kg) !== metricsWeight && (
-                      <button onClick={useMetricsWeight} style={{
-                        marginLeft: 6, padding: '1px 6px', borderRadius: 4, border: '1px solid var(--accent)',
-                        background: 'transparent', color: 'var(--accent)', cursor: 'pointer',
-                        fontFamily: 'inherit', fontSize: 10,
-                      }}>Use {metricsWeight}kg from metrics</button>
+                      <button className="btn-link" style={{ marginLeft: 8, fontSize: 10 }}
+                        onClick={() => setProfile(p => ({ ...p, current_weight_kg: metricsWeight }))}>
+                        Use {metricsWeight}kg from metrics
+                      </button>
                     )}
                   </label>
-                  <input type="number" value={profile.current_weight_kg} onChange={e => setProfile(p => ({ ...p, current_weight_kg: e.target.value }))} style={inputStyle} />
+                  <input type="number" value={profile.current_weight_kg}
+                    onChange={e => setProfile(p => ({ ...p, current_weight_kg: e.target.value }))}
+                    placeholder="e.g. 80" />
                 </div>
-                <div><label style={labelStyle}>Height (cm)</label>
-                  <input type="number" value={profile.height_cm} onChange={e => setProfile(p => ({ ...p, height_cm: e.target.value }))} style={inputStyle} /></div>
-                <div><label style={labelStyle}>Age</label>
-                  <input type="number" value={profile.age} onChange={e => setProfile(p => ({ ...p, age: e.target.value }))} style={inputStyle} /></div>
-              </div>
 
-              {/* Sex */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={labelStyle}>Sex</label>
-                  <select value={profile.sex} onChange={e => setProfile(p => ({ ...p, sex: e.target.value }))} style={inputStyle}>
-                    <option value="male">Male</option><option value="female">Female</option>
-                  </select>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Height (cm)</label>
+                    <input type="number" value={profile.height_cm}
+                      onChange={e => setProfile(p => ({ ...p, height_cm: e.target.value }))} placeholder="e.g. 175" />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Age</label>
+                    <input type="number" value={profile.age}
+                      onChange={e => setProfile(p => ({ ...p, age: e.target.value }))} placeholder="e.g. 30" />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Sex</label>
+                    <select value={profile.sex} onChange={e => setProfile(p => ({ ...p, sex: e.target.value }))}>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label style={labelStyle}>Activity level</label>
-                  <select value={profile.activity_level} onChange={e => setProfile(p => ({ ...p, activity_level: e.target.value }))} style={inputStyle}>
-                    {ACTIVITY_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                  </select>
-                </div>
-              </div>
 
-              {/* Weight goal details (only if lose/gain) */}
-              {profile.goal !== 'maintain' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  <div><label style={labelStyle}>Target weight (kg)</label>
-                    <input type="number" value={profile.target_weight_kg} onChange={e => setProfile(p => ({ ...p, target_weight_kg: e.target.value }))} style={inputStyle} /></div>
-                  <div><label style={labelStyle}>Weeks to achieve</label>
-                    <input type="number" value={profile.target_weeks} onChange={e => setProfile(p => ({ ...p, target_weeks: e.target.value }))} placeholder="e.g. 12" style={inputStyle} /></div>
-                </div>
-              )}
-
-              {/* Diet type */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Diet type</label>
-                <select value={profile.diet_type} onChange={e => setProfile(p => ({ ...p, diet_type: e.target.value }))} style={inputStyle}>
-                  {DIET_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
-
-              {/* Allergies & preferences */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div><label style={labelStyle}>Allergies</label>
-                  <input value={profile.allergies} onChange={e => setProfile(p => ({ ...p, allergies: e.target.value }))} placeholder="e.g. nuts, shellfish" style={inputStyle} /></div>
-                <div><label style={labelStyle}>Other preferences</label>
-                  <input value={profile.additional_preferences} onChange={e => setProfile(p => ({ ...p, additional_preferences: e.target.value }))} placeholder="e.g. no spicy food" style={inputStyle} /></div>
-              </div>
-
-              <button onClick={saveProfile} disabled={saving} style={{
-                padding: '10px 24px', borderRadius: 8, border: 'none',
-                background: 'linear-gradient(135deg, #7c6ef0, #9333ea)', color: 'white',
-                cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-              }}>{saving ? 'Saving...' : `Save Profile for ${selected}`}</button>
-
-              {/* Calculated TDEE display */}
-              {calc && (
-                <div style={{ marginTop: 20, padding: 16, background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--glass-border)' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Calculated Recommendations for {selected}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>BMR</div>
-                      <div style={{ fontSize: 18, fontWeight: 700 }}>{calc.bmr}</div>
+                {/* Weight target (only if not maintain) */}
+                {profile.goal !== 'maintain' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Target weight (kg)</label>
+                      <input type="number" value={profile.target_weight_kg}
+                        onChange={e => setProfile(p => ({ ...p, target_weight_kg: e.target.value }))}
+                        placeholder={profile.goal === 'lose' ? 'e.g. 70' : 'e.g. 90'} />
                     </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>TDEE</div>
-                      <div style={{ fontSize: 18, fontWeight: 700 }}>{calc.tdee}</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Target</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#a78bfa' }}>{calc.recommended_calories}</div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Weeks to achieve</label>
+                      <input type="number" value={profile.target_weeks}
+                        onChange={e => setProfile(p => ({ ...p, target_weeks: e.target.value }))} placeholder="e.g. 12" />
                     </div>
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 8 }}>
-                    {calc.daily_adjustment > 0 ? `+${calc.daily_adjustment}` : calc.daily_adjustment} kcal/day adjustment ·
-                    Protein {calc.recommended_protein_g}g · Carbs {calc.recommended_carbs_g}g · Fat {calc.recommended_fat_g}g
-                  </div>
-                  <button onClick={applyCalculated} style={{
-                    padding: '7px 16px', borderRadius: 6, border: '1px solid var(--accent)',
-                    background: 'transparent', color: 'var(--accent)', cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 12, fontWeight: 500,
-                  }}>Apply as Macro Targets for {selected}</button>
-                </div>
-              )}
-            </>
-          )}
+                )}
 
-          {section === 'targets' && (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                {[
-                  ['daily_calories', 'Calories (kcal)'], ['daily_protein_g', 'Protein (g)'],
-                  ['daily_carbs_g', 'Carbs (g)'], ['daily_fat_g', 'Fat (g)'],
-                  ['daily_fiber_g', 'Fiber (g, optional)'],
-                ].map(([key, label]) => (
-                  <div key={key}>
-                    <label style={labelStyle}>{label}</label>
-                    <input type="number" value={targets[key]} onChange={e => setTargets(p => ({ ...p, [key]: e.target.value }))} style={inputStyle} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-group">
+                    <label>Activity Level</label>
+                    <select value={profile.activity_level} onChange={e => setProfile(p => ({ ...p, activity_level: e.target.value }))}>
+                      {ACTIVITY_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
                   </div>
-                ))}
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <label style={labelStyle}>Notes</label>
-                <input value={targets.notes} onChange={e => setTargets(p => ({ ...p, notes: e.target.value }))}
-                  placeholder="e.g. Cutting phase, increase protein" style={inputStyle} />
-              </div>
-              <button onClick={saveTargets} disabled={saving} style={{
-                marginTop: 16, padding: '10px 24px', borderRadius: 8, border: 'none',
-                background: 'linear-gradient(135deg, #7c6ef0, #9333ea)', color: 'white',
-                cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-              }}>{saving ? 'Saving...' : `Save Targets for ${selected}`}</button>
-              {currentTargets && (
-                <div style={{ marginTop: 20, padding: 14, background: 'var(--surface)', borderRadius: 10, fontSize: 12, color: 'var(--text-dim)' }}>
-                  Current targets for <strong>{selected}</strong> set by {currentTargets.set_by} on {new Date(currentTargets.set_at).toLocaleDateString()}
+                  <div className="form-group">
+                    <label>Diet Type</label>
+                    <select value={profile.diet_type} onChange={e => setProfile(p => ({ ...p, diet_type: e.target.value }))}>
+                      {DIET_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </div>
                 </div>
-              )}
-            </>
-          )}
 
-          {message && (
-            <div style={{ marginTop: 12, fontSize: 13, color: message.startsWith('Error') ? 'var(--red)' : 'var(--green)' }}>
-              {message}
-            </div>
-          )}
-        </>
-      )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-group">
+                    <label>Allergies</label>
+                    <input value={profile.allergies} onChange={e => setProfile(p => ({ ...p, allergies: e.target.value }))} placeholder="e.g. nuts, shellfish" />
+                  </div>
+                  <div className="form-group">
+                    <label>Other Preferences</label>
+                    <input value={profile.additional_preferences} onChange={e => setProfile(p => ({ ...p, additional_preferences: e.target.value }))} placeholder="e.g. no spicy food" />
+                  </div>
+                </div>
+
+                <button className="btn btn-primary" onClick={saveProfile} disabled={saving} style={{ width: '100%' }}>
+                  {saving ? 'Saving...' : `Save Profile for ${username}`}
+                </button>
+
+                {/* TDEE calculation card */}
+                {calc && (
+                  <div className="card" style={{ marginTop: 16, padding: 20 }}>
+                    <div className="card-header" style={{ marginBottom: 12 }}>
+                      <h3 style={{ fontSize: 14 }}>Calculated Recommendations</h3>
+                    </div>
+                    <div className="stats-row" style={{ marginBottom: 12 }}>
+                      <div className="stat-card" style={{ padding: 12 }}>
+                        <div className="stat-value" style={{ fontSize: 22 }}>{calc.bmr}</div>
+                        <div className="stat-label">BMR</div>
+                      </div>
+                      <div className="stat-card" style={{ padding: 12 }}>
+                        <div className="stat-value" style={{ fontSize: 22 }}>{calc.tdee}</div>
+                        <div className="stat-label">TDEE</div>
+                      </div>
+                      <div className="stat-card" style={{ padding: 12 }}>
+                        <div className="stat-value" style={{ fontSize: 22 }}>{calc.recommended_calories}</div>
+                        <div className="stat-label">Target Cal</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-dim)', marginBottom: 12 }}>
+                      <span>Adjustment: {calc.daily_adjustment > 0 ? '+' : ''}{calc.daily_adjustment} kcal/day</span>
+                      <span>P {calc.recommended_protein_g}g · C {calc.recommended_carbs_g}g · F {calc.recommended_fat_g}g</span>
+                    </div>
+                    <button className="btn btn-secondary" onClick={applyCalculated} style={{ width: '100%' }}>
+                      Apply as Macro Targets
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── Targets Section ── */}
+            {section === 'targets' && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {[
+                    ['daily_calories', 'Calories (kcal)'], ['daily_protein_g', 'Protein (g)'],
+                    ['daily_carbs_g', 'Carbs (g)'], ['daily_fat_g', 'Fat (g)'],
+                    ['daily_fiber_g', 'Fiber (g, optional)'],
+                  ].map(([key, label]) => (
+                    <div key={key} className="form-group">
+                      <label>{label}</label>
+                      <input type="number" value={targets[key]}
+                        onChange={e => setTargets(p => ({ ...p, [key]: e.target.value }))} />
+                    </div>
+                  ))}
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <input value={targets.notes}
+                    onChange={e => setTargets(p => ({ ...p, notes: e.target.value }))}
+                    placeholder="e.g. Cutting phase, increase protein" />
+                </div>
+
+                <button className="btn btn-primary" onClick={saveTargets} disabled={saving} style={{ width: '100%' }}>
+                  {saving ? 'Saving...' : `Save Targets for ${username}`}
+                </button>
+
+                {currentTargets && (
+                  <div style={{ marginTop: 16, padding: 14, background: 'var(--surface)', borderRadius: 12, fontSize: 12, color: 'var(--text-dim)', border: '1px solid var(--glass-border)' }}>
+                    Current targets set by <strong style={{ color: 'var(--accent2)' }}>{currentTargets.set_by}</strong> on {new Date(currentTargets.set_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
 
 
-/* ── Logs Tab ── */
-function LogsTab() {
-  const [athletes, setAthletes] = useState([])
+/* ── Food Logs Tab ── */
+
+function LogsTab({ athletes }) {
   const [selected, setSelected] = useState('')
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [log, setLog] = useState(null)
   const [weekData, setWeekData] = useState(null)
-
-  useEffect(() => {
-    authFetch('/api/nutrition/coach/overview').then(r => r.json()).then(d => {
-      setAthletes(d.athletes || [])
-    })
-  }, [])
+  const [loading, setLoading] = useState(false)
 
   const loadLog = useCallback(async () => {
     if (!selected) return
+    setLoading(true)
     try {
       const [logRes, weekRes] = await Promise.all([
         authFetch(`/api/nutrition/logs/${date}?username=${encodeURIComponent(selected)}`).then(r => r.json()),
@@ -551,6 +625,7 @@ function LogsTab() {
       setLog(logRes.log)
       setWeekData(weekRes.days)
     } catch { /* ignore */ }
+    setLoading(false)
   }, [selected, date])
 
   useEffect(() => { loadLog() }, [loadLog])
@@ -560,93 +635,137 @@ function LogsTab() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <select value={selected} onChange={e => setSelected(e.target.value)}
-          style={{ padding: '10px 12px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: 8, color: 'var(--text)', fontFamily: 'inherit', fontSize: 14, minWidth: 180 }}>
-          <option value="">Choose athlete...</option>
-          {athletes.map(a => <option key={a.username} value={a.username}>{a.username}</option>)}
-        </select>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          style={{ padding: '10px 12px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: 8, color: 'var(--text)', fontFamily: 'inherit', fontSize: 14 }} />
+      {/* Toolbar */}
+      <div className="toolbar">
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <select value={selected} onChange={e => setSelected(e.target.value)}
+            style={{ minWidth: 200 }}>
+            <option value="">Choose athlete...</option>
+            {athletes.map(a => <option key={a.username} value={a.username}>{a.username}</option>)}
+          </select>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+        </div>
       </div>
 
       {!selected ? (
-        <div style={{ color: 'var(--text-dim)' }}>Select an athlete to view their food log.</div>
-      ) : entries.length === 0 ? (
-        <div style={{ color: 'var(--text-dim)' }}>No food logged on {date}.</div>
+        <div className="card" style={{ textAlign: 'center', padding: 48 }}>
+          <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+            </svg>
+          </div>
+          <div style={{ color: 'var(--text-dim)' }}>Select an athlete to view their food log</div>
+        </div>
+      ) : loading ? (
+        <div style={{ color: 'var(--text-dim)', padding: 32 }}>Loading...</div>
       ) : (
         <>
-          {/* Daily totals */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
-            {[
-              ['Calories', totals.calories, 'kcal', '#a78bfa'],
-              ['Protein', totals.protein_g, 'g', '#2dd4bf'],
-              ['Carbs', totals.carbs_g, 'g', '#fbbf24'],
-              ['Fat', totals.fat_g, 'g', '#f87171'],
-            ].map(([label, val, unit, color]) => (
-              <div key={label} style={{ background: 'var(--surface)', borderRadius: 10, padding: 14, textAlign: 'center' }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color }}>{Math.round(val || 0)}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>{unit} {label}</div>
+          {/* Weekly calendar */}
+          {weekData && (
+            <div className="card" style={{ marginBottom: 16 }}>
+              <div className="card-header">
+                <h3 style={{ fontSize: 14 }}>Week View — {selected}</h3>
               </div>
-            ))}
-          </div>
-
-          {/* Food list */}
-          {entries.map((e, i) => (
-            <div key={e.id || i} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '10px 14px', background: 'var(--surface)', borderRadius: 8, marginBottom: 6,
-            }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{e.food_name}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                  {e.serving_size} · P: {Math.round(e.protein_g || 0)}g · C: {Math.round(e.carbs_g || 0)}g · F: {Math.round(e.fat_g || 0)}g
-                  <span style={{ opacity: 0.4, marginLeft: 6 }}>{e.meal_type}</span>
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+                {Object.entries(weekData).map(([d, info]) => {
+                  const cal = info.totals?.calories || 0
+                  const isCurrentDay = d === date
+                  return (
+                    <div key={d} onClick={() => setDate(d)}
+                      style={{
+                        background: isCurrentDay ? 'rgba(124,110,240,0.14)' : 'var(--surface2)',
+                        borderRadius: 10, padding: 10, textAlign: 'center', cursor: 'pointer',
+                        border: isCurrentDay ? '1px solid rgba(124,110,240,0.35)' : '1px solid var(--glass-border)',
+                        transition: 'all 0.15s',
+                      }}>
+                      <div style={{ fontSize: 10, color: isCurrentDay ? 'var(--accent2)' : 'var(--text-muted)', fontFamily: "'Space Mono', monospace", textTransform: 'uppercase' }}>
+                        {new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
+                      </div>
+                      <div style={{
+                        fontSize: 16, fontWeight: 700, marginTop: 2,
+                        color: isCurrentDay ? 'var(--accent2)' : (cal > 0 ? 'var(--text)' : 'var(--text-muted)'),
+                        fontFamily: "'Space Mono', monospace",
+                      }}>
+                        {cal > 0 ? Math.round(cal) : '—'}
+                      </div>
+                      <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                        {info.entry_count || 0} items
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-              <div style={{ fontWeight: 600, color: '#a78bfa', fontSize: 14 }}>{Math.round(e.calories || 0)}</div>
             </div>
-          ))}
-        </>
-      )}
+          )}
 
-      {/* Weekly summary */}
-      {weekData && selected && (
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Week View</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
-            {Object.entries(weekData).map(([d, info]) => {
-              const cal = info.totals?.calories || 0
-              const isCurrentDay = d === date
-              return (
-                <div key={d} onClick={() => setDate(d)}
-                  style={{
-                    background: isCurrentDay ? 'var(--accent)' : 'var(--surface)',
-                    borderRadius: 8, padding: 10, textAlign: 'center', cursor: 'pointer',
-                    border: isCurrentDay ? '1px solid var(--accent)' : '1px solid var(--glass-border)',
-                  }}>
-                  <div style={{ fontSize: 10, color: isCurrentDay ? 'white' : 'var(--text-dim)' }}>
-                    {new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: isCurrentDay ? 'white' : (cal > 0 ? 'var(--text)' : 'var(--text-muted)') }}>
-                    {cal > 0 ? Math.round(cal) : '—'}
-                  </div>
-                  <div style={{ fontSize: 9, color: isCurrentDay ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>
-                    {info.entry_count || 0} items
-                  </div>
+          {/* Daily totals stat cards */}
+          {entries.length > 0 && (
+            <div className="stats-row" style={{ marginBottom: 16 }}>
+              {[
+                ['Calories', totals.calories, 'kcal'],
+                ['Protein', totals.protein_g, 'g'],
+                ['Carbs', totals.carbs_g, 'g'],
+                ['Fat', totals.fat_g, 'g'],
+              ].map(([label, val, unit]) => (
+                <div key={label} className="stat-card">
+                  <div className="stat-value" style={{ fontSize: 22 }}>{Math.round(val || 0)}</div>
+                  <div className="stat-label">{unit} {label}</div>
                 </div>
-              )
-            })}
-          </div>
-        </div>
+              ))}
+            </div>
+          )}
+
+          {/* Food entries table */}
+          {entries.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', padding: 32, color: 'var(--text-dim)' }}>
+              No food logged on {date}
+            </div>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Food</th>
+                  <th>Meal</th>
+                  <th>Serving</th>
+                  <th>Calories</th>
+                  <th>Protein</th>
+                  <th>Carbs</th>
+                  <th>Fat</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e, i) => (
+                  <tr key={e.id || i}>
+                    <td><strong>{e.food_name}</strong></td>
+                    <td>
+                      <span className="badge badge-coach" style={{ textTransform: 'capitalize' }}>
+                        {e.meal_type || 'other'}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-dim)' }}>{e.serving_size}</td>
+                    <td style={{ fontWeight: 600, fontFamily: "'Space Mono', monospace" }}>{Math.round(e.calories || 0)}</td>
+                    <td style={{ color: 'var(--teal)', fontFamily: "'Space Mono', monospace" }}>{Math.round(e.protein_g || 0)}g</td>
+                    <td style={{ color: 'var(--yellow)', fontFamily: "'Space Mono', monospace" }}>{Math.round(e.carbs_g || 0)}g</td>
+                    <td style={{ color: 'var(--red)', fontFamily: "'Space Mono', monospace" }}>{Math.round(e.fat_g || 0)}g</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{e.source || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
       )}
     </div>
   )
 }
 
+
+/* ── Helpers ── */
+
 function getWeekStart(dateStr) {
   const d = new Date(dateStr + 'T12:00:00')
   const day = d.getDay()
-  d.setDate(d.getDate() - day) // Sunday
+  d.setDate(d.getDate() - day)
   return d.toISOString().split('T')[0]
 }
