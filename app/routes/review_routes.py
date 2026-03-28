@@ -1,12 +1,17 @@
 """Review routes — daily/weekly workout reviews, comparison, storage, and email."""
 
+import asyncio
 import json
+import logging
 import smtplib
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from functools import partial
 from typing import Annotated, Optional
+
+logger = logging.getLogger("numnum.reviews")
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -882,7 +887,7 @@ def _send_review_email(recipient: str, subject: str, content: str) -> Optional[s
         msg.attach(MIMEText(content, "plain"))
         msg.attach(MIMEText(html_body, "html"))
 
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
             server.starttls()
             server.login(smtp_user, smtp_pass)
             server.sendmail(smtp_user, recipient, msg.as_string())
@@ -901,14 +906,17 @@ async def cron_daily_reviews(key: str = Query(..., description="SECRET_KEY for a
     if key != os.environ.get("SECRET_KEY", ""):
         raise HTTPException(403, "Invalid key")
 
+    logger.info("Daily review cron started")
     coach_email = os.environ.get("COACH_EMAIL", "")
     users = load_users()
     results = []
+    loop = asyncio.get_event_loop()
 
     for username, info in users.items():
         if info.get("role") == "coach":
             continue
 
+        logger.info(f"Checking daily review for {username}")
         user_data = load_user_data(username)
         logs = user_data.get("workout_logs", {})
         days_per_week = _get_days_per_week(user_data)
@@ -918,6 +926,7 @@ async def cron_daily_reviews(key: str = Query(..., description="SECRET_KEY for a
             reverse=True,
         )
         if not day_nums:
+            logger.info(f"  {username}: no workout logs, skipping")
             continue
 
         latest_day_key = f"day_{day_nums[0]}"
@@ -927,10 +936,12 @@ async def cron_daily_reviews(key: str = Query(..., description="SECRET_KEY for a
             for r in reviews
         )
         if already:
+            logger.info(f"  {username}: already reviewed {latest_day_key}, skipping")
             continue
 
         current_exercises = _extract_exercise_data(logs[latest_day_key])
         if not current_exercises:
+            logger.info(f"  {username}: no exercises in {latest_day_key}, skipping")
             continue
 
         prior = _find_same_workout_prior_weeks(logs, latest_day_key, days_per_week, 4)
@@ -953,10 +964,16 @@ async def cron_daily_reviews(key: str = Query(..., description="SECRET_KEY for a
         recipients, errors = [], []
         for addr in [coach_email, athlete_email]:
             if addr:
-                err = _send_review_email(addr, f"NumNum Daily Review — {username} — {today}", review_text)
+                logger.info(f"  Emailing {addr}...")
+                err = await loop.run_in_executor(
+                    None,
+                    partial(_send_review_email, addr, f"NumNum Daily Review — {username} — {today}", review_text),
+                )
                 if err:
+                    logger.warning(f"  Email error for {addr}: {err}")
                     errors.append(err)
                 else:
+                    logger.info(f"  Email sent to {addr}")
                     recipients.append(addr)
 
         review["emailed"] = len(recipients) > 0
@@ -966,6 +983,7 @@ async def cron_daily_reviews(key: str = Query(..., description="SECRET_KEY for a
 
         results.append({"username": username, "day_key": latest_day_key, "emailed_to": recipients, "errors": errors})
 
+    logger.info(f"Daily review cron done: {len(results)} reviews generated")
     return {"ok": True, "reviewed": len(results), "results": results}
 
 
@@ -979,14 +997,17 @@ async def cron_weekly_reviews(key: str = Query(..., description="SECRET_KEY for 
     if key != os.environ.get("SECRET_KEY", ""):
         raise HTTPException(403, "Invalid key")
 
+    logger.info("Weekly review cron started")
     coach_email = os.environ.get("COACH_EMAIL", "")
     users = load_users()
     results = []
+    loop = asyncio.get_event_loop()
 
     for username, info in users.items():
         if info.get("role") == "coach":
             continue
 
+        logger.info(f"Checking weekly review for {username}")
         user_data = load_user_data(username)
         logs = user_data.get("workout_logs", {})
         days_per_week = _get_days_per_week(user_data)
@@ -1002,11 +1023,13 @@ async def cron_weekly_reviews(key: str = Query(..., description="SECRET_KEY for 
             for r in reviews
         )
         if already:
+            logger.info(f"  {username}: already reviewed week {review_week}, skipping")
             continue
 
         week_keys = _get_week_day_keys(review_week, days_per_week)
         week_stats = _compute_weekly_stats(logs, week_keys)
         if week_stats["total_sessions"] == 0:
+            logger.info(f"  {username}: no sessions in week {review_week}, skipping")
             continue
 
         all_weeks_stats = []
@@ -1057,10 +1080,16 @@ async def cron_weekly_reviews(key: str = Query(..., description="SECRET_KEY for 
         recipients, errors = [], []
         for addr in [coach_email, athlete_email]:
             if addr:
-                err = _send_review_email(addr, f"NumNum Weekly Review — {username} — Week {review_week}", review_text)
+                logger.info(f"  Emailing {addr}...")
+                err = await loop.run_in_executor(
+                    None,
+                    partial(_send_review_email, addr, f"NumNum Weekly Review — {username} — Week {review_week}", review_text),
+                )
                 if err:
+                    logger.warning(f"  Email error for {addr}: {err}")
                     errors.append(err)
                 else:
+                    logger.info(f"  Email sent to {addr}")
                     recipients.append(addr)
 
         review["emailed"] = len(recipients) > 0
@@ -1070,4 +1099,5 @@ async def cron_weekly_reviews(key: str = Query(..., description="SECRET_KEY for 
 
         results.append({"username": username, "week": review_week, "emailed_to": recipients, "errors": errors})
 
+    logger.info(f"Weekly review cron done: {len(results)} reviews generated")
     return {"ok": True, "reviewed": len(results), "results": results}
