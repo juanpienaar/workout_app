@@ -93,7 +93,8 @@ def _log_cost(response_data: dict):
         costs = []
         if config.API_COSTS_FILE.exists():
             with open(config.API_COSTS_FILE) as f:
-                costs = json.load(f)
+                loaded = json.load(f)
+                costs = loaded if isinstance(loaded, list) else []
 
         from datetime import datetime, timezone
         costs.append({
@@ -126,34 +127,18 @@ async def generate_meal_plan(
     restrictions: str = "",
 ) -> dict:
     """Generate a meal plan that hits the given macro targets."""
-    # Scale tokens based on number of days — 7-day plans need ~8k tokens
-    max_tokens = min(2048 + num_days * 1024, 16384)
+    # 7-day plan with 4 meals each = 28 meals. Each meal ~300-400 tokens.
+    # Budget: ~2k per day + 1k for shopping list
+    max_tokens = min(2500 * num_days + 1000, 20000)
 
-    prompt = f"""Create a {num_days}-day meal plan with these daily macro targets:
-- Calories: {targets.get('daily_calories', 2000)} kcal
-- Protein: {targets.get('daily_protein_g', 150)}g
-- Carbs: {targets.get('daily_carbs_g', 200)}g
-- Fat: {targets.get('daily_fat_g', 70)}g
+    prompt = f"""Create a {num_days}-day meal plan. Daily targets: {int(targets.get('daily_calories', 2000))}kcal, {int(targets.get('daily_protein_g', 150))}g protein, {int(targets.get('daily_carbs_g', 200))}g carbs, {int(targets.get('daily_fat_g', 70))}g fat.
+{"Preferences: " + preferences + ". " if preferences else ""}{"Restrictions: " + restrictions + ". " if restrictions else ""}
+4 meals/day (breakfast, lunch, dinner, snack). Keep 3-4 ingredients per meal. 1-sentence instructions.
 
-{"Preferences: " + preferences if preferences else ""}
-{"Dietary restrictions: " + restrictions if restrictions else ""}
+Return ONLY compact JSON (no markdown, no explanation):
+{{"days":[{{"day":1,"meals":[{{"meal_type":"breakfast","name":"...","ingredients":[{{"food_name":"...","serving_size":"...","calories":0,"protein_g":0,"carbs_g":0,"fat_g":0}}],"instructions":"...","prep_time_min":0,"meal_macros":{{"calories":0,"protein_g":0,"carbs_g":0,"fat_g":0}}}}],"day_totals":{{"calories":0,"protein_g":0,"carbs_g":0,"fat_g":0}}}}],"shopping_list":[{{"item":"...","quantity":"...","category":"..."}}]}}
 
-For each day, provide 4 meals (breakfast, lunch, dinner, snack).
-For each meal provide:
-- meal_type: "breakfast"|"lunch"|"dinner"|"snack"
-- name: short name (max 6 words)
-- ingredients: list of {{food_name, serving_size, calories, protein_g, carbs_g, fat_g}}
-- instructions: 1-2 sentence cooking summary
-- prep_time_min: number
-- meal_macros: {{calories, protein_g, carbs_g, fat_g}}
-
-Also provide shopping_list: list of {{item, quantity, category}}
-
-IMPORTANT: Return ONLY valid JSON, no markdown, no explanation, no text before or after.
-Keep ingredient lists concise (3-6 items per meal). Keep instructions brief.
-
-JSON structure:
-{{"days":[{{"day":1,"meals":[...],"day_totals":{{...}}}}],"shopping_list":[...]}}"""
+Use common, practical ingredients. Vary meals across days. Keep the JSON compact — no extra whitespace."""
 
     logger.info(f"Generating {num_days}-day meal plan: cal={targets.get('daily_calories')}, max_tokens={max_tokens}")
 
