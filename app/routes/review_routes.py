@@ -896,17 +896,41 @@ def _send_review_email(recipient: str, subject: str, content: str) -> Optional[s
         return str(e)
 
 
+@router.get("/cron/test")
+async def cron_test(key: str = Query(..., description="SECRET_KEY for auth")):
+    """Quick test endpoint to verify cron connectivity and SMTP config."""
+    import os
+    if key != os.environ.get("SECRET_KEY", ""):
+        raise HTTPException(403, "Invalid key")
+
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASSWORD", os.environ.get("SMTP_PASS", ""))
+    coach_email = os.environ.get("COACH_EMAIL", "")
+    users = load_users()
+    athlete_count = sum(1 for u, i in users.items() if i.get("role") != "coach")
+
+    return {
+        "ok": True,
+        "smtp_configured": bool(smtp_user and smtp_pass),
+        "smtp_user": smtp_user[:3] + "***" if smtp_user else "",
+        "coach_email": coach_email[:3] + "***" if coach_email else "",
+        "athlete_count": athlete_count,
+    }
+
+
 @router.get("/cron/daily-reviews")
-async def cron_daily_reviews(key: str = Query(..., description="SECRET_KEY for auth")):
+async def cron_daily_reviews(key: str = Query(..., description="SECRET_KEY for auth"),
+                             dry_run: bool = Query(False, description="Skip email sending")):
     """Server-side cron: generate + email daily reviews for all pending athletes.
 
     Call: GET /api/admin/cron/daily-reviews?key=YOUR_SECRET_KEY
+    Add &dry_run=true to skip emails and just test review generation.
     """
     import os
     if key != os.environ.get("SECRET_KEY", ""):
         raise HTTPException(403, "Invalid key")
 
-    logger.info("Daily review cron started")
+    logger.info(f"Daily review cron started (dry_run={dry_run})")
     coach_email = os.environ.get("COACH_EMAIL", "")
     users = load_users()
     results = []
@@ -962,29 +986,37 @@ async def cron_daily_reviews(key: str = Query(..., description="SECRET_KEY for a
 
         athlete_email = info.get("email", "")
         recipients, errors = [], []
-        for addr in [coach_email, athlete_email]:
-            if addr:
-                logger.info(f"  Emailing {addr}...")
-                err = await loop.run_in_executor(
-                    None,
-                    partial(_send_review_email, addr, f"NumNum Daily Review — {username} — {today}", review_text),
-                )
-                if err:
-                    logger.warning(f"  Email error for {addr}: {err}")
-                    errors.append(err)
-                else:
-                    logger.info(f"  Email sent to {addr}")
-                    recipients.append(addr)
+        if not dry_run:
+            for addr in [coach_email, athlete_email]:
+                if addr:
+                    logger.info(f"  Emailing {addr}...")
+                    try:
+                        err = await loop.run_in_executor(
+                            None,
+                            partial(_send_review_email, addr, f"NumNum Daily Review — {username} — {today}", review_text),
+                        )
+                        if err:
+                            logger.warning(f"  Email error for {addr}: {err}")
+                            errors.append(err)
+                        else:
+                            logger.info(f"  Email sent to {addr}")
+                            recipients.append(addr)
+                    except Exception as e:
+                        logger.error(f"  Email exception for {addr}: {e}")
+                        errors.append(str(e))
+        else:
+            logger.info(f"  Dry run — skipping email for {username}")
 
         review["emailed"] = len(recipients) > 0
         review["emailed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         review["emailed_to"] = recipients
         save_user_data(username, user_data)
 
-        results.append({"username": username, "day_key": latest_day_key, "emailed_to": recipients, "errors": errors})
+        results.append({"username": username, "day_key": latest_day_key, "emailed_to": recipients, "errors": errors,
+                        "review_preview": review_text[:200] if dry_run else None})
 
     logger.info(f"Daily review cron done: {len(results)} reviews generated")
-    return {"ok": True, "reviewed": len(results), "results": results}
+    return {"ok": True, "reviewed": len(results), "dry_run": dry_run, "results": results}
 
 
 @router.get("/cron/weekly-reviews")
