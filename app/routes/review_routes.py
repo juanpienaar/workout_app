@@ -887,13 +887,44 @@ def _send_review_email(recipient: str, subject: str, content: str) -> Optional[s
         msg.attach(MIMEText(content, "plain"))
         msg.attach(MIMEText(html_body, "html"))
 
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_user, recipient, msg.as_string())
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15) as server:
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, recipient, msg.as_string())
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, recipient, msg.as_string())
         return None
     except Exception as e:
         return str(e)
+
+
+@router.get("/cron/test-email")
+async def cron_test_email(key: str = Query(..., description="SECRET_KEY for auth")):
+    """Send a test email to the coach to verify SMTP works."""
+    import os
+    if key != os.environ.get("SECRET_KEY", ""):
+        raise HTTPException(403, "Invalid key")
+
+    coach_email = os.environ.get("COACH_EMAIL", "")
+    if not coach_email:
+        return {"ok": False, "error": "COACH_EMAIL not set"}
+
+    loop = asyncio.get_event_loop()
+    logger.info(f"Sending test email to {coach_email}...")
+    try:
+        err = await loop.run_in_executor(
+            None,
+            partial(_send_review_email, coach_email, "NumNum SMTP Test", "If you see this, SMTP is working!"),
+        )
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+    if err:
+        return {"ok": False, "error": err}
+    return {"ok": True, "sent_to": coach_email}
 
 
 @router.get("/cron/test")
