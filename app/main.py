@@ -18,7 +18,7 @@ from starlette.responses import RedirectResponse
 from . import config
 from .encryption import migrate_tokens_file
 from .logger import log_event
-from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes, admin_routes, review_routes
+from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes, admin_routes, review_routes, nutrition_routes
 
 app = FastAPI(title="NumNum Workout", version="1.0.0")
 
@@ -75,6 +75,7 @@ app.include_router(verify_routes.router)
 app.include_router(whoop_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(review_routes.router)
+app.include_router(nutrition_routes.router)
 
 
 # ---- Health check ----
@@ -159,6 +160,11 @@ async def startup():
 admin_dist = config.APP_DIR / "admin" / "dist"
 if admin_dist.exists():
     app.mount("/admin", StaticFiles(directory=str(admin_dist), html=True), name="admin-static")
+
+# Nutrition app at /nutrition (React build output)
+nutrition_dist = config.APP_DIR / "nutrition" / "dist"
+if nutrition_dist.exists():
+    app.mount("/nutrition", StaticFiles(directory=str(nutrition_dist), html=True), name="nutrition-static")
 
 # Root serves index.html, program.json, exercises.json, etc. (LAST so API routes take priority)
 app.mount("/", StaticFiles(directory=str(config.APP_DIR), html=True), name="static")

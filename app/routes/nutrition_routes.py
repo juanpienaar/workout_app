@@ -1,0 +1,504 @@
+"""Nutrition routes — food logging, macro tracking, recipes, meal plans."""
+
+import json
+import uuid
+from datetime import datetime, timezone
+from typing import Annotated, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from pydantic import BaseModel
+
+from ..auth import get_current_user, require_coach
+from ..data import load_users, load_user_data, save_user_data
+from .. import config
+from ..models import (
+    NutritionTargets, SetNutritionTargetsRequest, FoodEntry,
+    DailyLogRequest, FoodSearchRequest, RecipeSaveRequest,
+    MealPlanGenerateRequest, RecipeFromIngredientsRequest,
+)
+
+router = APIRouter(prefix="/api/nutrition", tags=["nutrition"])
+
+
+# ────────────────────────────────────────────
+#  Helper: nutrition data access
+# ────────────────────────────────────────────
+
+def _get_nutrition(user_data: dict) -> dict:
+    """Get or initialise the nutrition section of user data."""
+    if "nutrition" not in user_data:
+        user_data["nutrition"] = {
+            "targets": None,
+            "logs": {},
+            "recipes": [],
+            "meal_plans": [],
+        }
+    return user_data["nutrition"]
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _today() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+# ────────────────────────────────────────────
+#  Targets (coach sets, athlete reads)
+# ────────────────────────────────────────────
+
+@router.get("/targets")
+async def get_targets(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None, description="Athlete username (coach only)"),
+):
+    """Get nutrition targets for athlete. Coach can query any athlete."""
+    target_user = username or current_user["name"]
+
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only view own targets")
+
+    user_data = load_user_data(target_user)
+    nutrition = _get_nutrition(user_data)
+    return {"ok": True, "targets": nutrition.get("targets")}
+
+
+@router.post("/targets")
+async def set_targets(
+    req: SetNutritionTargetsRequest,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Coach sets macro targets for an athlete."""
+    users = load_users()
+    if req.username not in users:
+        raise HTTPException(404, "Athlete not found")
+
+    user_data = load_user_data(req.username)
+    nutrition = _get_nutrition(user_data)
+
+    # Keep history of target changes
+    if "target_history" not in nutrition:
+        nutrition["target_history"] = []
+    if nutrition.get("targets"):
+        nutrition["target_history"].append({
+            **nutrition["targets"],
+            "replaced_at": _now_iso(),
+        })
+        # Keep last 20 changes
+        nutrition["target_history"] = nutrition["target_history"][-20:]
+
+    nutrition["targets"] = {
+        **req.targets.model_dump(),
+        "set_by": coach["name"],
+        "set_at": _now_iso(),
+    }
+    save_user_data(req.username, user_data)
+    return {"ok": True, "targets": nutrition["targets"]}
+
+
+# ────────────────────────────────────────────
+#  Daily food log
+# ────────────────────────────────────────────
+
+@router.get("/logs/{date}")
+async def get_daily_log(
+    date: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None),
+):
+    """Get food log for a specific date."""
+    target_user = username or current_user["name"]
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only view own logs")
+
+    user_data = load_user_data(target_user)
+    nutrition = _get_nutrition(user_data)
+    day_log = nutrition["logs"].get(date, {"entries": [], "totals": {}})
+    return {"ok": True, "date": date, "log": day_log}
+
+
+@router.post("/logs/{date}")
+async def add_food_entry(
+    date: str,
+    entry: FoodEntry,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Add a food entry to a specific date."""
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+
+    if date not in nutrition["logs"]:
+        nutrition["logs"][date] = {"entries": [], "created_at": _now_iso()}
+
+    day_log = nutrition["logs"][date]
+
+    # Generate ID and timestamp
+    entry_dict = entry.model_dump()
+    entry_dict["id"] = entry_dict.get("id") or f"food_{uuid.uuid4().hex[:8]}"
+    entry_dict["logged_at"] = entry_dict.get("logged_at") or _now_iso()
+
+    day_log["entries"].append(entry_dict)
+    day_log["totals"] = _compute_day_totals(day_log["entries"])
+    day_log["updated_at"] = _now_iso()
+
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True, "entry": entry_dict, "totals": day_log["totals"]}
+
+
+@router.put("/logs/{date}/{entry_id}")
+async def update_food_entry(
+    date: str,
+    entry_id: str,
+    entry: FoodEntry,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Update a food entry."""
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+    day_log = nutrition["logs"].get(date)
+    if not day_log:
+        raise HTTPException(404, "No log for this date")
+
+    for i, existing in enumerate(day_log["entries"]):
+        if existing["id"] == entry_id:
+            updated = entry.model_dump()
+            updated["id"] = entry_id
+            updated["logged_at"] = existing.get("logged_at", _now_iso())
+            day_log["entries"][i] = updated
+            day_log["totals"] = _compute_day_totals(day_log["entries"])
+            day_log["updated_at"] = _now_iso()
+            save_user_data(current_user["name"], user_data)
+            return {"ok": True, "entry": updated, "totals": day_log["totals"]}
+
+    raise HTTPException(404, "Entry not found")
+
+
+@router.delete("/logs/{date}/{entry_id}")
+async def delete_food_entry(
+    date: str,
+    entry_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Delete a food entry from a date."""
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+    day_log = nutrition["logs"].get(date)
+    if not day_log:
+        raise HTTPException(404, "No log for this date")
+
+    original_len = len(day_log["entries"])
+    day_log["entries"] = [e for e in day_log["entries"] if e["id"] != entry_id]
+    if len(day_log["entries"]) == original_len:
+        raise HTTPException(404, "Entry not found")
+
+    day_log["totals"] = _compute_day_totals(day_log["entries"])
+    day_log["updated_at"] = _now_iso()
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True, "totals": day_log["totals"]}
+
+
+@router.get("/logs/week/{start_date}")
+async def get_weekly_logs(
+    start_date: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None),
+):
+    """Get 7 days of food logs starting from start_date."""
+    from datetime import timedelta
+    target_user = username or current_user["name"]
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only view own logs")
+
+    user_data = load_user_data(target_user)
+    nutrition = _get_nutrition(user_data)
+
+    base = datetime.strptime(start_date, "%Y-%m-%d")
+    days = {}
+    for i in range(7):
+        d = (base + timedelta(days=i)).strftime("%Y-%m-%d")
+        log = nutrition["logs"].get(d, {"entries": [], "totals": {}})
+        days[d] = {"totals": log.get("totals", {}), "entry_count": len(log.get("entries", []))}
+
+    return {"ok": True, "start_date": start_date, "days": days}
+
+
+# ────────────────────────────────────────────
+#  Food search / lookup
+# ────────────────────────────────────────────
+
+@router.post("/lookup/food")
+async def lookup_food(
+    req: FoodSearchRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Search for food in USDA + Open Food Facts, fallback to Claude."""
+    from ..services.food_lookup import search_food
+    results = await search_food(req.query)
+    return {"ok": True, "results": results}
+
+
+@router.post("/lookup/text")
+async def recognize_food_text(
+    req: FoodSearchRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Use Claude to parse a natural language food description into macros."""
+    from ..services.food_lookup import recognize_from_text
+    results = await recognize_from_text(req.query)
+    return {"ok": True, "results": results}
+
+
+@router.post("/lookup/photo")
+async def recognize_food_photo(
+    file: UploadFile = File(...),
+    description: str = "",
+    current_user: dict = Depends(get_current_user),
+):
+    """Use Claude vision to identify food from a photo and estimate macros."""
+    from ..services.food_lookup import recognize_from_photo
+    data = await file.read()
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(400, "Image too large (max 10MB)")
+    results = await recognize_from_photo(data, file.content_type or "image/jpeg", description)
+    return {"ok": True, "results": results}
+
+
+# ────────────────────────────────────────────
+#  Recipes
+# ────────────────────────────────────────────
+
+@router.get("/recipes")
+async def list_recipes(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None),
+):
+    """List saved recipes."""
+    target_user = username or current_user["name"]
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only view own recipes")
+
+    user_data = load_user_data(target_user)
+    nutrition = _get_nutrition(user_data)
+    return {"ok": True, "recipes": nutrition.get("recipes", [])}
+
+
+@router.post("/recipes")
+async def save_recipe(
+    req: RecipeSaveRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Save a new recipe."""
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+
+    recipe = {
+        "id": f"recipe_{uuid.uuid4().hex[:8]}",
+        "name": req.name,
+        "ingredients": [i.model_dump() for i in req.ingredients],
+        "instructions": req.instructions,
+        "prep_time_min": req.prep_time_min,
+        "servings": req.servings,
+        "tags": req.tags,
+        "macro_totals": _compute_day_totals([i.model_dump() for i in req.ingredients]),
+        "created_at": _now_iso(),
+    }
+    nutrition["recipes"].append(recipe)
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True, "recipe": recipe}
+
+
+@router.get("/recipes/{recipe_id}")
+async def get_recipe(
+    recipe_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None),
+):
+    """Get a specific recipe."""
+    target_user = username or current_user["name"]
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only view own recipes")
+
+    user_data = load_user_data(target_user)
+    nutrition = _get_nutrition(user_data)
+    for r in nutrition.get("recipes", []):
+        if r["id"] == recipe_id:
+            return {"ok": True, "recipe": r}
+    raise HTTPException(404, "Recipe not found")
+
+
+@router.delete("/recipes/{recipe_id}")
+async def delete_recipe(
+    recipe_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Delete a recipe."""
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+    original = len(nutrition.get("recipes", []))
+    nutrition["recipes"] = [r for r in nutrition.get("recipes", []) if r["id"] != recipe_id]
+    if len(nutrition["recipes"]) == original:
+        raise HTTPException(404, "Recipe not found")
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True}
+
+
+# ────────────────────────────────────────────
+#  Meal plans
+# ────────────────────────────────────────────
+
+@router.get("/meal-plans")
+async def list_meal_plans(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None),
+):
+    """List meal plans."""
+    target_user = username or current_user["name"]
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only view own meal plans")
+
+    user_data = load_user_data(target_user)
+    nutrition = _get_nutrition(user_data)
+    return {"ok": True, "meal_plans": nutrition.get("meal_plans", [])}
+
+
+@router.post("/meal-plans/generate")
+async def generate_meal_plan(
+    req: MealPlanGenerateRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Use Claude to generate a meal plan hitting the user's macro targets."""
+    from ..services.nutrition_ai import generate_meal_plan
+
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+    targets = nutrition.get("targets")
+    if not targets:
+        raise HTTPException(400, "No nutrition targets set. Ask your coach to set targets first.")
+
+    plan = await generate_meal_plan(targets, req.num_days, req.preferences, req.restrictions)
+
+    plan_record = {
+        "id": f"plan_{uuid.uuid4().hex[:8]}",
+        **plan,
+        "created_at": _now_iso(),
+        "created_by": current_user["name"],
+    }
+    nutrition["meal_plans"].append(plan_record)
+    # Keep last 10 plans
+    if len(nutrition["meal_plans"]) > 10:
+        nutrition["meal_plans"] = nutrition["meal_plans"][-10:]
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True, "meal_plan": plan_record}
+
+
+@router.post("/ai/suggest-recipes")
+async def suggest_recipes_from_ingredients(
+    req: RecipeFromIngredientsRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Claude suggests recipes from a list of available ingredients."""
+    from ..services.nutrition_ai import suggest_recipes
+
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+    targets = nutrition.get("targets")
+
+    recipes = await suggest_recipes(req.ingredients, targets, req.preferences, req.target_calories)
+    return {"ok": True, "recipes": recipes}
+
+
+@router.delete("/meal-plans/{plan_id}")
+async def delete_meal_plan(
+    plan_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Delete a meal plan."""
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+    original = len(nutrition.get("meal_plans", []))
+    nutrition["meal_plans"] = [p for p in nutrition.get("meal_plans", []) if p["id"] != plan_id]
+    if len(nutrition["meal_plans"]) == original:
+        raise HTTPException(404, "Meal plan not found")
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True}
+
+
+# ────────────────────────────────────────────
+#  Coach: overview of all athletes' nutrition
+# ────────────────────────────────────────────
+
+@router.get("/coach/overview")
+async def coach_nutrition_overview(
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Get nutrition summary for all athletes (coach only)."""
+    users = load_users()
+    today = _today()
+    athletes = []
+
+    for username, info in users.items():
+        if info.get("role") == "coach":
+            continue
+
+        user_data = load_user_data(username)
+        nutrition = _get_nutrition(user_data)
+        targets = nutrition.get("targets")
+        today_log = nutrition["logs"].get(today, {"entries": [], "totals": {}})
+        totals = today_log.get("totals", {})
+
+        compliance = None
+        if targets and totals:
+            compliance = {
+                "calories_pct": round((totals.get("calories", 0) / targets["daily_calories"]) * 100, 1) if targets.get("daily_calories") else None,
+                "protein_pct": round((totals.get("protein_g", 0) / targets["daily_protein_g"]) * 100, 1) if targets.get("daily_protein_g") else None,
+                "carbs_pct": round((totals.get("carbs_g", 0) / targets["daily_carbs_g"]) * 100, 1) if targets.get("daily_carbs_g") else None,
+                "fat_pct": round((totals.get("fat_g", 0) / targets["daily_fat_g"]) * 100, 1) if targets.get("daily_fat_g") else None,
+            }
+
+        athletes.append({
+            "username": username,
+            "has_targets": targets is not None,
+            "targets": targets,
+            "today_totals": totals,
+            "today_entries": len(today_log.get("entries", [])),
+            "compliance": compliance,
+        })
+
+    return {"ok": True, "date": today, "athletes": athletes}
+
+
+# ────────────────────────────────────────────
+#  Helpers
+# ────────────────────────────────────────────
+
+def _compute_day_totals(entries: list[dict]) -> dict:
+    """Sum up macros across all food entries."""
+    totals = {"calories": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0, "fiber_g": 0}
+    for e in entries:
+        totals["calories"] += float(e.get("calories", 0) or 0)
+        totals["protein_g"] += float(e.get("protein_g", 0) or 0)
+        totals["carbs_g"] += float(e.get("carbs_g", 0) or 0)
+        totals["fat_g"] += float(e.get("fat_g", 0) or 0)
+        totals["fiber_g"] += float(e.get("fiber_g", 0) or 0)
+
+    # Round for readability
+    for k in totals:
+        totals[k] = round(totals[k], 1)
+
+    # Meal breakdown
+    by_meal = {}
+    for e in entries:
+        meal = e.get("meal_type", "other")
+        if meal not in by_meal:
+            by_meal[meal] = {"calories": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0}
+        by_meal[meal]["calories"] += float(e.get("calories", 0) or 0)
+        by_meal[meal]["protein_g"] += float(e.get("protein_g", 0) or 0)
+        by_meal[meal]["carbs_g"] += float(e.get("carbs_g", 0) or 0)
+        by_meal[meal]["fat_g"] += float(e.get("fat_g", 0) or 0)
+    for meal in by_meal:
+        for k in by_meal[meal]:
+            by_meal[meal][k] = round(by_meal[meal][k], 1)
+
+    totals["by_meal"] = by_meal
+    return totals

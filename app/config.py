@@ -33,6 +33,12 @@ WHOOP_TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 WHOOP_API_BASE = "https://api.prod.whoop.com/developer"
 WHOOP_SCOPES = "read:recovery read:cycles read:sleep read:workout read:profile read:body_measurement"
 
+# Anthropic (Claude API for nutrition AI features)
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+
+# USDA FoodData Central
+USDA_API_KEY = os.environ.get("USDA_API_KEY", "")
+
 # Encryption
 ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY", "")
 
@@ -53,3 +59,4 @@ METRICS_FILE = DATA_ROOT / "user_metrics.json"
 API_COSTS_FILE = DATA_ROOT / "api_costs.json"
 AI_LOGS_FILE = DATA_ROOT / "ai_logs.json"
 AVATARS_DIR = DATA_ROOT / "avatars"
+NUTRITION_CACHE_FILE = DATA_ROOT / "nutrition_cache.json"

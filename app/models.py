@@ -74,3 +74,61 @@ class VerifyEmailRequest(BaseModel):
     email: str
     code: str
     user: str
+
+
+# ---- Nutrition ----
+
+class NutritionTargets(BaseModel):
+    daily_calories: float
+    daily_protein_g: float
+    daily_carbs_g: float
+    daily_fat_g: float
+    daily_fiber_g: Optional[float] = None
+    notes: Optional[str] = ""
+
+class SetNutritionTargetsRequest(BaseModel):
+    username: str
+    targets: NutritionTargets
+
+class FoodEntry(BaseModel):
+    id: Optional[str] = None
+    food_name: str
+    serving_size: str = ""
+    serving_grams: Optional[float] = None
+    calories: float = 0
+    protein_g: float = 0
+    carbs_g: float = 0
+    fat_g: float = 0
+    fiber_g: Optional[float] = None
+    micros: Optional[dict[str, float]] = None
+    source: str = "manual"  # "usda" | "openfoodfacts" | "claude" | "manual"
+    source_id: Optional[str] = None
+    meal_type: str = "other"  # "breakfast" | "lunch" | "dinner" | "snack" | "other"
+    logged_at: Optional[str] = None
+
+class DailyLogRequest(BaseModel):
+    entries: list[FoodEntry]
+
+class FoodSearchRequest(BaseModel):
+    query: str
+
+class FoodPhotoRequest(BaseModel):
+    description: Optional[str] = ""
+
+class RecipeSaveRequest(BaseModel):
+    name: str
+    ingredients: list[FoodEntry]
+    instructions: str = ""
+    prep_time_min: Optional[int] = None
+    servings: int = 1
+    tags: list[str] = []
+
+class MealPlanGenerateRequest(BaseModel):
+    num_days: int = 7
+    preferences: str = ""
+    restrictions: str = ""
+
+class RecipeFromIngredientsRequest(BaseModel):
+    ingredients: list[str]
+    preferences: str = ""
+    target_calories: Optional[float] = None
