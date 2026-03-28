@@ -128,26 +128,22 @@ async def generate_meal_plan(
     fixed_meals: list[dict] | None = None,
     preferences: str = "",
     restrictions: str = "",
-    store: str = "",
+    stores: list[str] | None = None,
 ) -> dict:
     """Generate a meal plan that hits the given macro targets."""
     # Determine meal slots
     default_types = ["breakfast", "lunch", "dinner", "snack"]
-    if meal_types:
-        slots = meal_types
-    else:
-        slots = default_types[:meals_per_day]
+    slots = meal_types if meal_types else default_types[:meals_per_day]
 
-    # Count how many meals AI needs to generate (subtract fixed meals)
+    # Count AI-generated meals and budget tokens
     fixed = fixed_meals or []
-    ai_meals_per_day = len(slots)  # worst case; fixed meals reduce this
+    total_ai_meals = len(slots) * num_days - len(fixed) * (1 if any(f.get("day") for f in fixed) else num_days)
+    total_ai_meals = max(total_ai_meals, num_days)
+    store_list = stores or []
+    # Extra tokens for each additional store shopping list
+    store_tokens = max(len(store_list), 1) * 800
+    max_tokens = min(600 * total_ai_meals + store_tokens + 1000, 20000)
 
-    # Budget tokens: ~600 tokens per AI-generated meal + shopping list
-    total_ai_meals = ai_meals_per_day * num_days - len(fixed) * (1 if any(f.get("day") for f in fixed) else num_days)
-    total_ai_meals = max(total_ai_meals, num_days)  # at least 1 per day
-    max_tokens = min(600 * total_ai_meals + 1500, 20000)
-
-    # Build the prompt
     cal = int(targets.get('daily_calories', 2000))
     prot = int(targets.get('daily_protein_g', 150))
     carbs = int(targets.get('daily_carbs_g', 200))
@@ -156,23 +152,35 @@ async def generate_meal_plan(
     prompt_parts = [
         f"Create a {num_days}-day meal plan. Daily targets: {cal}kcal, {prot}g protein, {carbs}g carbs, {fat}g fat.",
         f"Meal slots per day: {', '.join(slots)}.",
+        "",
+        "CRITICAL INGREDIENT SPECIFICITY RULES:",
+        "- Every ingredient MUST specify the exact variant. Never use generic names.",
+        "- Dairy: always state fat percentage (e.g. '0% fat Greek yogurt', '2% fat milk', '5% fat Fage Total')",
+        "- Meat: always state cut AND fat content (e.g. '5% fat lean beef mince', 'chicken breast skinless', 'pork tenderloin trimmed')",
+        "- Bread: specify type (e.g. 'wholemeal sourdough', 'white pitta bread', 'seeded rye bread')",
+        "- Rice/pasta: specify type (e.g. 'basmati rice', 'wholemeal fusilli pasta', 'egg noodles')",
+        "- Oils: specify type (e.g. 'extra virgin olive oil', 'coconut oil')",
+        "- Nuts/seeds: specify if raw, roasted, salted (e.g. 'raw unsalted almonds')",
+        "- Cheese: specify type and fat (e.g. 'light mozzarella', 'mature cheddar', 'reduced-fat cottage cheese')",
+        "- Protein powder: specify type (e.g. 'whey protein isolate', 'casein protein')",
+        "- All serving_size values must be in grams or ml with a number (e.g. '150g', '200ml', '2 large eggs ~120g')",
+        "",
     ]
 
-    # Fixed meals instruction
+    # Fixed meals with ingredient detail
     if fixed:
         fixed_desc = []
         for fm in fixed:
             day_str = f"day {fm['day']}" if fm.get("day") else "every day"
-            macros = ""
-            if fm.get("calories"):
-                macros = f" ({fm['calories']}kcal"
-                if fm.get("protein_g"): macros += f", {fm['protein_g']}g protein"
-                if fm.get("carbs_g"): macros += f", {fm['carbs_g']}g carbs"
-                if fm.get("fat_g"): macros += f", {fm['fat_g']}g fat"
-                macros += ")"
-            fixed_desc.append(f'- {fm["meal_type"].capitalize()} on {day_str}: "{fm["name"]}"{macros}')
+            ings = fm.get("ingredients", [])
+            if ings:
+                ing_list = ", ".join(f"{i['serving_size']} {i['food_name']}" if i.get('serving_size') else i['food_name'] for i in ings)
+                fixed_desc.append(f'- {fm["meal_type"].capitalize()} on {day_str}: {ing_list}')
+            elif fm.get("name"):
+                fixed_desc.append(f'- {fm["meal_type"].capitalize()} on {day_str}: "{fm["name"]}"')
         prompt_parts.append(
-            "FIXED MEALS (include these exactly as specified, plan other meals around their macros):\n"
+            "FIXED MEALS (include these exactly with the specified ingredients and amounts. "
+            "Calculate their macros accurately. Plan other meals to compensate and hit daily targets):\n"
             + "\n".join(fixed_desc)
         )
 
@@ -181,26 +189,30 @@ async def generate_meal_plan(
     if restrictions:
         prompt_parts.append(f"Restrictions: {restrictions}.")
 
-    # Store-specific shopping list
-    if store:
+    # Multi-store shopping lists
+    if store_list:
+        stores_str = ", ".join(store_list)
         prompt_parts.append(
-            f"SHOPPING LIST: Generate the shopping list specifically for {store}. "
-            f"Use product names, brands, and aisle categories that {store} actually stocks. "
-            f"Include approximate prices in local currency where possible."
+            f"\nSHOPPING LISTS: Generate SEPARATE shopping lists for each of these stores: {stores_str}.\n"
+            f"For each store, use product names, brands, and aisle categories that store actually stocks.\n"
+            f"Include approximate prices in local currency.\n"
+            f"Return as \"shopping_lists\": [{{\n"
+            f"  \"store\": \"StoreName\", \"items\": [{{\"item\": \"...\", \"quantity\": \"...\", \"category\": \"...\", \"price\": \"...\"}}]\n"
+            f"}}] — one object per store."
         )
     else:
-        prompt_parts.append("Include a shopping_list with items, quantities, and categories.")
+        prompt_parts.append('\nInclude "shopping_list": [{{"item":"...","quantity":"...","category":"..."}}]')
 
     prompt_parts.append(
-        "Keep 3-4 ingredients per meal. 1-sentence instructions.\n\n"
+        "\nKeep 3-5 ingredients per meal. 1-sentence instructions.\n\n"
         "Return ONLY compact JSON (no markdown, no explanation):\n"
         '{{"days":[{{"day":1,"meals":[{{"meal_type":"breakfast","name":"...","ingredients":'
-        '[{{"food_name":"...","serving_size":"...","calories":0,"protein_g":0,"carbs_g":0,"fat_g":0}}],'
+        '[{{"food_name":"SPECIFIC name with fat%/variant","serving_size":"150g","calories":0,"protein_g":0,"carbs_g":0,"fat_g":0}}],'
         '"instructions":"...","prep_time_min":0,"meal_macros":{{"calories":0,"protein_g":0,"carbs_g":0,"fat_g":0}}}}],'
         '"day_totals":{{"calories":0,"protein_g":0,"carbs_g":0,"fat_g":0}}}}],'
-        + ('"shopping_list":[{{"item":"...","quantity":"...","category":"...","price":"..."}}]}}' if store else
+        + ('"shopping_lists":[{{"store":"...","items":[{{"item":"...","quantity":"...","category":"...","price":"..."}}]}}]}}' if store_list else
            '"shopping_list":[{{"item":"...","quantity":"...","category":"..."}}]}}')
-        + "\n\nUse common, practical ingredients. Vary meals across days. Keep JSON compact."
+        + "\n\nVary meals across days. Keep JSON compact."
     )
 
     prompt = "\n".join(prompt_parts)

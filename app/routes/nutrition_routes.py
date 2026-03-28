@@ -638,26 +638,28 @@ async def generate_meal_plan(
     return {"ok": True, "meal_plan": plan_record}
 
 
+class FixedMealIngredient(BaseModel):
+    food_name: str
+    serving_size: str = ""
+
+
 class FixedMeal(BaseModel):
     """A meal the coach/athlete wants to lock in — AI will plan around it."""
-    day: Optional[int] = None          # specific day (1-based) or None = every day
-    meal_type: str                     # "breakfast" | "lunch" | "dinner" | "snack"
-    name: str
-    calories: Optional[float] = None
-    protein_g: Optional[float] = None
-    carbs_g: Optional[float] = None
-    fat_g: Optional[float] = None
+    day: Optional[int] = None
+    meal_type: str
+    name: str = ""
+    ingredients: list[FixedMealIngredient] = []
 
 
 class CoachMealPlanRequest(BaseModel):
     username: str
     num_days: int = 7
-    meals_per_day: int = 4             # how many meals AI generates (1-6)
-    meal_types: list[str] = []         # which meal slots AI fills; empty = auto
-    fixed_meals: list[FixedMeal] = []  # meals locked in by the coach/athlete
+    meals_per_day: int = 4
+    meal_types: list[str] = []
+    fixed_meals: list[FixedMeal] = []
     preferences: str = ""
     restrictions: str = ""
-    store: str = ""                    # e.g. "Morrisons", "Tesco", "Woolworths"
+    stores: list[str] = []             # multiple stores for separate shopping lists
 
 
 @router.post("/meal-plans/generate-for")
@@ -713,12 +715,19 @@ async def coach_generate_meal_plan(
     if req.preferences:
         pref_parts.append(req.preferences)
 
-    # Serialize fixed meals for the AI
-    fixed_meals_data = [fm.model_dump(exclude_none=True) for fm in req.fixed_meals] if req.fixed_meals else []
+    # Serialize fixed meals for the AI — include ingredient details
+    fixed_meals_data = []
+    for fm in (req.fixed_meals or []):
+        fmd = {"meal_type": fm.meal_type}
+        if fm.day: fmd["day"] = fm.day
+        if fm.name: fmd["name"] = fm.name
+        if fm.ingredients:
+            fmd["ingredients"] = [{"food_name": i.food_name, "serving_size": i.serving_size} for i in fm.ingredients if i.food_name.strip()]
+        fixed_meals_data.append(fmd)
 
     logger.info(f"Coach {coach['name']} generating meal plan for {req.username}: {req.num_days} days, {req.meals_per_day} meals/day")
     logger.info(f"Targets: {targets}")
-    logger.info(f"Fixed meals: {len(fixed_meals_data)}, Store: {req.store or 'generic'}")
+    logger.info(f"Fixed meals: {len(fixed_meals_data)}, Stores: {req.stores or ['generic']}")
     try:
         plan = await _gen(
             targets,
@@ -728,7 +737,7 @@ async def coach_generate_meal_plan(
             fixed_meals=fixed_meals_data,
             preferences=". ".join(pref_parts),
             restrictions=". ".join(diet_restrictions),
-            store=req.store,
+            stores=req.stores,
         )
         logger.info(f"Meal plan generated OK for {req.username}")
     except ValueError as e:
@@ -745,7 +754,7 @@ async def coach_generate_meal_plan(
         "assigned_to": req.username,
         **plan,
         "fixed_meals": fixed_meals_data,
-        "store": req.store,
+        "stores": req.stores,
         "created_at": _now_iso(),
         "created_by": coach["name"],
     }
