@@ -676,8 +676,6 @@ async def coach_nutrition_overview(
     athletes = []
 
     for username, info in users.items():
-        if info.get("role") == "coach":
-            continue
 
         user_data = load_user_data(username)
         nutrition = _get_nutrition(user_data)
