@@ -565,42 +565,196 @@ function ProfileModal({ username, onClose, toast }) {
 
             {/* ── Targets Section ── */}
             {section === 'targets' && (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {[
-                    ['daily_calories', 'Calories (kcal)'], ['daily_protein_g', 'Protein (g)'],
-                    ['daily_carbs_g', 'Carbs (g)'], ['daily_fat_g', 'Fat (g)'],
-                    ['daily_fiber_g', 'Fiber (g, optional)'],
-                  ].map(([key, label]) => (
-                    <div key={key} className="form-group">
-                      <label>{label}</label>
-                      <input type="number" value={targets[key]}
-                        onChange={e => setTargets(p => ({ ...p, [key]: e.target.value }))} />
-                    </div>
-                  ))}
-                </div>
-                <div className="form-group">
-                  <label>Notes</label>
-                  <input value={targets.notes}
-                    onChange={e => setTargets(p => ({ ...p, notes: e.target.value }))}
-                    placeholder="e.g. Cutting phase, increase protein" />
-                </div>
-
-                <button className="btn btn-primary" onClick={saveTargets} disabled={saving} style={{ width: '100%' }}>
-                  {saving ? 'Saving...' : `Save Targets for ${username}`}
-                </button>
-
-                {currentTargets && (
-                  <div style={{ marginTop: 16, padding: 14, background: 'var(--surface)', borderRadius: 12, fontSize: 12, color: 'var(--text-dim)', border: '1px solid var(--glass-border)' }}>
-                    Current targets set by <strong style={{ color: 'var(--accent2)' }}>{currentTargets.set_by}</strong> on {new Date(currentTargets.set_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </div>
-                )}
-              </>
+              <MacroTargetsEditor
+                targets={targets} setTargets={setTargets}
+                currentTargets={currentTargets}
+                onSave={saveTargets} saving={saving} username={username}
+              />
             )}
           </>
         )}
       </div>
     </div>
+  )
+}
+
+
+/* ── Macro Targets Editor ── */
+// Calories per gram: protein=4, carbs=4, fat=9
+function macrosToCalories(p, c, f) {
+  return Math.round((parseFloat(p) || 0) * 4 + (parseFloat(c) || 0) * 4 + (parseFloat(f) || 0) * 9)
+}
+
+function MacroTargetsEditor({ targets, setTargets, currentTargets, onSave, saving, username }) {
+  const protein = parseFloat(targets.daily_protein_g) || 0
+  const carbs = parseFloat(targets.daily_carbs_g) || 0
+  const fat = parseFloat(targets.daily_fat_g) || 0
+  const computedCal = macrosToCalories(protein, carbs, fat)
+
+  // Percentage of total calories from each macro
+  const proteinCal = protein * 4
+  const carbsCal = carbs * 4
+  const fatCal = fat * 9
+  const totalCal = proteinCal + carbsCal + fatCal
+  const pctP = totalCal > 0 ? Math.round((proteinCal / totalCal) * 100) : 0
+  const pctC = totalCal > 0 ? Math.round((carbsCal / totalCal) * 100) : 0
+  const pctF = totalCal > 0 ? Math.round((fatCal / totalCal) * 100) : 0
+
+  // Distribute calories across macros by percentage (when user changes calorie target)
+  const redistributeFromCalories = (newCal) => {
+    const cal = parseFloat(newCal) || 0
+    if (cal <= 0) return
+    // Use current percentages if available, otherwise default 30/40/30
+    const curP = pctP || 30, curC = pctC || 40, curF = pctF || 30
+    const total = curP + curC + curF
+    const rP = curP / total, rC = curC / total, rF = curF / total
+    setTargets(prev => ({
+      ...prev,
+      daily_calories: cal,
+      daily_protein_g: Math.round((cal * rP) / 4),
+      daily_carbs_g: Math.round((cal * rC) / 4),
+      daily_fat_g: Math.round((cal * rF) / 9),
+    }))
+  }
+
+  // When a macro changes, auto-update calories
+  const setMacro = (key, val) => {
+    setTargets(prev => {
+      const next = { ...prev, [key]: val }
+      const p = parseFloat(key === 'daily_protein_g' ? val : next.daily_protein_g) || 0
+      const c = parseFloat(key === 'daily_carbs_g' ? val : next.daily_carbs_g) || 0
+      const f = parseFloat(key === 'daily_fat_g' ? val : next.daily_fat_g) || 0
+      next.daily_calories = macrosToCalories(p, c, f)
+      return next
+    })
+  }
+
+  // Preset splits
+  const presets = [
+    { label: 'Balanced', p: 30, c: 40, f: 30 },
+    { label: 'High Protein', p: 40, c: 30, f: 30 },
+    { label: 'Keto', p: 25, c: 5, f: 70 },
+    { label: 'Low Fat', p: 35, c: 45, f: 20 },
+  ]
+  const applyPreset = (preset) => {
+    const cal = computedCal || 2000
+    setTargets(prev => ({
+      ...prev,
+      daily_calories: cal,
+      daily_protein_g: Math.round((cal * preset.p / 100) / 4),
+      daily_carbs_g: Math.round((cal * preset.c / 100) / 4),
+      daily_fat_g: Math.round((cal * preset.f / 100) / 9),
+    }))
+  }
+
+  // Visual bar for macro split
+  const barSegments = [
+    { pct: pctP, color: 'var(--teal)', label: 'P' },
+    { pct: pctC, color: 'var(--yellow)', label: 'C' },
+    { pct: pctF, color: 'var(--red)', label: 'F' },
+  ]
+
+  return (
+    <>
+      {/* Calorie total — computed from macros */}
+      <div className="card" style={{ textAlign: 'center', padding: 20, marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: 'var(--muted2)', fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
+          Daily Calories
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <input type="number" value={targets.daily_calories || computedCal || ''}
+            onChange={e => redistributeFromCalories(e.target.value)}
+            style={{
+              width: 120, textAlign: 'center', fontSize: 28, fontWeight: 700,
+              fontFamily: "'Space Mono', monospace",
+              background: 'transparent', border: '1px solid var(--glass-border)',
+              borderRadius: 10, padding: '4px 8px', color: 'var(--text)',
+            }}
+            placeholder="2000" />
+          <span style={{ fontSize: 14, color: 'var(--text-dim)' }}>kcal</span>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+          Computed from macros: {computedCal} kcal
+        </div>
+
+        {/* Macro split bar */}
+        {totalCal > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
+              {barSegments.map((s, i) => (
+                <div key={i} style={{ width: `${s.pct}%`, background: s.color, transition: 'width 0.3s' }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, fontSize: 11 }}>
+              <span style={{ color: 'var(--teal)' }}>P {pctP}%</span>
+              <span style={{ color: 'var(--yellow)' }}>C {pctC}%</span>
+              <span style={{ color: 'var(--red)' }}>F {pctF}%</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Preset splits */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+        {presets.map(pr => (
+          <button key={pr.label} onClick={() => applyPreset(pr)}
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: 11 }}>
+            {pr.label} ({pr.p}/{pr.c}/{pr.f})
+          </button>
+        ))}
+      </div>
+
+      {/* Macro inputs */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+        {[
+          ['daily_protein_g', 'Protein', 'var(--teal)', 4],
+          ['daily_carbs_g', 'Carbs', 'var(--yellow)', 4],
+          ['daily_fat_g', 'Fat', 'var(--red)', 9],
+        ].map(([key, label, color, calPerG]) => {
+          const grams = parseFloat(targets[key]) || 0
+          const kcal = grams * calPerG
+          return (
+            <div key={key}>
+              <div className="form-group" style={{ marginBottom: 4 }}>
+                <label>{label} (g)</label>
+                <input type="number" value={targets[key]}
+                  onChange={e => setMacro(key, e.target.value)}
+                  style={{ borderColor: color + '40' }} />
+              </div>
+              <div style={{ fontSize: 10, color, fontFamily: "'Space Mono', monospace" }}>
+                {Math.round(kcal)} kcal · {totalCal > 0 ? Math.round((kcal / totalCal) * 100) : 0}%
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Fiber & notes */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+        <div className="form-group">
+          <label>Fiber (g, optional)</label>
+          <input type="number" value={targets.daily_fiber_g}
+            onChange={e => setTargets(p => ({ ...p, daily_fiber_g: e.target.value }))} />
+        </div>
+        <div className="form-group">
+          <label>Notes</label>
+          <input value={targets.notes}
+            onChange={e => setTargets(p => ({ ...p, notes: e.target.value }))}
+            placeholder="e.g. Cutting phase, increase protein" />
+        </div>
+      </div>
+
+      <button className="btn btn-primary" onClick={onSave} disabled={saving} style={{ width: '100%' }}>
+        {saving ? 'Saving...' : `Save Targets for ${username}`}
+      </button>
+
+      {currentTargets && (
+        <div style={{ marginTop: 16, padding: 14, background: 'var(--surface)', borderRadius: 12, fontSize: 12, color: 'var(--text-dim)', border: '1px solid var(--glass-border)' }}>
+          Current targets set by <strong style={{ color: 'var(--accent2)' }}>{currentTargets.set_by}</strong> on {new Date(currentTargets.set_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </div>
+      )}
+    </>
   )
 }
 
