@@ -763,8 +763,10 @@ function MacroTargetsEditor({ targets, setTargets, currentTargets, onSave, savin
 
 /* ── Meal Plans Tab ── */
 
-const MEAL_ICONS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎' }
-const MEAL_LABELS_MAP = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
+const MEAL_ICONS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎', pre_workout: '💪', post_workout: '🥤' }
+const MEAL_LABELS_MAP = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack', pre_workout: 'Pre-Workout', post_workout: 'Post-Workout' }
+const ALL_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout']
+const STORES = ['', 'Morrisons', 'Tesco', 'Sainsburys', 'Asda', 'Aldi', 'Lidl', 'Waitrose', 'M&S', 'Woolworths', 'Checkers', 'Pick n Pay', 'Spar', 'Other']
 
 function MealPlansTab({ athletes, toast }) {
   const [selected, setSelected] = useState('')
@@ -773,15 +775,21 @@ function MealPlansTab({ athletes, toast }) {
   const [expandedPlan, setExpandedPlan] = useState(null)
   const [expandedDay, setExpandedDay] = useState(null)
 
-  // Generate form
-  const [showGenerate, setShowGenerate] = useState(false)
+  // ── Wizard state ──
+  const [wizardStep, setWizardStep] = useState(0) // 0=hidden, 1=config, 2=fixed meals, 3=generating
   const [numDays, setNumDays] = useState(7)
+  const [mealsPerDay, setMealsPerDay] = useState(4)
+  const [selectedMealTypes, setSelectedMealTypes] = useState(['breakfast', 'lunch', 'dinner', 'snack'])
   const [preferences, setPreferences] = useState('')
   const [restrictions, setRestrictions] = useState('')
+  const [store, setStore] = useState('')
+  const [customStore, setCustomStore] = useState('')
+  const [fixedMeals, setFixedMeals] = useState([])
   const [generating, setGenerating] = useState(false)
 
   const loadPlans = async (username) => {
     setSelected(username)
+    setWizardStep(0)
     if (!username) return
     setLoading(true)
     try {
@@ -791,30 +799,82 @@ function MealPlansTab({ athletes, toast }) {
     setLoading(false)
   }
 
+  const toggleMealType = (mt) => {
+    setSelectedMealTypes(prev =>
+      prev.includes(mt) ? prev.filter(t => t !== mt) : [...prev, mt]
+    )
+  }
+
+  const addFixedMeal = () => {
+    setFixedMeals(prev => [...prev, { day: null, meal_type: selectedMealTypes[0] || 'breakfast', name: '', calories: '', protein_g: '', carbs_g: '', fat_g: '' }])
+  }
+
+  const updateFixedMeal = (idx, field, value) => {
+    setFixedMeals(prev => prev.map((fm, i) => i === idx ? { ...fm, [field]: value } : fm))
+  }
+
+  const removeFixedMeal = (idx) => {
+    setFixedMeals(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const startWizard = () => {
+    setWizardStep(1)
+    setFixedMeals([])
+    setPreferences('')
+    setRestrictions('')
+    setStore('')
+    setCustomStore('')
+  }
+
   const handleGenerate = async () => {
     if (!selected) return
     setGenerating(true)
+    setWizardStep(3)
+
+    // Clean up fixed meals — only send ones with a name
+    const cleanFixed = fixedMeals
+      .filter(fm => fm.name.trim())
+      .map(fm => ({
+        day: fm.day ? parseInt(fm.day) : null,
+        meal_type: fm.meal_type,
+        name: fm.name.trim(),
+        ...(fm.calories ? { calories: parseFloat(fm.calories) } : {}),
+        ...(fm.protein_g ? { protein_g: parseFloat(fm.protein_g) } : {}),
+        ...(fm.carbs_g ? { carbs_g: parseFloat(fm.carbs_g) } : {}),
+        ...(fm.fat_g ? { fat_g: parseFloat(fm.fat_g) } : {}),
+      }))
+
+    const finalStore = store === 'Other' ? customStore : store
+
     try {
       const r = await authFetch('/api/nutrition/meal-plans/generate-for', {
         method: 'POST',
-        body: JSON.stringify({ username: selected, num_days: numDays, preferences, restrictions }),
+        body: JSON.stringify({
+          username: selected,
+          num_days: numDays,
+          meals_per_day: selectedMealTypes.length,
+          meal_types: selectedMealTypes,
+          fixed_meals: cleanFixed,
+          preferences,
+          restrictions,
+          store: finalStore,
+        }),
       })
       const res = await r.json()
       if (r.ok && res.ok) {
         setPlans(prev => [...prev, res.meal_plan])
-        setShowGenerate(false)
+        setWizardStep(0)
         setExpandedPlan(res.meal_plan.id)
-        toast(`Meal plan generated for ${selected}!`)
+        toast(`Meal plan generated and assigned to ${selected}!`)
       } else {
-        // Handle Pydantic validation errors (detail is array) and string errors
         const detail = res.detail
-        const msg = Array.isArray(detail)
-          ? detail.map(d => d.msg || d).join('; ')
-          : (typeof detail === 'string' ? detail : 'Failed to generate')
+        const msg = Array.isArray(detail) ? detail.map(d => d.msg || d).join('; ') : (typeof detail === 'string' ? detail : 'Failed to generate')
         toast(msg, 'error')
+        setWizardStep(2) // go back to review
       }
     } catch (e) {
       toast(e.message || 'Failed to generate meal plan', 'error')
+      setWizardStep(2)
     }
     setGenerating(false)
   }
@@ -822,11 +882,7 @@ function MealPlansTab({ athletes, toast }) {
   const handleDelete = async (planId) => {
     if (!confirm('Delete this meal plan?')) return
     try {
-      // Delete uses the athlete's own endpoint — coach can view but we need a workaround
-      // For now we'll use the standard delete which works for the logged-in user
-      await authFetch(`/api/nutrition/meal-plans/${planId}?username=${encodeURIComponent(selected)}`, {
-        method: 'DELETE',
-      }).then(r => r.json())
+      await authFetch(`/api/nutrition/meal-plans/${planId}?username=${encodeURIComponent(selected)}`, { method: 'DELETE' }).then(r => r.json())
       setPlans(prev => prev.filter(p => p.id !== planId))
       toast('Plan deleted')
     } catch { toast('Failed to delete', 'error') }
@@ -843,10 +899,13 @@ function MealPlansTab({ athletes, toast }) {
             <option value="">Choose athlete...</option>
             {athletes.map(a => <option key={a.username} value={a.username}>{a.username}</option>)}
           </select>
-          {selected && (
-            <button className="btn btn-primary btn-sm" onClick={() => setShowGenerate(!showGenerate)}>
-              {showGenerate ? 'Cancel' : '✨ Generate Meal Plan'}
+          {selected && wizardStep === 0 && (
+            <button className="btn btn-primary btn-sm" onClick={startWizard}>
+              + Create Meal Plan
             </button>
+          )}
+          {selected && wizardStep > 0 && (
+            <button className="btn btn-sm" onClick={() => setWizardStep(0)} style={{ opacity: 0.7 }}>Cancel</button>
           )}
         </div>
       </div>
@@ -876,179 +935,314 @@ function MealPlansTab({ athletes, toast }) {
             </div>
           )}
 
-          {/* Generate form */}
-          {showGenerate && (
+          {/* ════ WIZARD STEP 1: Configuration ════ */}
+          {wizardStep === 1 && (
             <div className="card" style={{ marginBottom: 20 }}>
               <div className="card-header">
-                <h3 style={{ fontSize: 14 }}>Generate Meal Plan for {selected}</h3>
+                <h3 style={{ fontSize: 14 }}>Step 1: Plan Configuration</h3>
+                <span className="badge" style={{ background: 'var(--surface3)', fontSize: 11 }}>for {selected}</span>
               </div>
-              <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
-                AI will create meals hitting {selected}'s macro targets, respecting their diet type and preferences.
-              </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Number of days</label>
                   <select value={numDays} onChange={e => setNumDays(parseInt(e.target.value))}>
-                    <option value={3}>3 days</option>
-                    <option value={5}>5 days</option>
-                    <option value={7}>7 days</option>
+                    {[1,2,3,4,5,6,7,10,14].map(n => <option key={n} value={n}>{n} day{n>1?'s':''}</option>)}
                   </select>
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Shopping store</label>
+                  <select value={store} onChange={e => setStore(e.target.value)}>
+                    <option value="">Generic (no store)</option>
+                    {STORES.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  {store === 'Other' && (
+                    <input value={customStore} onChange={e => setCustomStore(e.target.value)}
+                      placeholder="Enter store name" style={{ marginTop: 6 }} />
+                  )}
+                </div>
+              </div>
+
+              {/* Meal slots */}
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label>Meals per day (select which ones AI generates)</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {ALL_MEAL_TYPES.map(mt => (
+                    <button key={mt} className={`btn btn-sm ${selectedMealTypes.includes(mt) ? 'btn-primary' : ''}`}
+                      onClick={() => toggleMealType(mt)}
+                      style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4,
+                        ...(!selectedMealTypes.includes(mt) ? { opacity: 0.5, background: 'var(--surface3)' } : {}) }}>
+                      <span>{MEAL_ICONS[mt]}</span> {MEAL_LABELS_MAP[mt]}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
+                  {selectedMealTypes.length} meal{selectedMealTypes.length !== 1 ? 's' : ''} per day ·
+                  {selectedMealTypes.length * numDays} total meals across {numDays} day{numDays>1?'s':''}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Extra preferences</label>
                   <input value={preferences} onChange={e => setPreferences(e.target.value)}
-                    placeholder="e.g. Mediterranean, quick meals" />
+                    placeholder="e.g. Mediterranean, quick meals, batch cooking" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Extra restrictions</label>
                   <input value={restrictions} onChange={e => setRestrictions(e.target.value)}
-                    placeholder="e.g. no shellfish" />
+                    placeholder="e.g. no shellfish, low sodium" />
                 </div>
               </div>
 
-              <button className="btn btn-primary" onClick={handleGenerate} disabled={generating}
-                style={{ width: '100%' }}>
-                {generating ? (
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <span className="generation-spinner" style={{ width: 16, height: 16, borderWidth: 2, margin: 0 }} />
-                    Generating (this may take a moment)...
-                  </span>
-                ) : `Generate ${numDays}-Day Plan for ${selected}`}
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button className="btn btn-sm" onClick={() => setWizardStep(0)} style={{ opacity: 0.7 }}>Cancel</button>
+                <button className="btn btn-primary" onClick={() => setWizardStep(2)}
+                  disabled={selectedMealTypes.length === 0}>
+                  Next: Fixed Meals →
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Plans list */}
-          {loading ? (
-            <div style={{ color: 'var(--text-dim)', padding: 32 }}>Loading...</div>
-          ) : plans.length === 0 && !showGenerate ? (
-            <div className="card" style={{ textAlign: 'center', padding: 32 }}>
-              <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.3 }}>📅</div>
-              <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>
-                No meal plans yet for {selected}.<br />Generate one based on their macro targets.
+          {/* ════ WIZARD STEP 2: Fixed Meals ════ */}
+          {wizardStep === 2 && (
+            <div className="card" style={{ marginBottom: 20 }}>
+              <div className="card-header">
+                <h3 style={{ fontSize: 14 }}>Step 2: Your Own Meals (optional)</h3>
+                <span className="badge" style={{ background: 'var(--surface3)', fontSize: 11 }}>AI plans around these</span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
+                Add meals you or {selected} want to eat. AI will fill the remaining slots and adjust macros to hit daily targets.
+                Leave this empty to let AI plan everything.
+              </p>
+
+              {/* Fixed meals list */}
+              {fixedMeals.map((fm, idx) => (
+                <div key={idx} style={{ padding: 12, background: 'var(--surface2)', borderRadius: 8, marginBottom: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '100px 120px 1fr auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <select value={fm.day || ''} onChange={e => updateFixedMeal(idx, 'day', e.target.value || null)}
+                      style={{ fontSize: 12 }}>
+                      <option value="">Every day</option>
+                      {Array.from({ length: numDays }, (_, i) => (
+                        <option key={i+1} value={i+1}>Day {i+1}</option>
+                      ))}
+                    </select>
+                    <select value={fm.meal_type} onChange={e => updateFixedMeal(idx, 'meal_type', e.target.value)}
+                      style={{ fontSize: 12 }}>
+                      {selectedMealTypes.map(mt => (
+                        <option key={mt} value={mt}>{MEAL_LABELS_MAP[mt]}</option>
+                      ))}
+                    </select>
+                    <input value={fm.name} onChange={e => updateFixedMeal(idx, 'name', e.target.value)}
+                      placeholder="Meal name, e.g. Overnight oats with banana" style={{ fontSize: 12 }} />
+                    <button onClick={() => removeFixedMeal(idx)}
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>×</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                    <input type="number" value={fm.calories} onChange={e => updateFixedMeal(idx, 'calories', e.target.value)}
+                      placeholder="kcal (opt)" style={{ fontSize: 11 }} />
+                    <input type="number" value={fm.protein_g} onChange={e => updateFixedMeal(idx, 'protein_g', e.target.value)}
+                      placeholder="Protein g" style={{ fontSize: 11 }} />
+                    <input type="number" value={fm.carbs_g} onChange={e => updateFixedMeal(idx, 'carbs_g', e.target.value)}
+                      placeholder="Carbs g" style={{ fontSize: 11 }} />
+                    <input type="number" value={fm.fat_g} onChange={e => updateFixedMeal(idx, 'fat_g', e.target.value)}
+                      placeholder="Fat g" style={{ fontSize: 11 }} />
+                  </div>
+                </div>
+              ))}
+
+              <button className="btn btn-sm" onClick={addFixedMeal}
+                style={{ marginBottom: 16, fontSize: 12, width: '100%', border: '1px dashed var(--text-muted)', background: 'transparent', color: 'var(--text-dim)' }}>
+                + Add a fixed meal
+              </button>
+
+              {/* Summary */}
+              <div style={{ padding: 12, background: 'var(--surface1)', borderRadius: 8, marginBottom: 16, fontSize: 12 }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>Plan summary</div>
+                <div style={{ color: 'var(--text-dim)' }}>
+                  {numDays} day{numDays>1?'s':''} · {selectedMealTypes.length} meals/day ({selectedMealTypes.map(mt => MEAL_LABELS_MAP[mt]).join(', ')})
+                  {fixedMeals.filter(f => f.name.trim()).length > 0 && ` · ${fixedMeals.filter(f => f.name.trim()).length} fixed meal${fixedMeals.filter(f => f.name.trim()).length > 1 ? 's' : ''}`}
+                  {(store || customStore) && ` · Shopping list for ${store === 'Other' ? customStore : store}`}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <button className="btn btn-sm" onClick={() => setWizardStep(1)}>← Back</button>
+                <button className="btn btn-primary" onClick={handleGenerate} disabled={generating}>
+                  Generate & Assign to {selected}
+                </button>
               </div>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {plans.slice().reverse().map(plan => {
-                const isExpanded = expandedPlan === plan.id
-                const days = plan.days || []
+          )}
 
-                return (
-                  <div key={plan.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                    {/* Plan header */}
-                    <div className="program-header" onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}>
-                      <div>
-                        <h3 style={{ fontSize: 15 }}>{days.length}-Day Meal Plan</h3>
-                        <div className="meta">
-                          Created {new Date(plan.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          {plan.created_by && ` by ${plan.created_by}`}
-                        </div>
-                      </div>
-                      <div className="drill-toggle">{isExpanded ? '−' : '+'}</div>
-                    </div>
-
-                    {/* Expanded plan */}
-                    {isExpanded && (
-                      <div style={{ padding: '0 20px 20px' }}>
-                        {days.map((day, di) => {
-                          const dayKey = `${plan.id}-${di}`
-                          const dayExpanded = expandedDay === dayKey
-                          const dt = day.day_totals || {}
-
-                          return (
-                            <div key={di} className="drill-day" style={{ marginBottom: 6 }}>
-                              <div className="drill-day-header" onClick={() => setExpandedDay(dayExpanded ? null : dayKey)}>
-                                <div className="drill-toggle drill-toggle-sm">{dayExpanded ? '−' : '+'}</div>
-                                <div className="drill-day-title">
-                                  <span>Day {day.day || di + 1}</span>
-                                  <span className="drill-day-summary">
-                                    {Math.round(dt.calories || 0)} kcal · P: {Math.round(dt.protein_g || 0)}g · C: {Math.round(dt.carbs_g || 0)}g · F: {Math.round(dt.fat_g || 0)}g
-                                  </span>
-                                </div>
-                              </div>
-
-                              {dayExpanded && (
-                                <div className="drill-day-body">
-                                  {(day.meals || []).map((meal, mi) => (
-                                    <div key={mi} style={{ marginBottom: mi < (day.meals || []).length - 1 ? 14 : 0 }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                        <span style={{ fontSize: 16 }}>{MEAL_ICONS[meal.meal_type] || '🍽️'}</span>
-                                        <span className="badge badge-coach" style={{ textTransform: 'capitalize' }}>
-                                          {MEAL_LABELS_MAP[meal.meal_type] || meal.meal_type}
-                                        </span>
-                                        <span style={{ fontWeight: 600, fontSize: 13 }}>{meal.name}</span>
-                                      </div>
-                                      {meal.meal_macros && (
-                                        <div style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 28, marginBottom: 4, fontFamily: "'Space Mono', monospace" }}>
-                                          {Math.round(meal.meal_macros.calories || 0)} kcal ·
-                                          P: {Math.round(meal.meal_macros.protein_g || 0)}g ·
-                                          C: {Math.round(meal.meal_macros.carbs_g || 0)}g ·
-                                          F: {Math.round(meal.meal_macros.fat_g || 0)}g
-                                          {meal.prep_time_min && ` · ${meal.prep_time_min} min`}
-                                        </div>
-                                      )}
-                                      {meal.ingredients && (
-                                        <div style={{ marginLeft: 28, marginBottom: 4 }}>
-                                          {meal.ingredients.map((ing, ii) => (
-                                            <span key={ii} style={{
-                                              display: 'inline-block', padding: '2px 8px', marginRight: 4, marginBottom: 4,
-                                              background: 'var(--surface3)', borderRadius: 6, fontSize: 11, color: 'var(--text-dim)',
-                                            }}>
-                                              {ing.food_name} {ing.serving_size && `(${ing.serving_size})`}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      )}
-                                      {meal.instructions && (
-                                        <div style={{ fontSize: 12, color: 'var(--text-dim)', marginLeft: 28, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                                          {meal.instructions}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-
-                        {/* Shopping list */}
-                        {plan.shopping_list?.length > 0 && (
-                          <div className="card" style={{ marginTop: 12, padding: 16 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
-                              </svg>
-                              Shopping List
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                              {plan.shopping_list.map((item, i) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                  <span>{item.item}</span>
-                                  <span style={{ color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace", fontSize: 11 }}>
-                                    {item.quantity}
-                                    {item.category && <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>({item.category})</span>}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Delete button */}
-                        <div style={{ marginTop: 12, textAlign: 'right' }}>
-                          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(plan.id)}>
-                            Delete Plan
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+          {/* ════ WIZARD STEP 3: Generating ════ */}
+          {wizardStep === 3 && (
+            <div className="card" style={{ textAlign: 'center', padding: 48, marginBottom: 20 }}>
+              <div className="generation-spinner" style={{ width: 32, height: 32, borderWidth: 3, margin: '0 auto 16px' }} />
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Generating meal plan for {selected}...</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                AI is creating {numDays * selectedMealTypes.length} meals hitting their macro targets.
+                {(store || customStore) && ` Shopping list tailored for ${store === 'Other' ? customStore : store}.`}
+                {' '}This may take up to 2 minutes.
+              </div>
             </div>
+          )}
+
+          {/* ════ Plans list ════ */}
+          {wizardStep === 0 && (
+            loading ? (
+              <div style={{ color: 'var(--text-dim)', padding: 32 }}>Loading...</div>
+            ) : plans.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: 32 }}>
+                <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.3 }}>📅</div>
+                <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+                  No meal plans yet for {selected}.<br />Create one using the button above.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {plans.slice().reverse().map(plan => {
+                  const isExpanded = expandedPlan === plan.id
+                  const days = plan.days || []
+
+                  return (
+                    <div key={plan.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                      {/* Plan header */}
+                      <div className="program-header" onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <h3 style={{ fontSize: 15 }}>{days.length}-Day Meal Plan</h3>
+                            {plan.assigned_to && (
+                              <span className="badge badge-coach" style={{ fontSize: 10 }}>
+                                Assigned to {plan.assigned_to}
+                              </span>
+                            )}
+                            {plan.store && (
+                              <span className="badge" style={{ fontSize: 10, background: 'var(--surface3)' }}>
+                                🛒 {plan.store}
+                              </span>
+                            )}
+                          </div>
+                          <div className="meta">
+                            Created {new Date(plan.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {plan.created_by && ` by ${plan.created_by}`}
+                            {plan.fixed_meals?.length > 0 && ` · ${plan.fixed_meals.length} fixed meal${plan.fixed_meals.length > 1 ? 's' : ''}`}
+                          </div>
+                        </div>
+                        <div className="drill-toggle">{isExpanded ? '−' : '+'}</div>
+                      </div>
+
+                      {/* Expanded plan */}
+                      {isExpanded && (
+                        <div style={{ padding: '0 20px 20px' }}>
+                          {days.map((day, di) => {
+                            const dayKey = `${plan.id}-${di}`
+                            const dayExpanded = expandedDay === dayKey
+                            const dt = day.day_totals || {}
+
+                            return (
+                              <div key={di} className="drill-day" style={{ marginBottom: 6 }}>
+                                <div className="drill-day-header" onClick={() => setExpandedDay(dayExpanded ? null : dayKey)}>
+                                  <div className="drill-toggle drill-toggle-sm">{dayExpanded ? '−' : '+'}</div>
+                                  <div className="drill-day-title">
+                                    <span>Day {day.day || di + 1}</span>
+                                    <span className="drill-day-summary">
+                                      {Math.round(dt.calories || 0)} kcal · P: {Math.round(dt.protein_g || 0)}g · C: {Math.round(dt.carbs_g || 0)}g · F: {Math.round(dt.fat_g || 0)}g
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {dayExpanded && (
+                                  <div className="drill-day-body">
+                                    {(day.meals || []).map((meal, mi) => {
+                                      // Check if this meal was a fixed meal
+                                      const isFixed = plan.fixed_meals?.some(fm =>
+                                        fm.meal_type === meal.meal_type && fm.name === meal.name &&
+                                        (!fm.day || fm.day === (day.day || di + 1))
+                                      )
+                                      return (
+                                        <div key={mi} style={{ marginBottom: mi < (day.meals || []).length - 1 ? 14 : 0 }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                            <span style={{ fontSize: 16 }}>{MEAL_ICONS[meal.meal_type] || '🍽️'}</span>
+                                            <span className="badge badge-coach" style={{ textTransform: 'capitalize' }}>
+                                              {MEAL_LABELS_MAP[meal.meal_type] || meal.meal_type}
+                                            </span>
+                                            <span style={{ fontWeight: 600, fontSize: 13 }}>{meal.name}</span>
+                                            {isFixed && <span className="badge" style={{ fontSize: 9, background: 'var(--teal)', color: '#000' }}>Your meal</span>}
+                                          </div>
+                                          {meal.meal_macros && (
+                                            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 28, marginBottom: 4, fontFamily: "'Space Mono', monospace" }}>
+                                              {Math.round(meal.meal_macros.calories || 0)} kcal ·
+                                              P: {Math.round(meal.meal_macros.protein_g || 0)}g ·
+                                              C: {Math.round(meal.meal_macros.carbs_g || 0)}g ·
+                                              F: {Math.round(meal.meal_macros.fat_g || 0)}g
+                                              {meal.prep_time_min && ` · ${meal.prep_time_min} min`}
+                                            </div>
+                                          )}
+                                          {meal.ingredients && (
+                                            <div style={{ marginLeft: 28, marginBottom: 4 }}>
+                                              {meal.ingredients.map((ing, ii) => (
+                                                <span key={ii} style={{
+                                                  display: 'inline-block', padding: '2px 8px', marginRight: 4, marginBottom: 4,
+                                                  background: 'var(--surface3)', borderRadius: 6, fontSize: 11, color: 'var(--text-dim)',
+                                                }}>
+                                                  {ing.food_name} {ing.serving_size && `(${ing.serving_size})`}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          )}
+                                          {meal.instructions && (
+                                            <div style={{ fontSize: 12, color: 'var(--text-dim)', marginLeft: 28, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                              {meal.instructions}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+
+                          {/* Shopping list */}
+                          {plan.shopping_list?.length > 0 && (
+                            <div className="card" style={{ marginTop: 12, padding: 16 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+                                </svg>
+                                Shopping List{plan.store && ` — ${plan.store}`}
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                                {plan.shopping_list.map((item, i) => (
+                                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                    <span>{item.item}</span>
+                                    <span style={{ color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace", fontSize: 11 }}>
+                                      {item.quantity}
+                                      {item.price && <span style={{ color: 'var(--teal)', marginLeft: 6 }}>{item.price}</span>}
+                                      {item.category && <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>({item.category})</span>}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Delete button */}
+                          <div style={{ marginTop: 12, textAlign: 'right' }}>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDelete(plan.id)}>
+                              Delete Plan
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
           )}
         </>
       )}

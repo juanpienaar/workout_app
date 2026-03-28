@@ -638,11 +638,26 @@ async def generate_meal_plan(
     return {"ok": True, "meal_plan": plan_record}
 
 
+class FixedMeal(BaseModel):
+    """A meal the coach/athlete wants to lock in — AI will plan around it."""
+    day: Optional[int] = None          # specific day (1-based) or None = every day
+    meal_type: str                     # "breakfast" | "lunch" | "dinner" | "snack"
+    name: str
+    calories: Optional[float] = None
+    protein_g: Optional[float] = None
+    carbs_g: Optional[float] = None
+    fat_g: Optional[float] = None
+
+
 class CoachMealPlanRequest(BaseModel):
     username: str
     num_days: int = 7
+    meals_per_day: int = 4             # how many meals AI generates (1-6)
+    meal_types: list[str] = []         # which meal slots AI fills; empty = auto
+    fixed_meals: list[FixedMeal] = []  # meals locked in by the coach/athlete
     preferences: str = ""
     restrictions: str = ""
+    store: str = ""                    # e.g. "Morrisons", "Tesco", "Woolworths"
 
 
 @router.post("/meal-plans/generate-for")
@@ -698,11 +713,23 @@ async def coach_generate_meal_plan(
     if req.preferences:
         pref_parts.append(req.preferences)
 
-    logger.info(f"Coach {coach['name']} generating meal plan for {req.username}: {req.num_days} days")
+    # Serialize fixed meals for the AI
+    fixed_meals_data = [fm.model_dump(exclude_none=True) for fm in req.fixed_meals] if req.fixed_meals else []
+
+    logger.info(f"Coach {coach['name']} generating meal plan for {req.username}: {req.num_days} days, {req.meals_per_day} meals/day")
     logger.info(f"Targets: {targets}")
-    logger.info(f"Preferences: {'. '.join(pref_parts)}, Restrictions: {'. '.join(diet_restrictions)}")
+    logger.info(f"Fixed meals: {len(fixed_meals_data)}, Store: {req.store or 'generic'}")
     try:
-        plan = await _gen(targets, req.num_days, ". ".join(pref_parts), ". ".join(diet_restrictions))
+        plan = await _gen(
+            targets,
+            num_days=req.num_days,
+            meals_per_day=req.meals_per_day,
+            meal_types=req.meal_types or [],
+            fixed_meals=fixed_meals_data,
+            preferences=". ".join(pref_parts),
+            restrictions=". ".join(diet_restrictions),
+            store=req.store,
+        )
         logger.info(f"Meal plan generated OK for {req.username}")
     except ValueError as e:
         logger.error(f"Meal plan generation ValueError for {req.username}: {e}")
@@ -715,7 +742,10 @@ async def coach_generate_meal_plan(
 
     plan_record = {
         "id": f"plan_{uuid.uuid4().hex[:8]}",
+        "assigned_to": req.username,
         **plan,
+        "fixed_meals": fixed_meals_data,
+        "store": req.store,
         "created_at": _now_iso(),
         "created_by": coach["name"],
     }
