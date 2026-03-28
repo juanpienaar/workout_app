@@ -123,6 +123,20 @@ class RecipeSaveRequest(BaseModel):
     servings: int = 1
     tags: list[str] = []
 
+class NutritionProfile(BaseModel):
+    """Athlete's nutrition profile — drives calorie/macro calculations."""
+    goal: str = "maintain"  # "lose" | "maintain" | "gain"
+    current_weight_kg: Optional[float] = None
+    target_weight_kg: Optional[float] = None
+    target_weeks: Optional[int] = None  # weeks to reach target
+    height_cm: Optional[float] = None
+    age: Optional[int] = None
+    sex: str = "male"  # "male" | "female"
+    activity_level: str = "moderate"  # "sedentary" | "light" | "moderate" | "active" | "very_active"
+    diet_type: str = "none"  # "none" | "vegetarian" | "vegan" | "pescatarian" | "keto" | "banting" | "paleo" | "no_red_meat" | "halal" | "kosher"
+    allergies: str = ""  # free text
+    additional_preferences: str = ""  # free text
+
 class MealPlanGenerateRequest(BaseModel):
     num_days: int = 7
     preferences: str = ""

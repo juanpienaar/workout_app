@@ -15,6 +15,7 @@ from ..models import (
     NutritionTargets, SetNutritionTargetsRequest, FoodEntry,
     DailyLogRequest, FoodSearchRequest, RecipeSaveRequest,
     MealPlanGenerateRequest, RecipeFromIngredientsRequest,
+    NutritionProfile,
 )
 
 router = APIRouter(prefix="/api/nutrition", tags=["nutrition"])
@@ -95,6 +96,184 @@ async def set_targets(
     }
     save_user_data(req.username, user_data)
     return {"ok": True, "targets": nutrition["targets"]}
+
+
+# ────────────────────────────────────────────
+#  Nutrition profile (goal, weight, diet, etc.)
+# ────────────────────────────────────────────
+
+ACTIVITY_MULTIPLIERS = {
+    "sedentary": 1.2,
+    "light": 1.375,
+    "moderate": 1.55,
+    "active": 1.725,
+    "very_active": 1.9,
+}
+
+DIET_LABELS = {
+    "none": "No restrictions",
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "pescatarian": "Pescatarian",
+    "keto": "Keto",
+    "banting": "Banting / Low-carb",
+    "paleo": "Paleo",
+    "no_red_meat": "No red meat",
+    "halal": "Halal",
+    "kosher": "Kosher",
+}
+
+
+def _calc_bmr(weight_kg: float, height_cm: float, age: int, sex: str) -> float:
+    """Mifflin-St Jeor BMR equation."""
+    if sex == "female":
+        return 10 * weight_kg + 6.25 * height_cm - 5 * age - 161
+    return 10 * weight_kg + 6.25 * height_cm - 5 * age + 5
+
+
+def _calc_tdee(profile: dict) -> dict | None:
+    """Calculate TDEE and recommended macros from a nutrition profile.
+
+    Returns dict with tdee, recommended_calories, deficit/surplus, and macro split.
+    """
+    w = profile.get("current_weight_kg")
+    h = profile.get("height_cm")
+    age = profile.get("age")
+    if not all([w, h, age]):
+        return None
+
+    bmr = _calc_bmr(w, h, age, profile.get("sex", "male"))
+    activity = profile.get("activity_level", "moderate")
+    tdee = bmr * ACTIVITY_MULTIPLIERS.get(activity, 1.55)
+
+    goal = profile.get("goal", "maintain")
+    target_w = profile.get("target_weight_kg")
+    target_weeks = profile.get("target_weeks")
+
+    # Calculate deficit/surplus
+    daily_adjustment = 0
+    if goal in ("lose", "gain") and target_w and target_weeks and target_weeks > 0:
+        weight_diff = target_w - w  # negative for loss
+        # 1 kg body weight ≈ 7700 kcal
+        total_cal = weight_diff * 7700
+        daily_adjustment = total_cal / (target_weeks * 7)
+        # Clamp to safe range: max 1000 kcal deficit/surplus per day
+        daily_adjustment = max(-1000, min(1000, daily_adjustment))
+    elif goal == "lose":
+        daily_adjustment = -500  # default moderate deficit
+    elif goal == "gain":
+        daily_adjustment = 400  # default lean bulk surplus
+
+    recommended = round(tdee + daily_adjustment)
+    # Floor at 1200 kcal for safety
+    recommended = max(1200, recommended)
+
+    # Macro split based on diet type
+    diet = profile.get("diet_type", "none")
+    if diet in ("keto", "banting"):
+        # High fat, very low carb
+        protein_pct, carb_pct, fat_pct = 0.25, 0.05, 0.70
+    elif diet == "paleo":
+        protein_pct, carb_pct, fat_pct = 0.30, 0.30, 0.40
+    elif goal == "gain":
+        protein_pct, carb_pct, fat_pct = 0.25, 0.45, 0.30
+    elif goal == "lose":
+        protein_pct, carb_pct, fat_pct = 0.35, 0.30, 0.35
+    else:
+        protein_pct, carb_pct, fat_pct = 0.30, 0.40, 0.30
+
+    return {
+        "bmr": round(bmr),
+        "tdee": round(tdee),
+        "daily_adjustment": round(daily_adjustment),
+        "recommended_calories": recommended,
+        "recommended_protein_g": round((recommended * protein_pct) / 4),
+        "recommended_carbs_g": round((recommended * carb_pct) / 4),
+        "recommended_fat_g": round((recommended * fat_pct) / 9),
+        "macro_split": {"protein_pct": round(protein_pct * 100), "carbs_pct": round(carb_pct * 100), "fat_pct": round(fat_pct * 100)},
+    }
+
+
+@router.get("/profile")
+async def get_profile(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None),
+):
+    """Get athlete's nutrition profile."""
+    target_user = username or current_user["name"]
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only view own profile")
+
+    user_data = load_user_data(target_user)
+    nutrition = _get_nutrition(user_data)
+    profile = nutrition.get("profile")
+    calc = _calc_tdee(profile) if profile else None
+    return {"ok": True, "profile": profile, "calculated": calc}
+
+
+@router.post("/profile")
+async def save_profile(
+    profile: NutritionProfile,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Save athlete's nutrition profile (athlete sets their own, or coach can via targets tab)."""
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+    nutrition["profile"] = {
+        **profile.model_dump(),
+        "updated_at": _now_iso(),
+    }
+    save_user_data(current_user["name"], user_data)
+    calc = _calc_tdee(nutrition["profile"])
+    return {"ok": True, "profile": nutrition["profile"], "calculated": calc}
+
+
+class SetProfileRequest(BaseModel):
+    username: str
+    profile: NutritionProfile
+
+
+@router.post("/profile/set")
+async def coach_set_profile(
+    req: SetProfileRequest,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Coach sets an athlete's nutrition profile."""
+    users = load_users()
+    if req.username not in users:
+        raise HTTPException(404, "Athlete not found")
+
+    user_data = load_user_data(req.username)
+    nutrition = _get_nutrition(user_data)
+    nutrition["profile"] = {
+        **req.profile.model_dump(),
+        "set_by": coach["name"],
+        "updated_at": _now_iso(),
+    }
+    save_user_data(req.username, user_data)
+    calc = _calc_tdee(nutrition["profile"])
+    return {"ok": True, "profile": nutrition["profile"], "calculated": calc}
+
+
+@router.get("/calculate")
+async def calculate_tdee(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None),
+):
+    """Calculate TDEE and recommended macros from stored profile."""
+    target_user = username or current_user["name"]
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only view own calculations")
+
+    user_data = load_user_data(target_user)
+    nutrition = _get_nutrition(user_data)
+    profile = nutrition.get("profile")
+    if not profile:
+        raise HTTPException(400, "No nutrition profile set. Please complete your profile first.")
+    calc = _calc_tdee(profile)
+    if not calc:
+        raise HTTPException(400, "Missing weight, height, or age in profile.")
+    return {"ok": True, "profile": profile, "calculated": calc}
 
 
 # ────────────────────────────────────────────
@@ -372,11 +551,50 @@ async def generate_meal_plan(
 
     user_data = load_user_data(current_user["name"])
     nutrition = _get_nutrition(user_data)
-    targets = nutrition.get("targets")
-    if not targets:
-        raise HTTPException(400, "No nutrition targets set. Ask your coach to set targets first.")
 
-    plan = await generate_meal_plan(targets, req.num_days, req.preferences, req.restrictions)
+    # Use targets if set, otherwise calculate from profile
+    targets = nutrition.get("targets")
+    profile = nutrition.get("profile")
+    calc = _calc_tdee(profile) if profile else None
+
+    if not targets and calc:
+        # Auto-derive targets from calculated TDEE
+        targets = {
+            "daily_calories": calc["recommended_calories"],
+            "daily_protein_g": calc["recommended_protein_g"],
+            "daily_carbs_g": calc["recommended_carbs_g"],
+            "daily_fat_g": calc["recommended_fat_g"],
+        }
+    if not targets:
+        raise HTTPException(400, "No nutrition targets set. Complete your profile or ask your coach to set targets.")
+
+    # Build restrictions from profile diet type + request overrides
+    diet_restrictions = []
+    if profile:
+        dt = profile.get("diet_type", "none")
+        if dt != "none":
+            diet_restrictions.append(DIET_LABELS.get(dt, dt))
+        if profile.get("allergies"):
+            diet_restrictions.append(f"Allergies: {profile['allergies']}")
+        if profile.get("additional_preferences"):
+            diet_restrictions.append(profile["additional_preferences"])
+    if req.restrictions:
+        diet_restrictions.append(req.restrictions)
+    combined_restrictions = ". ".join(diet_restrictions)
+
+    # Build preference context from profile
+    pref_parts = []
+    if profile:
+        goal = profile.get("goal", "maintain")
+        if goal == "lose":
+            pref_parts.append("Focus on high-protein, satiating meals for weight loss")
+        elif goal == "gain":
+            pref_parts.append("Include calorie-dense, nutrient-rich meals for muscle gain")
+    if req.preferences:
+        pref_parts.append(req.preferences)
+    combined_prefs = ". ".join(pref_parts)
+
+    plan = await generate_meal_plan(targets, req.num_days, combined_prefs, combined_restrictions)
 
     plan_record = {
         "id": f"plan_{uuid.uuid4().hex[:8]}",
