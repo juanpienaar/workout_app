@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, Component } from 'react'
+import React, { useState, useEffect, useRef, Component } from 'react'
 import { API } from '../api'
 import { useToast } from '../components/Toast'
 import MuscleHeatmap from '../components/MuscleHeatmap'

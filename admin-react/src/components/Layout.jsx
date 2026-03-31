@@ -10,7 +10,6 @@ const mainPages = [
   { id: 'settings', icon: 'settings', label: 'Settings' },
 ]
 
-const toolPages = []
 
 export default function Layout() {
   const navigate = useNavigate()

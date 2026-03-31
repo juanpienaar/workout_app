@@ -1,5 +1,6 @@
 """Nutrition routes — food logging, macro tracking, recipes, meal plans."""
 
+import copy
 import json
 import logging
 import uuid
@@ -1073,7 +1074,6 @@ async def assign_nutrition_plan_to_athlete(
         if not plan:
             raise HTTPException(404, "Nutrition plan not found")
         # Copy plan into athlete's meal_plans and set as active
-        import copy
         athlete_plan = copy.deepcopy(plan)
         athlete_plan["assigned_from"] = plan["id"]
         athlete_plan["assigned_at"] = _now_iso()
