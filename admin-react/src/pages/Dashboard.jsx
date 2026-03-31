@@ -418,8 +418,8 @@ function ExerciseAutocomplete({ value, onChange, placeholder, suggestions }) {
   )
 }
 
-function CalendarOverview({ athletes, userData, setUserData, loading, toast, onRefresh }) {
-  const [calAthlete, setCalAthlete] = useState('')
+function CalendarOverview({ athletes, userData, setUserData, loading, toast, onRefresh, defaultAthlete }) {
+  const [calAthlete, setCalAthlete] = useState(defaultAthlete || '')
   const [expandedDayKey, setExpandedDayKey] = useState(null) // dateStr of expanded day
   const [editingEx, setEditingEx] = useState(null)
   const [editVal, setEditVal] = useState('')
@@ -1747,29 +1747,36 @@ function ExerciseHistoryTab({ athletes, userData }) {
 
 export default function Dashboard() {
   const toast = useToast()
-  const [activeTab, setActiveTab] = useState('overview')
   const [users, setUsers] = useState([])
   const [userData, setUserData] = useState({})
   const [selected, setSelected] = useState(null)
-  const [expandedDay, setExpandedDay] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [debugInfo, setDebugInfo] = useState(null)
-
-  // Users tab state
   const [search, setSearch] = useState('')
+  const [subTab, setSubTab] = useState('admin') // admin | exercise | nutrition | messages
+
+  // Admin sub-tab state
   const [modal, setModal] = useState(null)
   const [programs, setPrograms] = useState([])
+  const [nutritionPlans, setNutritionPlans] = useState([])
   const [form, setForm] = useState({})
   const [twUser, setTwUser] = useState(null)
 
-  // Messages tab state
-  const [selectedUser, setSelectedUser] = useState(null)
+  // Nutrition sub-tab state
+  const [athleteNutritionDetail, setAthleteNutritionDetail] = useState(null)
+
+  // Messages sub-tab state
   const [messages, setMessages] = useState([])
   const [workoutDays, setWorkoutDays] = useState([])
   const [messagesLoading, setMessagesLoading] = useState(false)
   const [composeOpen, setComposeOpen] = useState(false)
   const [msgForm, setMsgForm] = useState({ message: '', day_key: '', source: 'coach', send_whatsapp: false })
   const [sending, setSending] = useState(false)
+
+  // Legacy compatibility aliases
+  const selectedUser = selected
+  const expandedDay = null
+  const debugInfo = null
+  const activeTab = 'overview'
 
   // Data loading function — reusable for initial load and refresh
   async function loadAllData(silent = false) {
@@ -1820,7 +1827,7 @@ export default function Dashboard() {
     }
   }, [activeTab])
 
-  // Load programs for Athletes tab
+  // Load programs and nutrition plans for admin sub-tab
   useEffect(() => {
     async function loadPrograms() {
       try {
@@ -1828,89 +1835,48 @@ export default function Dashboard() {
         setPrograms(pd.programs.map(p => p.name))
       } catch { }
     }
+    async function loadNP() {
+      try {
+        const d = await API.listNutritionPlans()
+        setNutritionPlans(d.plans || [])
+      } catch { }
+    }
     loadPrograms()
+    loadNP()
   }, [])
 
-  // Load messages for selected user
+  // Load messages when switching to messages sub-tab
   useEffect(() => {
-    if (activeTab === 'messages' && selectedUser) {
-      selectUserMessages(selectedUser)
+    if (subTab === 'messages' && selected) {
+      selectUserMessages(selected)
     }
-  }, [activeTab, selectedUser])
+  }, [subTab, selected])
 
-  async function fetchDebugInfo() {
-    try {
-      const r = await authFetch('/api/admin/debug/data-status')
-      const d = await r.json()
-      setDebugInfo(d)
-    } catch (e) {
-      setDebugInfo({ error: e.message })
+  // Load nutrition plan detail when switching to nutrition sub-tab
+  useEffect(() => {
+    if (subTab === 'nutrition' && selected) {
+      loadAthleteNutrition(selected)
     }
+  }, [subTab, selected])
+
+  async function loadAthleteNutrition(username) {
+    setAthleteNutritionDetail(null)
+    try {
+      const r = await authFetch(`/api/nutrition/meal-plans?username=${encodeURIComponent(username)}`)
+      const d = await r.json()
+      // Find the active meal plan
+      const overview = await authFetch('/api/nutrition/coach/overview').then(r2 => r2.json())
+      const athleteInfo = (overview.athletes || []).find(a => a.username === username)
+      const activePlanId = athleteInfo?.active_meal_plan?.id
+      const plans = d.meal_plans || []
+      const activePlan = activePlanId ? plans.find(p => p.id === activePlanId) : (plans.length > 0 ? plans[plans.length - 1] : null)
+      setAthleteNutritionDetail(activePlan)
+    } catch { }
   }
 
-  const athletes = users
+  // (Legacy computed values removed — now computed inline in render)
 
-  const summaries = useMemo(() => {
-    const m = {}
-    for (const u of athletes) m[u.username] = computeWeekSummary(userData[u.username])
-    return m
-  }, [athletes, userData])
-
-  const data = selected ? userData[selected] : null
-  const userInfo = selected ? users.find(u => u.username === selected) : null
-
-  const logEntries = useMemo(() => {
-    if (!data?.workout_logs) return []
-    return Object.entries(data.workout_logs)
-      .filter(([k]) => !k.startsWith('cardio_') && !k.startsWith('skips_'))
-      .map(([dayKey, dayData]) => {
-        const meta = dayData.meta || {}
-        const exData = dayData.data || {}
-        return {
-          dayKey,
-          date: meta.date || '',
-          week: meta.week || meta.weekNum || '',
-          day: meta.day || meta.dayNum || '',
-          label: meta.label || '',
-          tonnage: computeTonnage(exData),
-          exercises: Object.keys(exData).length,
-          completion: getCompletionPct(exData),
-          exData,
-          savedAt: dayData.saved_at || '',
-        }
-      })
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-  }, [data])
-
-  const weekGroups = useMemo(() => {
-    const groups = {}
-    for (const e of logEntries) {
-      const wk = e.week || '?'
-      if (!groups[wk]) groups[wk] = []
-      groups[wk].push(e)
-    }
-    return Object.entries(groups).sort(([a], [b]) => parseInt(b) - parseInt(a))
-  }, [logEntries])
-
-  const totalTonnage = logEntries.reduce((s, e) => s + e.tonnage, 0)
-  const totalSessions = logEntries.length
-  const avgCompletion = totalSessions > 0 ? Math.round(logEntries.reduce((s, e) => s + e.completion, 0) / totalSessions) : 0
-  const whoop = data?.whoop_snapshots || []
-  const latestWhoop = whoop.length > 0 ? whoop[whoop.length - 1] : null
-
-  const chartData = useMemo(() => {
-    return [...logEntries].reverse().slice(-14).map(e => ({
-      date: e.date ? e.date.slice(5) : e.dayKey,
-      tonnage: e.tonnage,
-    }))
-  }, [logEntries])
-
-  // Athletes tab functions
-  const filtered = users.filter(u =>
-    u.username.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  )
-
+  // Athlete management functions
   function openAdd() {
     setForm({ username: '', email: '', password: '', program: '', startDate: '', role: 'athlete', athlete_prompt: '' })
     setModal({ mode: 'add' })
@@ -1952,7 +1918,6 @@ export default function Dashboard() {
 
   // Messages tab functions
   async function selectUserMessages(name) {
-    setSelectedUser(name)
     setMessagesLoading(true)
     try {
       const [msgs, userData] = await Promise.all([
@@ -2012,12 +1977,25 @@ export default function Dashboard() {
     } catch { return iso }
   }
 
-  const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'athletes', label: 'Athletes' },
-    { id: 'exercise-history', label: 'Exercise History' },
+  const athletes = users.filter(u => u.role !== 'coach')
+  const filtered = athletes.filter(u =>
+    u.username.toLowerCase().includes(search.toLowerCase()) ||
+    (u.email || '').toLowerCase().includes(search.toLowerCase())
+  )
+  const selectedInfo = selected ? users.find(u => u.username === selected) : null
+  const selectedData = selected ? userData[selected] : null
+  const selectedSummary = selected ? computeWeekSummary(selectedData) : null
+
+  const subTabs = [
+    { id: 'admin', label: 'Admin' },
+    { id: 'exercise', label: 'Exercise' },
+    { id: 'nutrition', label: 'Nutrition' },
     { id: 'messages', label: 'Messages' },
   ]
+
+  // Nutrition plan display helpers
+  const NP_MEAL_ICONS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎', pre_workout: '💪', post_workout: '🥤' }
+  const NP_MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack', pre_workout: 'Pre-Workout', post_workout: 'Post-Workout' }
 
   return (
     <div>
@@ -2025,142 +2003,290 @@ export default function Dashboard() {
         <Icon name="dashboard" size={22} style={{ color: 'var(--accent2)' }} /> Dashboard
       </div>
 
-      <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+      {loading ? (
+        <div style={{ color: 'var(--text-dim)', padding: 48, textAlign: 'center' }}>Loading...</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 16, minHeight: 500 }}>
 
-      {/* ─── OVERVIEW TAB — Calendar View ─── */}
-      {activeTab === 'overview' && (
-        <CalendarOverview athletes={athletes} userData={userData} setUserData={setUserData} loading={loading} toast={toast} onRefresh={() => loadAllData(true)} />
-      )}
-
-      {/* ─── EXERCISE HISTORY TAB ─── */}
-      {activeTab === 'exercise-history' && (
-        <ExerciseHistoryTab athletes={athletes} userData={userData} />
-      )}
-
-      {/* ─── ATHLETES TAB ─── */}
-      {activeTab === 'athletes' && (
-        <div>
-          <div className="toolbar">
-            <input type="search" className="search-input" placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)} />
-            <button className="btn btn-primary" onClick={openAdd}>+ Add User</button>
+          {/* ═══ LEFT PANEL: Athlete List ═══ */}
+          <div className="card" style={{ padding: 0, overflow: 'hidden', alignSelf: 'start', position: 'sticky', top: 16 }}>
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--card-border)' }}>
+              <input type="search" value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search..." style={{ width: '100%', fontSize: 12, padding: '6px 10px' }} />
+            </div>
+            <div style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
+              {filtered.map(u => {
+                const summary = computeWeekSummary(userData[u.username])
+                const isActive = selected === u.username
+                return (
+                  <div key={u.username} onClick={() => { setSelected(u.username); setSubTab('admin') }}
+                    style={{
+                      padding: '10px 14px', cursor: 'pointer',
+                      background: isActive ? 'rgba(124,110,240,0.1)' : 'transparent',
+                      borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
+                      transition: 'all 0.15s',
+                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className="athlete-avatar" style={{ width: 28, height: 28, fontSize: 11 }}>
+                        {u.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: isActive ? 600 : 500, color: isActive ? 'var(--accent2)' : 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {u.username}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {u.program || 'No program'}
+                          {summary.sessions > 0 && ` · ${summary.sessions} this week`}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+              {filtered.length === 0 && (
+                <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-dim)', fontSize: 12 }}>No athletes found</div>
+              )}
+            </div>
+            <div style={{ borderTop: '1px solid var(--card-border)', padding: '8px 12px' }}>
+              <button className="btn btn-primary btn-sm" style={{ width: '100%', fontSize: 11 }} onClick={openAdd}>+ Add Athlete</button>
+            </div>
           </div>
 
-          <table className="data-table">
-            <thead><tr><th>Name</th><th>Email</th><th>Program</th><th>Coaches</th><th>Start Date</th><th>Role</th><th>Verified</th><th></th></tr></thead>
-            <tbody>
-              {filtered.map(u => (
-                <tr key={u.username}>
-                  <td><strong>{u.username}</strong></td>
-                  <td style={{ color: 'var(--text-dim)' }}>{u.email}</td>
-                  <td>{u.program || '—'}</td>
-                  <td style={{ color: 'var(--text-dim)', fontSize: 12 }}>{(u.coaches || []).length > 0 ? u.coaches.join(', ') : '—'}</td>
-                  <td style={{ color: 'var(--text-dim)' }}>{u.startDate || '—'}</td>
-                  <td><span className={`badge ${u.role === 'coach' ? 'badge-coach' : 'badge-athlete'}`}>{u.role}</span></td>
-                  <td>{u.email_verified ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> : '—'}</td>
-                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    {u.role === 'athlete' && (
-                      <button className="btn-icon" title="Target weights" onClick={() => setTwUser(u.username)}
-                        style={{ fontSize: 14 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6.5 6.5h11M6.5 17.5h11M2 10v4M22 10v4M4 8v8M20 8v8"/></svg></button>
-                    )}
-                    <button className="btn-icon" onClick={() => openEdit(u)}><Icon name="edit" size={14} /></button>
-                    <button className="btn-icon" onClick={() => remove(u.username)}><Icon name="delete" size={14} /></button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {modal && (
-            <Modal
-              title={modal.mode === 'add' ? 'Add User' : 'Edit User'}
-              onClose={() => setModal(null)}
-              actions={[
-                { label: 'Cancel', cls: 'btn-secondary', onClick: () => setModal(null) },
-                { label: modal.mode === 'add' ? 'Create' : 'Save', cls: 'btn-primary', onClick: save },
-              ]}
-            >
-              <div className="form-group">
-                <label>Username</label>
-                <input type="text" value={form.username || ''} disabled={modal.mode === 'edit'} onChange={e => setForm({ ...form, username: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input type="email" value={form.email || ''} onChange={e => setForm({ ...form, email: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>{modal.mode === 'edit' ? 'New Password (leave blank to keep)' : 'Password'}</label>
-                <input type="password" value={form.password || ''} onChange={e => setForm({ ...form, password: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Program</label>
-                <select value={form.program || ''} onChange={e => setForm({ ...form, program: e.target.value })}>
-                  <option value="">None</option>
-                  {programs.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Start Date</label>
-                <input type="date" value={form.startDate || ''} onChange={e => setForm({ ...form, startDate: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Role</label>
-                <select value={form.role || 'athlete'} onChange={e => setForm({ ...form, role: e.target.value })}>
-                  <option value="athlete">Athlete</option>
-                  <option value="coach">Coach</option>
-                </select>
-              </div>
-              {form.role === 'athlete' && (
-                <>
-                  <div className="form-group">
-                    <label>Coaches <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>(comma-separated usernames)</span></label>
-                    <input type="text" value={(form.coaches || []).join(', ')}
-                      onChange={e => setForm({ ...form, coaches: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                      placeholder="e.g. coach1, coach2" />
-                  </div>
-                  <div className="form-group">
-                    <label>AI Builder Prompt <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>(context for AI program generation)</span></label>
-                    <textarea rows="4" value={form.athlete_prompt || ''} onChange={e => setForm({ ...form, athlete_prompt: e.target.value })}
-                      placeholder="e.g. Goals: Build strength and muscle. Injuries: Previous shoulder issues. Preferences: Enjoy heavy barbell work, dislikes machines. Available equipment: Full gym access." />
-                  </div>
-                </>
-              )}
-            </Modal>
-          )}
-
-          {twUser && <TargetWeightsModal username={twUser} onClose={() => setTwUser(null)} />}
-        </div>
-      )}
-
-      {/* ─── MESSAGES TAB ─── */}
-      {activeTab === 'messages' && (
-        <div>
-          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 16, minHeight: 400 }}>
-            {/* User list */}
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--card-border)', fontSize: 12, color: 'var(--text-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Users</div>
-              {users.map(u => (
-                <div key={u.username} onClick={() => selectUserMessages(u.username)}
-                  style={{
-                    padding: '10px 16px', cursor: 'pointer', fontSize: 14,
-                    background: selectedUser === u.username ? 'rgba(124,110,240,0.1)' : 'transparent',
-                    borderLeft: selectedUser === u.username ? '3px solid var(--accent)' : '3px solid transparent',
-                    color: selectedUser === u.username ? 'var(--accent2)' : 'var(--text)',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  }}>
-                  <span>{u.username}</span>
-                  {u.role === 'coach' && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(52,211,153,0.15)', color: 'var(--teal)' }}>COACH</span>}
-                </div>
-              ))}
-              {users.length === 0 && <div style={{ padding: 16, color: 'var(--text-dim)', fontSize: 13 }}>No users found</div>}
+          {/* ═══ RIGHT PANEL: Athlete Detail ═══ */}
+          {!selected ? (
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
+              <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.3 }}>👤</div>
+              <div style={{ color: 'var(--text-dim)', fontSize: 14 }}>Select an athlete to view their details</div>
             </div>
+          ) : (
+            <div>
+              {/* Athlete header */}
+              <div className="card" style={{ marginBottom: 16, padding: '16px 20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="athlete-avatar" style={{ width: 40, height: 40, fontSize: 16 }}>
+                    {selected.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 18, fontWeight: 700 }}>{selected}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                      {selectedInfo?.email || ''}
+                      {selectedInfo?.program && ` · ${selectedInfo.program}`}
+                      {selectedInfo?.startDate && ` · Started ${selectedInfo.startDate}`}
+                    </div>
+                  </div>
+                  {selectedSummary && selectedSummary.sessions > 0 && (
+                    <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent2)', fontFamily: "'Space Mono', monospace" }}>{selectedSummary.sessions}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>This Week</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--teal)', fontFamily: "'Space Mono', monospace" }}>{fmtTonnage(selectedSummary.tonnage)}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>Tonnage</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            {/* Message area */}
-            <div className="card">
-              {!selectedUser && <p style={{ color: 'var(--text-dim)' }}>Select a user to view and send messages.</p>}
-              {selectedUser && (
-                <>
+              {/* Sub-tabs */}
+              <TabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
+
+              {/* ─── ADMIN SUB-TAB ─── */}
+              {subTab === 'admin' && (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                    {/* Assigned Program card */}
+                    <div className="card" style={{ padding: 16 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, fontFamily: "'Space Mono', monospace" }}>Exercise Program</div>
+                      {selectedInfo?.program ? (
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent2)', marginBottom: 4 }}>{selectedInfo.program}</div>
+                          {selectedData?.assigned_program && (
+                            <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                              {selectedData.assigned_program.weeks?.length || 0} weeks
+                              {selectedInfo.startDate && ` · Started ${selectedInfo.startDate}`}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>No program assigned</div>
+                      )}
+                    </div>
+
+                    {/* Assigned Nutrition Plan card */}
+                    <div className="card" style={{ padding: 16 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, fontFamily: "'Space Mono', monospace" }}>Nutrition Plan</div>
+                      {(() => {
+                        const nutrition = selectedData?.nutrition || {}
+                        const activePlanId = nutrition.active_meal_plan
+                        const plans = nutrition.meal_plans || []
+                        const activePlan = activePlanId ? plans.find(p => p.id === activePlanId) : null
+                        if (activePlan) {
+                          return (
+                            <div>
+                              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--teal)', marginBottom: 4 }}>{activePlan.name || 'Nutrition Plan'}</div>
+                              <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                                {activePlan.days?.length || 0} days
+                                {activePlan.daily_calories && ` · ${activePlan.daily_calories} kcal`}
+                              </div>
+                            </div>
+                          )
+                        }
+                        return <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>No nutrition plan assigned</div>
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Quick actions */}
+                  <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10, fontFamily: "'Space Mono', monospace" }}>Actions</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(selectedInfo)}>Edit Profile</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setTwUser(selected)}>Target Weights</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setSubTab('exercise')}>View Exercise Calendar</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setSubTab('nutrition')}>View Nutrition Plan</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setSubTab('messages')}>Messages</button>
+                    </div>
+                  </div>
+
+                  {/* Athlete details table */}
+                  <div className="card" style={{ padding: 16 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10, fontFamily: "'Space Mono', monospace" }}>Details</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 12px', fontSize: 13 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Email</span><span>{selectedInfo?.email || '—'}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Role</span><span><span className={`badge ${selectedInfo?.role === 'coach' ? 'badge-coach' : 'badge-athlete'}`}>{selectedInfo?.role}</span></span>
+                      <span style={{ color: 'var(--text-muted)' }}>Coaches</span><span>{(selectedInfo?.coaches || []).join(', ') || '—'}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Program</span><span>{selectedInfo?.program || '—'}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Start Date</span><span>{selectedInfo?.startDate || '—'}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Verified</span><span>{selectedInfo?.email_verified ? 'Yes' : 'No'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── EXERCISE SUB-TAB — Calendar View ─── */}
+              {subTab === 'exercise' && (
+                <CalendarOverview athletes={athletes} userData={userData} setUserData={setUserData} loading={false} toast={toast} onRefresh={() => loadAllData(true)} defaultAthlete={selected} />
+              )}
+
+              {/* ─── NUTRITION SUB-TAB ─── */}
+              {subTab === 'nutrition' && (
+                <div>
+                  {!athleteNutritionDetail ? (
+                    <div className="card" style={{ textAlign: 'center', padding: 48 }}>
+                      <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>🍽️</div>
+                      <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+                        No active nutrition plan assigned to {selected}.
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
+                        Assign one from Programs → Nutrition Plans.
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 700 }}>{athleteNutritionDetail.name || 'Nutrition Plan'}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>
+                              {athleteNutritionDetail.days?.length || 0} days
+                              {athleteNutritionDetail.daily_calories && ` · ${athleteNutritionDetail.daily_calories} kcal`}
+                              {athleteNutritionDetail.daily_protein_g && ` · P: ${athleteNutritionDetail.daily_protein_g}g`}
+                              {athleteNutritionDetail.daily_carbs_g && ` · C: ${athleteNutritionDetail.daily_carbs_g}g`}
+                              {athleteNutritionDetail.daily_fat_g && ` · F: ${athleteNutritionDetail.daily_fat_g}g`}
+                            </div>
+                            {athleteNutritionDetail.description && (
+                              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, fontStyle: 'italic' }}>{athleteNutritionDetail.description}</div>
+                            )}
+                          </div>
+                          {athleteNutritionDetail.goal && (
+                            <span style={{
+                              padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                              background: athleteNutritionDetail.goal === 'lose' ? 'rgba(248,113,113,0.15)' : athleteNutritionDetail.goal === 'gain' ? 'rgba(45,212,191,0.15)' : 'rgba(167,139,250,0.15)',
+                              color: athleteNutritionDetail.goal === 'lose' ? '#f87171' : athleteNutritionDetail.goal === 'gain' ? '#2dd4bf' : '#a78bfa',
+                            }}>
+                              {athleteNutritionDetail.goal === 'lose' ? '↓ LOSE' : athleteNutritionDetail.goal === 'gain' ? '↑ GAIN' : '= MAINTAIN'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Days */}
+                      {(athleteNutritionDetail.days || []).map((day, di) => (
+                        <div key={di} className="card" style={{ marginBottom: 8, padding: 14 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Day {day.day || di + 1}</span>
+                            {day.day_totals && (
+                              <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace" }}>
+                                {Math.round(day.day_totals.calories || 0)} kcal · P: {Math.round(day.day_totals.protein_g || 0)}g · C: {Math.round(day.day_totals.carbs_g || 0)}g · F: {Math.round(day.day_totals.fat_g || 0)}g
+                              </span>
+                            )}
+                          </div>
+                          {(day.meals || []).map((meal, mi) => (
+                            <div key={mi} style={{ marginBottom: mi < (day.meals || []).length - 1 ? 10 : 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                                <span style={{ fontSize: 14 }}>{NP_MEAL_ICONS[meal.meal_type] || '🍽️'}</span>
+                                <span style={{ fontSize: 11, color: 'var(--accent2)', fontWeight: 600, textTransform: 'capitalize' }}>{NP_MEAL_LABELS[meal.meal_type] || meal.meal_type}</span>
+                                <span style={{ fontSize: 13, fontWeight: 500 }}>{meal.name}</span>
+                                {meal.meal_macros && (
+                                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: "'Space Mono', monospace", marginLeft: 'auto' }}>
+                                    {Math.round(meal.meal_macros.calories || 0)} kcal
+                                  </span>
+                                )}
+                              </div>
+                              {meal.ingredients && (
+                                <div style={{ marginLeft: 22 }}>
+                                  {meal.ingredients.map((ing, ii) => (
+                                    <span key={ii} style={{ display: 'inline-block', padding: '1px 6px', marginRight: 3, marginBottom: 2, background: 'var(--surface3)', borderRadius: 4, fontSize: 10, color: 'var(--text-dim)' }}>
+                                      {ing.food_name} {ing.serving_size && `(${ing.serving_size})`}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+
+                      {/* Shopping lists */}
+                      {(athleteNutritionDetail.shopping_lists || []).map((sl, si) => {
+                        const items = sl.items || []
+                        const totalCost = items.reduce((sum, item) => {
+                          if (!item.price) return sum
+                          const num = parseFloat(item.price.replace(/[^\d.,]/g, '').replace(',', '.'))
+                          return sum + (isNaN(num) ? 0 : num)
+                        }, 0)
+                        const curr = items.find(i => i.price)?.price?.match(/[£$€R]/)?.[0] || '£'
+                        return (
+                          <div key={si} className="card" style={{ marginTop: 8, padding: 14 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                              <span style={{ fontWeight: 600, fontSize: 13 }}>🛒 {sl.store || 'Shopping List'}</span>
+                              {totalCost > 0 && <span style={{ fontWeight: 700, color: 'var(--teal)', fontFamily: "'Space Mono', monospace", fontSize: 13 }}>Total: {curr}{totalCost.toFixed(2)}</span>}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+                              {items.map((item, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                  <span>{item.item}</span>
+                                  <span style={{ color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace" }}>
+                                    {item.quantity}{item.price && <span style={{ color: 'var(--teal)', marginLeft: 4 }}>{item.price}</span>}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ─── MESSAGES SUB-TAB ─── */}
+              {subTab === 'messages' && (
+                <div className="card">
                   <div className="card-header">
-                    <h3>{selectedUser}</h3>
+                    <h3>Messages — {selected}</h3>
                     <button className="btn btn-primary btn-sm" onClick={() => { setMsgForm({ message: '', day_key: '', source: 'coach', send_whatsapp: false }); setComposeOpen(true) }}>+ New Message</button>
                   </div>
 
@@ -2187,7 +2313,7 @@ export default function Dashboard() {
                                     color: isAthlete ? '#3b82f6' : 'var(--accent2)',
                                   }}>{isAthlete ? 'ATHLETE' : 'COACH'}</span>
                                   {formatMessageDate(msg.sent_at)}
-                                  {msg.day_key && <span style={{ marginLeft: 8, color: isAthlete ? '#3b82f6' : 'var(--accent2)' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{display:'inline',verticalAlign:'middle',marginRight:4}}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>{msg.day_key.replace('_', ' ')}</span>}
+                                  {msg.day_key && <span style={{ marginLeft: 8, color: isAthlete ? '#3b82f6' : 'var(--accent2)' }}>{msg.day_key.replace('_', ' ')}</span>}
                                   {!msg.read && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 600 }}>● Unread</span>}
                                 </div>
                                 <button className="btn-icon" onClick={() => deleteMsg(msg.id)} style={{ fontSize: 12 }}><Icon name="delete" size={12} /></button>
@@ -2199,46 +2325,94 @@ export default function Dashboard() {
                       </div>
                     </>
                   )}
-                </>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Compose modal */}
-          {composeOpen && (
-            <Modal title={`Message ${selectedUser}`} onClose={() => setComposeOpen(false)} actions={[
-              { label: 'Cancel', cls: 'btn-secondary', onClick: () => setComposeOpen(false) },
-              { label: sending ? 'Sending...' : 'Send', cls: 'btn-primary', onClick: sendMessage },
-            ]}>
-              <div className="form-group">
-                <label>Link to Workout (optional)</label>
-                <select value={msgForm.day_key} onChange={e => setMsgForm({ ...msgForm, day_key: e.target.value })}>
-                  <option value="">— General message —</option>
-                  {workoutDays.map(d => (
-                    <option key={d.key} value={d.key}>Week {d.week} Day {d.day}{d.date ? ` (${d.date})` : ''}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Source</label>
-                <select value={msgForm.source} onChange={e => setMsgForm({ ...msgForm, source: e.target.value })}>
-                  <option value="coach">Coach</option>
-                  <option value="agent">Agent / AI</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Message</label>
-                <textarea value={msgForm.message} onChange={e => setMsgForm({ ...msgForm, message: e.target.value })}
-                  rows={5} placeholder="Great session today! Watch your tempo on the bench press — try to slow down the eccentric phase."
-                  style={{ width: '100%', resize: 'vertical' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                <input type="checkbox" id="sendWA" checked={msgForm.send_whatsapp} onChange={e => setMsgForm({ ...msgForm, send_whatsapp: e.target.checked })} />
-                <label htmlFor="sendWA" style={{ fontSize: 13, color: 'var(--text-dim)', cursor: 'pointer' }}>Also send via WhatsApp <HelpTip text="Requires Twilio WhatsApp configuration and the athlete's phone number in their profile." /></label>
-              </div>
-            </Modal>
           )}
         </div>
+      )}
+
+      {/* ═══ MODALS (always available) ═══ */}
+      {modal && (
+        <Modal
+          title={modal.mode === 'add' ? 'Add Athlete' : `Edit ${modal.user?.username || 'User'}`}
+          onClose={() => setModal(null)}
+          actions={[
+            { label: 'Cancel', cls: 'btn-secondary', onClick: () => setModal(null) },
+            { label: modal.mode === 'add' ? 'Create' : 'Save', cls: 'btn-primary', onClick: save },
+          ]}
+        >
+          <div className="form-group">
+            <label>Username</label>
+            <input type="text" value={form.username || ''} disabled={modal.mode === 'edit'} onChange={e => setForm({ ...form, username: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label>Email</label>
+            <input type="email" value={form.email || ''} onChange={e => setForm({ ...form, email: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label>{modal.mode === 'edit' ? 'New Password (leave blank to keep)' : 'Password'}</label>
+            <input type="password" value={form.password || ''} onChange={e => setForm({ ...form, password: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label>Program</label>
+            <select value={form.program || ''} onChange={e => setForm({ ...form, program: e.target.value })}>
+              <option value="">None</option>
+              {programs.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Start Date</label>
+            <input type="date" value={form.startDate || ''} onChange={e => setForm({ ...form, startDate: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label>Role</label>
+            <select value={form.role || 'athlete'} onChange={e => setForm({ ...form, role: e.target.value })}>
+              <option value="athlete">Athlete</option>
+              <option value="coach">Coach</option>
+            </select>
+          </div>
+          {form.role === 'athlete' && (
+            <>
+              <div className="form-group">
+                <label>Coaches <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>(comma-separated)</span></label>
+                <input type="text" value={(form.coaches || []).join(', ')}
+                  onChange={e => setForm({ ...form, coaches: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                  placeholder="e.g. coach1, coach2" />
+              </div>
+              <div className="form-group">
+                <label>AI Builder Prompt</label>
+                <textarea rows="3" value={form.athlete_prompt || ''} onChange={e => setForm({ ...form, athlete_prompt: e.target.value })}
+                  placeholder="Goals, injuries, preferences, equipment..." />
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
+
+      {twUser && <TargetWeightsModal username={twUser} onClose={() => setTwUser(null)} />}
+
+      {composeOpen && (
+        <Modal title={`Message ${selected}`} onClose={() => setComposeOpen(false)} actions={[
+          { label: 'Cancel', cls: 'btn-secondary', onClick: () => setComposeOpen(false) },
+          { label: sending ? 'Sending...' : 'Send', cls: 'btn-primary', onClick: sendMessage },
+        ]}>
+          <div className="form-group">
+            <label>Link to Workout (optional)</label>
+            <select value={msgForm.day_key} onChange={e => setMsgForm({ ...msgForm, day_key: e.target.value })}>
+              <option value="">— General message —</option>
+              {workoutDays.map(d => (
+                <option key={d.key} value={d.key}>Week {d.week} Day {d.day}{d.date ? ` (${d.date})` : ''}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Message</label>
+            <textarea value={msgForm.message} onChange={e => setMsgForm({ ...msgForm, message: e.target.value })}
+              rows={5} placeholder="Great session! Watch your tempo on the bench press."
+              style={{ width: '100%', resize: 'vertical' }} />
+          </div>
+        </Modal>
       )}
     </div>
   )
