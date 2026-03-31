@@ -1977,8 +1977,7 @@ export default function Dashboard() {
     } catch { return iso }
   }
 
-  const athletes = users.filter(u => u.role !== 'coach')
-  const filtered = athletes.filter(u =>
+  const filtered = users.filter(u =>
     u.username.toLowerCase().includes(search.toLowerCase()) ||
     (u.email || '').toLowerCase().includes(search.toLowerCase())
   )
@@ -2031,8 +2030,9 @@ export default function Dashboard() {
                         {u.username.charAt(0).toUpperCase()}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: isActive ? 600 : 500, color: isActive ? 'var(--accent2)' : 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: 13, fontWeight: isActive ? 600 : 500, color: isActive ? 'var(--accent2)' : 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
                           {u.username}
+                          {u.role === 'coach' && <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: 'rgba(45,212,191,0.15)', color: 'var(--teal)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase' }}>Coach</span>}
                         </div>
                         <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {u.program || 'No program'}
@@ -2167,7 +2167,7 @@ export default function Dashboard() {
 
               {/* ─── EXERCISE SUB-TAB — Calendar View ─── */}
               {subTab === 'exercise' && (
-                <CalendarOverview athletes={athletes} userData={userData} setUserData={setUserData} loading={false} toast={toast} onRefresh={() => loadAllData(true)} defaultAthlete={selected} />
+                <CalendarOverview athletes={users} userData={userData} setUserData={setUserData} loading={false} toast={toast} onRefresh={() => loadAllData(true)} defaultAthlete={selected} />
               )}
 
               {/* ─── NUTRITION SUB-TAB ─── */}
