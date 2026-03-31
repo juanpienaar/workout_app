@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 
 from ..auth import get_current_user, require_coach
-from ..data import load_users, load_user_data, save_user_data
+from ..data import load_users, load_user_data, save_user_data, load_nutrition_plans, save_nutrition_plans
 from .. import config
 from ..models import (
     NutritionTargets, SetNutritionTargetsRequest, FoodEntry,
@@ -854,6 +854,239 @@ async def rename_meal_plan(
         raise HTTPException(404, "Meal plan not found")
     plan["name"] = req.name
     save_user_data(req.username, user_data)
+    return {"ok": True}
+
+
+# ────────────────────────────────────────────
+#  Standalone Nutrition Plans (global, like workout programs)
+# ────────────────────────────────────────────
+
+GOAL_BLURBS = {
+    "lose": "Designed for fat loss — high protein, calorie deficit",
+    "maintain": "Designed for weight maintenance — balanced macros",
+    "gain": "Designed for muscle gain — calorie surplus, high protein",
+}
+
+
+class CreateNutritionPlanRequest(BaseModel):
+    plan_name: str
+    goal: str = "maintain"  # lose / maintain / gain
+    description: str = ""  # coach can write a blurb
+    daily_calories: int
+    daily_protein_g: int
+    daily_carbs_g: int
+    daily_fat_g: int
+    num_days: int = 7
+    meals_per_day: int = 4
+    meal_types: list[str] = []
+    fixed_meals: list[FixedMeal] = []
+    preferences: str = ""
+    restrictions: str = ""
+    stores: list[str] = []
+
+
+@router.get("/plans")
+async def list_nutrition_plans(
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """List all standalone nutrition plans."""
+    plans = load_nutrition_plans()
+    # Return summary (no full day data)
+    summaries = []
+    for p in plans:
+        summaries.append({
+            "id": p["id"],
+            "name": p.get("name", "Untitled"),
+            "goal": p.get("goal", "maintain"),
+            "description": p.get("description", ""),
+            "daily_calories": p.get("daily_calories", 0),
+            "daily_protein_g": p.get("daily_protein_g", 0),
+            "daily_carbs_g": p.get("daily_carbs_g", 0),
+            "daily_fat_g": p.get("daily_fat_g", 0),
+            "num_days": len(p.get("days", [])),
+            "stores": p.get("stores", []),
+            "created_at": p.get("created_at", ""),
+            "created_by": p.get("created_by", ""),
+        })
+    return {"ok": True, "plans": summaries}
+
+
+@router.get("/plans/{plan_id}")
+async def get_nutrition_plan(
+    plan_id: str,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Get full nutrition plan detail."""
+    plans = load_nutrition_plans()
+    plan = next((p for p in plans if p["id"] == plan_id), None)
+    if not plan:
+        raise HTTPException(404, "Nutrition plan not found")
+    return {"ok": True, "plan": plan}
+
+
+@router.post("/plans/generate")
+async def generate_nutrition_plan(
+    req: CreateNutritionPlanRequest,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Coach creates a standalone nutrition plan with specified macros."""
+    from ..services.nutrition_ai import generate_meal_plan as _gen
+
+    targets = {
+        "daily_calories": req.daily_calories,
+        "daily_protein_g": req.daily_protein_g,
+        "daily_carbs_g": req.daily_carbs_g,
+        "daily_fat_g": req.daily_fat_g,
+    }
+
+    # Build preference string based on goal
+    pref_parts = []
+    if req.goal == "lose":
+        pref_parts.append("Focus on high-protein, satiating meals for weight loss")
+    elif req.goal == "gain":
+        pref_parts.append("Include calorie-dense, nutrient-rich meals for muscle gain")
+    if req.preferences:
+        pref_parts.append(req.preferences)
+
+    restriction_parts = []
+    if req.restrictions:
+        restriction_parts.append(req.restrictions)
+
+    fixed_meals_data = []
+    for fm in (req.fixed_meals or []):
+        fmd = {"meal_type": fm.meal_type}
+        if fm.day: fmd["day"] = fm.day
+        if fm.name: fmd["name"] = fm.name
+        if fm.ingredients:
+            fmd["ingredients"] = [{"food_name": i.food_name, "serving_size": i.serving_size} for i in fm.ingredients if i.food_name.strip()]
+        fixed_meals_data.append(fmd)
+
+    logger.info(f"Coach {coach['name']} generating standalone nutrition plan: {req.plan_name}")
+    logger.info(f"Targets: {targets}, Goal: {req.goal}")
+    logger.info(f"Fixed meals: {len(fixed_meals_data)}, Stores: {req.stores or ['generic']}")
+
+    try:
+        plan = await _gen(
+            targets,
+            num_days=req.num_days,
+            meals_per_day=req.meals_per_day,
+            meal_types=req.meal_types or [],
+            fixed_meals=fixed_meals_data,
+            preferences=". ".join(pref_parts),
+            restrictions=". ".join(restriction_parts),
+            stores=req.stores,
+        )
+        logger.info(f"Standalone nutrition plan generated OK: {req.plan_name}")
+    except ValueError as e:
+        logger.error(f"Nutrition plan generation ValueError: {e}")
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.error(f"Nutrition plan generation error: {type(e).__name__}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(500, f"AI generation failed: {type(e).__name__}: {e}")
+
+    plan_id = f"nplan_{uuid.uuid4().hex[:8]}"
+    auto_blurb = GOAL_BLURBS.get(req.goal, "")
+    plan_record = {
+        "id": plan_id,
+        "name": req.plan_name.strip() or f"{req.num_days}-Day Nutrition Plan",
+        "goal": req.goal,
+        "description": req.description.strip() or auto_blurb,
+        "daily_calories": req.daily_calories,
+        "daily_protein_g": req.daily_protein_g,
+        "daily_carbs_g": req.daily_carbs_g,
+        "daily_fat_g": req.daily_fat_g,
+        **plan,
+        "fixed_meals": fixed_meals_data,
+        "stores": req.stores,
+        "created_at": _now_iso(),
+        "created_by": coach["name"],
+    }
+
+    plans = load_nutrition_plans()
+    plans.append(plan_record)
+    save_nutrition_plans(plans)
+    return {"ok": True, "plan": plan_record}
+
+
+@router.delete("/plans/{plan_id}")
+async def delete_nutrition_plan(
+    plan_id: str,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Delete a standalone nutrition plan."""
+    plans = load_nutrition_plans()
+    original = len(plans)
+    plans = [p for p in plans if p["id"] != plan_id]
+    if len(plans) == original:
+        raise HTTPException(404, "Nutrition plan not found")
+    save_nutrition_plans(plans)
+    return {"ok": True}
+
+
+class RenameNutritionPlanRequest(BaseModel):
+    name: str
+    description: str = ""
+
+
+@router.put("/plans/{plan_id}")
+async def update_nutrition_plan(
+    plan_id: str,
+    req: RenameNutritionPlanRequest,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Rename / update description of a standalone nutrition plan."""
+    plans = load_nutrition_plans()
+    plan = next((p for p in plans if p["id"] == plan_id), None)
+    if not plan:
+        raise HTTPException(404, "Nutrition plan not found")
+    if req.name:
+        plan["name"] = req.name
+    if req.description is not None:
+        plan["description"] = req.description
+    save_nutrition_plans(plans)
+    return {"ok": True}
+
+
+class AssignNutritionPlanToAthleteRequest(BaseModel):
+    athlete: str
+    plan_id: Optional[str] = None  # None to unassign
+
+
+@router.post("/plans/assign")
+async def assign_nutrition_plan_to_athlete(
+    req: AssignNutritionPlanToAthleteRequest,
+    coach: Annotated[dict, Depends(require_coach)],
+):
+    """Assign a standalone nutrition plan to an athlete (copies it into their data)."""
+    users = load_users()
+    if req.athlete not in users:
+        raise HTTPException(404, "Athlete not found")
+
+    user_data = load_user_data(req.athlete)
+    nutrition = _get_nutrition(user_data)
+
+    if req.plan_id:
+        plans = load_nutrition_plans()
+        plan = next((p for p in plans if p["id"] == req.plan_id), None)
+        if not plan:
+            raise HTTPException(404, "Nutrition plan not found")
+        # Copy plan into athlete's meal_plans and set as active
+        import copy
+        athlete_plan = copy.deepcopy(plan)
+        athlete_plan["assigned_from"] = plan["id"]
+        athlete_plan["assigned_at"] = _now_iso()
+        # Don't duplicate if already assigned
+        existing = [p for p in nutrition.get("meal_plans", []) if p.get("assigned_from") == plan["id"]]
+        if not existing:
+            nutrition["meal_plans"].append(athlete_plan)
+        plan_id_local = athlete_plan["id"]
+        nutrition["active_meal_plan"] = plan_id_local
+    else:
+        nutrition["active_meal_plan"] = None
+
+    save_user_data(req.athlete, user_data)
     return {"ok": True}
 
 

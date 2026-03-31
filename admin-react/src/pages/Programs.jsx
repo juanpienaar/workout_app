@@ -2923,10 +2923,636 @@ function ImportCSVTab() {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   NUTRITION PLANS TAB (standalone plans, like workout programs)
+   ═══════════════════════════════════════════════════════════ */
+const NP_STORE_LIST = ['Morrisons', 'Tesco', 'Sainsburys', 'Asda', 'Aldi', 'Lidl', 'Waitrose', 'M&S', 'Woolworths', 'Checkers', 'Pick n Pay', 'Spar']
+const NP_ALL_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout']
+const NP_MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack', pre_workout: 'Pre-Workout', post_workout: 'Post-Workout' }
+const NP_MEAL_ICONS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎', pre_workout: '💪', post_workout: '🥤' }
+const NP_GOAL_OPTIONS = [
+  { value: 'lose', label: 'Lose Weight', icon: '↓', color: '#f87171', bg: 'rgba(248,113,113,0.15)' },
+  { value: 'maintain', label: 'Maintain', icon: '=', color: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
+  { value: 'gain', label: 'Gain Muscle', icon: '↑', color: '#2dd4bf', bg: 'rgba(45,212,191,0.15)' },
+]
+
+function NutritionPlansTab() {
+  const toast = useToast()
+  const [plans, setPlans] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(null)
+  const [detail, setDetail] = useState(null)
+  const [openDays, setOpenDays] = useState(new Set())
+
+  // Wizard state
+  const [wizardStep, setWizardStep] = useState(0) // 0=hidden, 1=config, 2=fixed meals, 3=generating
+  const [planName, setPlanName] = useState('')
+  const [goal, setGoal] = useState('maintain')
+  const [description, setDescription] = useState('')
+  const [dailyCals, setDailyCals] = useState(2200)
+  const [proteinG, setProteinG] = useState(165)
+  const [carbsG, setCarbsG] = useState(220)
+  const [fatG, setFatG] = useState(73)
+  const [numDays, setNumDays] = useState(7)
+  const [selectedMealTypes, setSelectedMealTypes] = useState(['breakfast', 'lunch', 'dinner', 'snack'])
+  const [preferences, setPreferences] = useState('')
+  const [restrictions, setRestrictions] = useState('')
+  const [selectedStores, setSelectedStores] = useState([])
+  const [customStore, setCustomStore] = useState('')
+  const [fixedMeals, setFixedMeals] = useState([])
+  const [generating, setGenerating] = useState(false)
+
+  // Assign modal
+  const [assignModal, setAssignModal] = useState(null) // plan id
+  const [athletes, setAthletes] = useState([])
+  const [selectedAthletes, setSelectedAthletes] = useState([])
+  const [assigning, setAssigning] = useState(false)
+
+  // Rename
+  const [renamingPlan, setRenamingPlan] = useState(null)
+  const [renameValue, setRenameValue] = useState('')
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const d = await API.listNutritionPlans()
+      setPlans(d.plans || [])
+    } catch { setPlans([]) }
+    setLoading(false)
+  }
+  useEffect(() => { load() }, [])
+
+  const togglePlan = async (id) => {
+    if (expanded === id) { setExpanded(null); setDetail(null); setOpenDays(new Set()); return }
+    setExpanded(id)
+    setOpenDays(new Set())
+    try {
+      const d = await API.getNutritionPlan(id)
+      setDetail(d.plan)
+    } catch { toast('Failed to load plan', 'error') }
+  }
+
+  // ── Macro calculator from calories + goal ──
+  const recalcMacros = (cals, g) => {
+    // Sensible defaults based on goal
+    const proteinPct = g === 'lose' ? 0.35 : g === 'gain' ? 0.30 : 0.30
+    const fatPct = g === 'lose' ? 0.30 : g === 'gain' ? 0.25 : 0.30
+    const carbPct = 1 - proteinPct - fatPct
+    setProteinG(Math.round((cals * proteinPct) / 4))
+    setCarbsG(Math.round((cals * carbPct) / 4))
+    setFatG(Math.round((cals * fatPct) / 9))
+  }
+
+  // ── Wizard helpers ──
+  const toggleMealType = (mt) => setSelectedMealTypes(prev => prev.includes(mt) ? prev.filter(t => t !== mt) : [...prev, mt])
+  const toggleStore = (s) => setSelectedStores(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+
+  const addFixedMeal = () => {
+    setFixedMeals(prev => [...prev, {
+      day: null, meal_type: selectedMealTypes[0] || 'breakfast', name: '',
+      ingredients: [{ food_name: '', amount: '', unit: 'g' }],
+    }])
+  }
+  const updateFixedMeal = (idx, field, value) => setFixedMeals(prev => prev.map((fm, i) => i === idx ? { ...fm, [field]: value } : fm))
+  const removeFixedMeal = (idx) => setFixedMeals(prev => prev.filter((_, i) => i !== idx))
+  const addIngredient = (mealIdx) => {
+    setFixedMeals(prev => prev.map((fm, i) =>
+      i === mealIdx ? { ...fm, ingredients: [...fm.ingredients, { food_name: '', amount: '', unit: 'g' }] } : fm
+    ))
+  }
+  const updateIngredient = (mealIdx, ingIdx, field, value) => {
+    setFixedMeals(prev => prev.map((fm, i) => {
+      if (i !== mealIdx) return fm
+      const ings = fm.ingredients.map((ing, j) => j === ingIdx ? { ...ing, [field]: value } : ing)
+      return { ...fm, ingredients: ings }
+    }))
+  }
+  const removeIngredient = (mealIdx, ingIdx) => {
+    setFixedMeals(prev => prev.map((fm, i) => {
+      if (i !== mealIdx) return fm
+      return { ...fm, ingredients: fm.ingredients.filter((_, j) => j !== ingIdx) }
+    }))
+  }
+
+  const startWizard = () => {
+    setWizardStep(1)
+    setPlanName('')
+    setGoal('maintain')
+    setDescription('')
+    setDailyCals(2200)
+    recalcMacros(2200, 'maintain')
+    setFixedMeals([])
+    setPreferences('')
+    setRestrictions('')
+    setSelectedStores([])
+    setCustomStore('')
+  }
+
+  const handleGenerate = async () => {
+    if (!planName.trim()) { toast('Give your plan a name', 'error'); return }
+    setGenerating(true)
+    setWizardStep(3)
+
+    const cleanFixed = fixedMeals
+      .filter(fm => fm.ingredients.some(i => i.food_name.trim()))
+      .map(fm => ({
+        day: fm.day ? parseInt(fm.day) : null,
+        meal_type: fm.meal_type,
+        name: fm.name.trim() || fm.ingredients.filter(i => i.food_name.trim()).map(i => i.food_name).join(' + '),
+        ingredients: fm.ingredients
+          .filter(i => i.food_name.trim())
+          .map(i => ({ food_name: i.food_name.trim(), serving_size: `${i.amount}${i.unit}` })),
+      }))
+
+    const allStores = [...selectedStores, ...(customStore.trim() ? [customStore.trim()] : [])]
+
+    try {
+      const res = await API.generateNutritionPlan({
+        plan_name: planName.trim(),
+        goal,
+        description: description.trim(),
+        daily_calories: dailyCals,
+        daily_protein_g: proteinG,
+        daily_carbs_g: carbsG,
+        daily_fat_g: fatG,
+        num_days: numDays,
+        meals_per_day: selectedMealTypes.length,
+        meal_types: selectedMealTypes,
+        fixed_meals: cleanFixed,
+        preferences,
+        restrictions,
+        stores: allStores,
+      })
+      if (res.ok) {
+        toast('Nutrition plan created!')
+        setWizardStep(0)
+        load()
+      } else {
+        const msg = res.detail || 'Failed to generate'
+        toast(typeof msg === 'string' ? msg : JSON.stringify(msg), 'error')
+        setWizardStep(2)
+      }
+    } catch (e) {
+      toast(e.message || 'Failed to generate', 'error')
+      setWizardStep(2)
+    }
+    setGenerating(false)
+  }
+
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this nutrition plan?')) return
+    try { await API.deleteNutritionPlan(id); toast('Plan deleted'); if (expanded === id) setExpanded(null); load() }
+    catch { toast('Failed to delete', 'error') }
+  }
+
+  const handleRename = async (id) => {
+    if (!renameValue.trim()) return
+    try { await API.updateNutritionPlan(id, { name: renameValue.trim() }); setRenamingPlan(null); toast('Renamed'); load() }
+    catch { toast('Failed to rename', 'error') }
+  }
+
+  const openAssign = async (planId) => {
+    setAssignModal(planId)
+    setSelectedAthletes([])
+    try { const d = await API.listUsers(); setAthletes(d.users || []) }
+    catch { toast('Failed to load athletes', 'error') }
+  }
+
+  const doAssign = async () => {
+    if (selectedAthletes.length === 0) { toast('Select at least one athlete', 'error'); return }
+    setAssigning(true)
+    try {
+      await Promise.all(selectedAthletes.map(name => API.assignNutritionPlanToAthlete(name, assignModal)))
+      toast(`Assigned to ${selectedAthletes.length} athlete(s)`)
+      setAssignModal(null)
+    } catch { toast('Assign failed', 'error') }
+    setAssigning(false)
+  }
+
+  const toggleDay = (key) => setOpenDays(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next })
+
+  const allStoresDisplay = [...selectedStores, ...(customStore.trim() ? [customStore.trim()] : [])]
+
+  return (
+    <div>
+      <div className="toolbar" style={{ marginBottom: 16 }}>
+        <div />
+        {wizardStep === 0 && <button className="btn btn-primary btn-sm" onClick={startWizard}>+ Create Nutrition Plan</button>}
+        {wizardStep > 0 && <button className="btn btn-sm" onClick={() => setWizardStep(0)} style={{ opacity: 0.7 }}>Cancel</button>}
+      </div>
+
+      {/* ════ WIZARD STEP 1: Config ════ */}
+      {wizardStep === 1 && (
+        <div className="card" style={{ marginBottom: 20, padding: 20 }}>
+          <h3 style={{ fontSize: 15, marginBottom: 16 }}>Create Nutrition Plan</h3>
+
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>Plan name *</label>
+            <input value={planName} onChange={e => setPlanName(e.target.value)}
+              placeholder="e.g. 2200 kcal Cut Plan, Lean Bulk 3000" style={{ maxWidth: 380 }} />
+          </div>
+
+          {/* Goal selector */}
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>Goal</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {NP_GOAL_OPTIONS.map(g => (
+                <button key={g.value} className={`btn btn-sm ${goal === g.value ? 'btn-primary' : ''}`}
+                  onClick={() => { setGoal(g.value); recalcMacros(dailyCals, g.value) }}
+                  style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4,
+                    ...( goal !== g.value ? { opacity: 0.5, background: 'var(--surface3)' } : { background: g.bg, color: g.color, borderColor: g.color }) }}>
+                  <span>{g.icon}</span> {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>Description (who is this plan for?)</label>
+            <input value={description} onChange={e => setDescription(e.target.value)}
+              placeholder="e.g. For athletes cutting from 90kg to 82kg, moderate activity"
+              style={{ width: '100%' }} />
+          </div>
+
+          {/* Calorie & Macro inputs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Daily Calories</label>
+              <input type="number" value={dailyCals} onChange={e => { const v = parseInt(e.target.value) || 0; setDailyCals(v); recalcMacros(v, goal) }}
+                style={{ textAlign: 'center', fontWeight: 600, fontSize: 16 }} />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Protein (g)</label>
+              <input type="number" value={proteinG} onChange={e => setProteinG(parseInt(e.target.value) || 0)}
+                style={{ textAlign: 'center' }} />
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', marginTop: 2 }}>{Math.round((proteinG * 4 / dailyCals) * 100) || 0}%</div>
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Carbs (g)</label>
+              <input type="number" value={carbsG} onChange={e => setCarbsG(parseInt(e.target.value) || 0)}
+                style={{ textAlign: 'center' }} />
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', marginTop: 2 }}>{Math.round((carbsG * 4 / dailyCals) * 100) || 0}%</div>
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Fat (g)</label>
+              <input type="number" value={fatG} onChange={e => setFatG(parseInt(e.target.value) || 0)}
+                style={{ textAlign: 'center' }} />
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', marginTop: 2 }}>{Math.round((fatG * 9 / dailyCals) * 100) || 0}%</div>
+            </div>
+          </div>
+
+          {/* Macro total check */}
+          {(() => {
+            const totalCals = (proteinG * 4) + (carbsG * 4) + (fatG * 9)
+            const diff = totalCals - dailyCals
+            return Math.abs(diff) > 50 && (
+              <div style={{ fontSize: 11, color: diff > 0 ? '#f87171' : '#fbbf24', marginBottom: 12, padding: '6px 10px', background: 'var(--surface2)', borderRadius: 6 }}>
+                Macros add up to {totalCals} kcal ({diff > 0 ? '+' : ''}{diff} from target). Adjust macros to match.
+              </div>
+            )
+          })()}
+
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>Number of days</label>
+            <select value={numDays} onChange={e => setNumDays(parseInt(e.target.value))} style={{ maxWidth: 200 }}>
+              {[1,2,3,4,5,6,7,10,14].map(n => <option key={n} value={n}>{n} day{n>1?'s':''}</option>)}
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>Meals per day</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {NP_ALL_MEAL_TYPES.map(mt => (
+                <button key={mt} className={`btn btn-sm ${selectedMealTypes.includes(mt) ? 'btn-primary' : ''}`}
+                  onClick={() => toggleMealType(mt)}
+                  style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4,
+                    ...(!selectedMealTypes.includes(mt) ? { opacity: 0.5, background: 'var(--surface3)' } : {}) }}>
+                  <span>{NP_MEAL_ICONS[mt]}</span> {NP_MEAL_LABELS[mt]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>Shopping stores</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              {NP_STORE_LIST.map(s => (
+                <button key={s} className={`btn btn-sm ${selectedStores.includes(s) ? 'btn-primary' : ''}`}
+                  onClick={() => toggleStore(s)}
+                  style={{ fontSize: 11, padding: '5px 10px',
+                    ...(!selectedStores.includes(s) ? { opacity: 0.5, background: 'var(--surface3)' } : {}) }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            <input value={customStore} onChange={e => setCustomStore(e.target.value)}
+              placeholder="Other store" style={{ maxWidth: 250, fontSize: 12 }} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Preferences</label>
+              <input value={preferences} onChange={e => setPreferences(e.target.value)}
+                placeholder="e.g. Mediterranean, quick meals" />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Restrictions</label>
+              <input value={restrictions} onChange={e => setRestrictions(e.target.value)}
+                placeholder="e.g. no shellfish, halal" />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button className="btn btn-sm" onClick={() => setWizardStep(0)} style={{ opacity: 0.7 }}>Cancel</button>
+            <button className="btn btn-primary" onClick={() => setWizardStep(2)} disabled={selectedMealTypes.length === 0 || !planName.trim()}>
+              Next: Fixed Meals →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ════ WIZARD STEP 2: Fixed meals ════ */}
+      {wizardStep === 2 && (
+        <div className="card" style={{ marginBottom: 20, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ fontSize: 15 }}>Your Own Meals</h3>
+            <span className="badge" style={{ background: 'var(--surface3)', fontSize: 11 }}>AI fills the rest</span>
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
+            Add meals with specific ingredients and weights. AI will fill remaining slots to hit {dailyCals} kcal / {proteinG}P / {carbsG}C / {fatG}F.
+            Skip to let AI plan everything.
+          </p>
+
+          {fixedMeals.map((fm, mIdx) => (
+            <div key={mIdx} style={{ padding: 14, background: 'var(--surface2)', borderRadius: 10, marginBottom: 10, border: '1px solid var(--glass-border)' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                <select value={fm.day || ''} onChange={e => updateFixedMeal(mIdx, 'day', e.target.value || null)} style={{ fontSize: 12, width: 100 }}>
+                  <option value="">Every day</option>
+                  {Array.from({ length: numDays }, (_, i) => <option key={i+1} value={i+1}>Day {i+1}</option>)}
+                </select>
+                <select value={fm.meal_type} onChange={e => updateFixedMeal(mIdx, 'meal_type', e.target.value)} style={{ fontSize: 12, width: 130 }}>
+                  {selectedMealTypes.map(mt => <option key={mt} value={mt}>{NP_MEAL_ICONS[mt]} {NP_MEAL_LABELS[mt]}</option>)}
+                </select>
+                <input value={fm.name} onChange={e => updateFixedMeal(mIdx, 'name', e.target.value)}
+                  placeholder="Meal name (optional)" style={{ fontSize: 12, flex: 1 }} />
+                <button onClick={() => removeFixedMeal(mIdx)}
+                  style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 6, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Ingredients
+              </div>
+              {fm.ingredients.map((ing, iIdx) => (
+                <div key={iIdx} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                  <input value={ing.food_name} onChange={e => updateIngredient(mIdx, iIdx, 'food_name', e.target.value)}
+                    placeholder="e.g. 0% Fage Greek yogurt" style={{ flex: 1, fontSize: 12, padding: '7px 10px' }} />
+                  <input type="number" value={ing.amount} onChange={e => updateIngredient(mIdx, iIdx, 'amount', e.target.value)}
+                    placeholder="Qty" style={{ width: 70, fontSize: 12, padding: '7px 10px', textAlign: 'right' }} />
+                  <select value={ing.unit} onChange={e => updateIngredient(mIdx, iIdx, 'unit', e.target.value)}
+                    style={{ width: 65, fontSize: 12, padding: '7px 6px' }}>
+                    {['g','ml','oz','cups','tbsp','tsp','pcs','scoops'].map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                  {fm.ingredients.length > 1 && (
+                    <button onClick={() => removeIngredient(mIdx, iIdx)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14, padding: '0 2px' }}>×</button>
+                  )}
+                </div>
+              ))}
+              <button onClick={() => addIngredient(mIdx)}
+                style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontSize: 12, padding: '4px 0', fontWeight: 500 }}>
+                + Add ingredient
+              </button>
+            </div>
+          ))}
+
+          <button className="btn btn-sm" onClick={addFixedMeal}
+            style={{ marginBottom: 16, fontSize: 12, width: '100%', border: '1px dashed var(--text-muted)', background: 'transparent', color: 'var(--text-dim)', padding: '10px' }}>
+            + Add a meal
+          </button>
+
+          <div style={{ padding: 12, background: 'var(--surface1)', borderRadius: 8, marginBottom: 16, fontSize: 12, border: '1px solid var(--glass-border)' }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Plan summary</div>
+            <div style={{ color: 'var(--text-dim)' }}>
+              <strong>{planName || 'Untitled'}</strong> · {dailyCals} kcal · {proteinG}P / {carbsG}C / {fatG}F
+              · {numDays} day{numDays>1?'s':''} · {selectedMealTypes.length} meals/day
+              {fixedMeals.filter(f => f.ingredients.some(i => i.food_name.trim())).length > 0 &&
+                ` · ${fixedMeals.filter(f => f.ingredients.some(i => i.food_name.trim())).length} fixed meal${fixedMeals.filter(f => f.ingredients.some(i => i.food_name.trim())).length > 1 ? 's' : ''}`}
+              {allStoresDisplay.length > 0 && ` · Shopping at: ${allStoresDisplay.join(', ')}`}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <button className="btn btn-sm" onClick={() => setWizardStep(1)}>← Back</button>
+            <button className="btn btn-primary" onClick={handleGenerate} disabled={generating}>
+              Generate Nutrition Plan
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ════ WIZARD STEP 3: Generating ════ */}
+      {wizardStep === 3 && (
+        <div className="card" style={{ textAlign: 'center', padding: 48, marginBottom: 20 }}>
+          <div className="generation-spinner" style={{ width: 32, height: 32, borderWidth: 3, margin: '0 auto 16px' }} />
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Generating {planName}...</div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+            AI is creating {numDays * selectedMealTypes.length} meals targeting {dailyCals} kcal.
+            {allStoresDisplay.length > 0 && ` Separate shopping lists for ${allStoresDisplay.join(' & ')}.`}
+            {' '}This may take up to 2 minutes.
+          </div>
+        </div>
+      )}
+
+      {/* ════ Plans list ════ */}
+      {wizardStep === 0 && (
+        loading ? (
+          <div style={{ color: 'var(--text-dim)', padding: 32 }}>Loading...</div>
+        ) : plans.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', padding: 48 }}>
+            <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>🍽️</div>
+            <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>No nutrition plans yet. Create one to get started.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {plans.slice().reverse().map(plan => {
+              const isExpanded = expanded === plan.id
+              const goalInfo = NP_GOAL_OPTIONS.find(g => g.value === plan.goal) || NP_GOAL_OPTIONS[1]
+
+              return (
+                <div key={plan.id} className="program-card">
+                  <div className="program-header" onClick={() => togglePlan(plan.id)}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {renamingPlan === plan.id ? (
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                            <input value={renameValue} onChange={e => setRenameValue(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && handleRename(plan.id)}
+                              autoFocus style={{ fontSize: 14, fontWeight: 600, padding: '4px 8px', width: 240 }} />
+                            <button className="btn btn-primary btn-sm" style={{ fontSize: 11, padding: '4px 10px' }}
+                              onClick={() => handleRename(plan.id)}>Save</button>
+                            <button className="btn btn-sm" style={{ fontSize: 11, padding: '4px 8px', opacity: 0.6 }}
+                              onClick={() => setRenamingPlan(null)}>Cancel</button>
+                          </div>
+                        ) : (
+                          <h3>{plan.name}</h3>
+                        )}
+                        <span style={{
+                          padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 600,
+                          background: goalInfo.bg, color: goalInfo.color,
+                          fontFamily: "'Space Mono', monospace",
+                        }}>
+                          {goalInfo.icon} {goalInfo.label.toUpperCase()}
+                        </span>
+                        <span className="badge" style={{ fontSize: 10, background: 'var(--surface3)' }}>{plan.num_days} days</span>
+                        {plan.stores?.map(s => <span key={s} className="badge" style={{ fontSize: 10, background: 'var(--surface3)' }}>{s}</span>)}
+                      </div>
+                      <div className="meta" style={{ marginTop: 4 }}>
+                        {plan.daily_calories} kcal · P: {plan.daily_protein_g}g · C: {plan.daily_carbs_g}g · F: {plan.daily_fat_g}g
+                        {' · '}
+                        {new Date(plan.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {plan.created_by && ` by ${plan.created_by}`}
+                      </div>
+                      {plan.description && (
+                        <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, fontStyle: 'italic' }}>
+                          {plan.description}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+                      <button className="btn btn-primary btn-sm" onClick={() => openAssign(plan.id)}>Assign</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => { setRenamingPlan(plan.id); setRenameValue(plan.name) }}>Rename</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(plan.id)}>Delete</button>
+                    </div>
+                  </div>
+
+                  {isExpanded && detail && (
+                    <div style={{ padding: '0 16px 16px' }}>
+                      {/* Days drill-down */}
+                      {(detail.days || []).map((day, di) => {
+                        const dKey = `d${di}`
+                        const isDayOpen = openDays.has(dKey)
+                        const dt = day.day_totals || {}
+                        return (
+                          <div key={di} className="drill-day" style={{ marginBottom: 6 }}>
+                            <div className="drill-day-header" onClick={() => toggleDay(dKey)}>
+                              <div className="drill-toggle drill-toggle-sm">{isDayOpen ? '−' : '+'}</div>
+                              <div className="drill-day-title">
+                                <span>Day {day.day || di + 1}</span>
+                                <span className="drill-day-summary">
+                                  {Math.round(dt.calories || 0)} kcal · P: {Math.round(dt.protein_g || 0)}g · C: {Math.round(dt.carbs_g || 0)}g · F: {Math.round(dt.fat_g || 0)}g
+                                </span>
+                              </div>
+                            </div>
+                            {isDayOpen && (
+                              <div className="drill-day-body">
+                                {(day.meals || []).map((meal, mi) => (
+                                  <div key={mi} style={{ marginBottom: mi < (day.meals || []).length - 1 ? 14 : 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                      <span style={{ fontSize: 16 }}>{NP_MEAL_ICONS[meal.meal_type] || '🍽️'}</span>
+                                      <span className="badge badge-coach" style={{ textTransform: 'capitalize' }}>{NP_MEAL_LABELS[meal.meal_type] || meal.meal_type}</span>
+                                      <span style={{ fontWeight: 600, fontSize: 13 }}>{meal.name}</span>
+                                    </div>
+                                    {meal.meal_macros && (
+                                      <div style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 28, marginBottom: 4, fontFamily: "'Space Mono', monospace" }}>
+                                        {Math.round(meal.meal_macros.calories || 0)} kcal · P: {Math.round(meal.meal_macros.protein_g || 0)}g · C: {Math.round(meal.meal_macros.carbs_g || 0)}g · F: {Math.round(meal.meal_macros.fat_g || 0)}g
+                                      </div>
+                                    )}
+                                    {meal.ingredients && (
+                                      <div style={{ marginLeft: 28, marginBottom: 4 }}>
+                                        {meal.ingredients.map((ing, ii) => (
+                                          <span key={ii} style={{ display: 'inline-block', padding: '2px 8px', marginRight: 4, marginBottom: 4, background: 'var(--surface3)', borderRadius: 6, fontSize: 11, color: 'var(--text-dim)' }}>
+                                            {ing.food_name} {ing.serving_size && `(${ing.serving_size})`}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {meal.instructions && (
+                                      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginLeft: 28, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{meal.instructions}</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+
+                      {/* Shopping lists */}
+                      {(detail.shopping_lists || []).map((sl, si) => {
+                        const items = sl.items || []
+                        const totalCost = items.reduce((sum, item) => {
+                          if (!item.price) return sum
+                          const match = item.price.replace(/[^\d.,]/g, '').replace(',', '.')
+                          const num = parseFloat(match)
+                          return sum + (isNaN(num) ? 0 : num)
+                        }, 0)
+                        const currencySymbol = items.find(i => i.price)?.price?.match(/[£$€R]/)?.[0] || '£'
+                        return (
+                          <div key={si} className="card" style={{ marginTop: 12, padding: 16 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span>🛒</span>
+                                {sl.store || 'Shopping List'}
+                                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({items.length} items)</span>
+                              </div>
+                              {totalCost > 0 && (
+                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', fontFamily: "'Space Mono', monospace" }}>
+                                  Total: {currencySymbol}{totalCost.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                              {items.map((item, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                  <span>{item.item}</span>
+                                  <span style={{ color: 'var(--text-dim)', fontFamily: "'Space Mono', monospace", fontSize: 11 }}>
+                                    {item.quantity}
+                                    {item.price && <span style={{ color: 'var(--teal)', marginLeft: 6 }}>{item.price}</span>}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )
+      )}
+
+      {/* Assign Modal */}
+      {assignModal && (
+        <Modal title="Assign Nutrition Plan" onClose={() => setAssignModal(null)} actions={[
+          { label: 'Cancel', cls: 'btn-secondary', onClick: () => setAssignModal(null) },
+          { label: assigning ? 'Assigning...' : 'Assign', cls: 'btn-primary', onClick: doAssign },
+        ]}>
+          <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 12 }}>Select athletes to assign this nutrition plan to:</p>
+          {athletes.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>No athletes found.</p>}
+          <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {athletes.map(u => (
+              <label key={u.username} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: selectedAthletes.includes(u.username) ? 'rgba(124,110,240,0.1)' : 'var(--input-bg)', cursor: 'pointer', fontSize: 14 }}>
+                <input type="checkbox" checked={selectedAthletes.includes(u.username)}
+                  onChange={e => setSelectedAthletes(prev => e.target.checked ? [...prev, u.username] : prev.filter(n => n !== u.username))} />
+                <span>{u.username}</span>
+                {u.role === 'coach' && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(52,211,153,0.15)', color: 'var(--teal)' }}>COACH</span>}
+              </label>
+            ))}
+          </div>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+
+/* ═══════════════════════════════════════════════════════════
    MAIN PROGRAMS PAGE (TABBED)
    ═══════════════════════════════════════════════════════════ */
 const TABS = [
   { id: 'programs', label: 'Programs' },
+  { id: 'nutrition-plans', label: 'Nutrition Plans' },
   { id: 'exercises', label: 'Exercises' },
   { id: 'ai-builder', label: 'AI Builder' },
   { id: 'settings', label: 'Settings' },
@@ -2947,6 +3573,7 @@ export default function Programs() {
         ))}
       </div>
       {tab === 'programs' && <ProgramsTab />}
+      {tab === 'nutrition-plans' && <NutritionPlansTab />}
       {tab === 'exercises' && <ExercisesTab />}
       {tab === 'ai-builder' && <AIBuilderTab />}
       {tab === 'settings' && <SettingsTab />}

@@ -46,3 +46,18 @@ def find_user_by_email(email: str) -> tuple[str | None, dict | None]:
         if info.get("email", "").lower() == lower:
             return name, info
     return None, None
+
+
+# ── Nutrition Plans (global, like programs) ──
+
+def load_nutrition_plans() -> list:
+    if config.NUTRITION_PLANS_FILE.exists():
+        with open(config.NUTRITION_PLANS_FILE) as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
+    return []
+
+
+def save_nutrition_plans(plans: list):
+    with open(config.NUTRITION_PLANS_FILE, "w") as f:
+        json.dump(plans, f, indent=2)

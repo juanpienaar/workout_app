@@ -71,7 +71,6 @@ export default function Nutrition() {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
-    { id: 'meal-plans', label: 'Meal Plans' },
     { id: 'logs', label: 'Food Logs' },
   ]
 
@@ -94,7 +93,7 @@ export default function Nutrition() {
           onRefresh={() => loadData(true)}
         />
       )}
-      {activeTab === 'meal-plans' && <MealPlansTab athletes={athletes} toast={toast} />}
+      {/* Meal Plans moved to Programs > Nutrition Plans */}
       {activeTab === 'logs' && <LogsTab athletes={athletes} />}
 
       {profileModal && (

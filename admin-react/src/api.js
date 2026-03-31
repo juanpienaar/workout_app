@@ -116,8 +116,25 @@ export const API = {
   // Logs
   getLogs: (limit = 50, type = null) => authFetch(`/api/admin/logs?limit=${limit}${type ? `&type=${type}` : ''}`).then(r => r.json()),
 
-  // Nutrition – Meal Plans
+  // Nutrition – Meal Plans (legacy per-athlete)
   assignMealPlan: (username, planId) => authFetch('/api/nutrition/meal-plans/assign', { method: 'POST', body: JSON.stringify({ username, plan_id: planId }) }).then(r => r.json()),
   unassignMealPlan: (username) => authFetch('/api/nutrition/meal-plans/assign', { method: 'POST', body: JSON.stringify({ username, plan_id: null }) }).then(r => r.json()),
   renameMealPlan: (username, planId, name) => authFetch('/api/nutrition/meal-plans/rename', { method: 'POST', body: JSON.stringify({ username, plan_id: planId, name }) }).then(r => r.json()),
+
+  // Nutrition Plans (standalone, like programs)
+  listNutritionPlans: () => authFetch('/api/nutrition/plans').then(r => r.json()),
+  getNutritionPlan: (id) => authFetch(`/api/nutrition/plans/${encodeURIComponent(id)}`).then(r => r.json()),
+  generateNutritionPlan: (data, timeoutMs = 300000) => {
+    const opts = { method: 'POST', body: JSON.stringify(data) }
+    try {
+      if (timeoutMs && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+        opts.signal = AbortSignal.timeout(timeoutMs)
+      }
+    } catch (_) {}
+    return authFetch('/api/nutrition/plans/generate', opts).then(r => r.json())
+  },
+  deleteNutritionPlan: (id) => authFetch(`/api/nutrition/plans/${encodeURIComponent(id)}`, { method: 'DELETE' }).then(r => r.json()),
+  updateNutritionPlan: (id, data) => authFetch(`/api/nutrition/plans/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }).then(r => r.json()),
+  assignNutritionPlanToAthlete: (athlete, planId) => authFetch('/api/nutrition/plans/assign', { method: 'POST', body: JSON.stringify({ athlete, plan_id: planId }) }).then(r => r.json()),
+  unassignNutritionPlan: (athlete) => authFetch('/api/nutrition/plans/assign', { method: 'POST', body: JSON.stringify({ athlete, plan_id: null }) }).then(r => r.json()),
 }
