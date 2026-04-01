@@ -418,6 +418,279 @@ function ExerciseAutocomplete({ value, onChange, placeholder, suggestions }) {
   )
 }
 
+/* ═══════════════════════════════════════════════════════════════ */
+/* NUTRITION CALENDAR COMPONENT                                    */
+/* ═══════════════════════════════════════════════════════════════ */
+function NutritionCalendar({ athlete, dailyCalories, toast }) {
+  const [weekOffset, setWeekOffset] = useState(0) // 0 = current week, -1 = last week, etc.
+  const [weekData, setWeekData] = useState({}) // { date: { totals, entry_count }, ... }
+  const [expandedDay, setExpandedDay] = useState(null) // dateStr of expanded day
+  const [dayLog, setDayLog] = useState(null) // full log for expanded day
+  const [loading, setLoading] = useState(false)
+
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const NP_MEAL_ICONS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎', pre_workout: '💪', post_workout: '🥤' }
+  const NP_MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack', pre_workout: 'Pre-Workout', post_workout: 'Post-Workout' }
+
+  // Load week data when weekOffset changes
+  useEffect(() => {
+    if (!athlete) return
+    loadWeekData()
+  }, [weekOffset, athlete])
+
+  async function loadWeekData() {
+    const today = new Date()
+    const monday = getMonday(today)
+    const startDate = addDays(monday, weekOffset * 7)
+    const dateStr = localDateStr(startDate)
+
+    setLoading(true)
+    try {
+      const resp = await authFetch(`/api/nutrition/logs/week/${dateStr}?username=${athlete}`)
+      if (!resp.ok) throw new Error(`Failed to load week data: ${resp.status}`)
+      const data = await resp.json()
+      setWeekData(data.days || {})
+    } catch (err) {
+      console.error('[NutritionCalendar] load week error:', err)
+      toast?.error('Failed to load nutrition data')
+      setWeekData({})
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadDayLog(dateStr) {
+    setLoading(true)
+    try {
+      const resp = await authFetch(`/api/nutrition/logs/${dateStr}?username=${athlete}`)
+      if (!resp.ok) throw new Error(`Failed to load day log: ${resp.status}`)
+      const data = await resp.json()
+      setDayLog(data)
+    } catch (err) {
+      console.error('[NutritionCalendar] load day error:', err)
+      toast?.error('Failed to load day details')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Build week grid
+  const today = new Date()
+  const monday = getMonday(today)
+  const weekStart = addDays(monday, weekOffset * 7)
+  const weekDays = []
+  for (let i = 0; i < 7; i++) {
+    const date = addDays(weekStart, i)
+    const dateStr = localDateStr(date)
+    const dayData = weekData[dateStr] || {}
+    const calories = Math.round(dayData.totals?.calories || 0)
+    const entryCount = dayData.entry_count || 0
+    weekDays.push({ date, dateStr, calories, entryCount, dayData })
+  }
+
+  // Color indicator based on calorie target
+  function getCalorieColor(calories) {
+    if (calories === 0) return 'var(--border)' // gray - no data
+    const target = parseInt(dailyCalories) || 2000
+    const tolerance = target * 0.1 // ±10%
+    if (calories >= target - tolerance && calories <= target + tolerance) return '#2dd4bf' // green - within range
+    if (calories > target + tolerance) return '#ef4444' // red - over
+    return '#fbbf24' // yellow - under
+  }
+
+  const isToday = (date) => {
+    return date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+  }
+
+  return (
+    <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>📅 Nutrition Tracking</div>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
+            {fmtShort(weekStart)} – {fmtShort(addDays(weekStart, 6))}
+            {dailyCalories && ` · Target: ${dailyCalories} kcal/day`}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setWeekOffset(weekOffset - 1)}
+            style={{
+              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6,
+              padding: '4px 10px', fontSize: 11, color: 'var(--text-dim)', cursor: 'pointer',
+            }}>← Prev</button>
+          <button onClick={() => setWeekOffset(0)}
+            style={{
+              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6,
+              padding: '4px 10px', fontSize: 11, color: 'var(--text-dim)', cursor: 'pointer',
+            }}>Today</button>
+          <button onClick={() => setWeekOffset(weekOffset + 1)}
+            style={{
+              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6,
+              padding: '4px 10px', fontSize: 11, color: 'var(--text-dim)', cursor: 'pointer',
+            }}>Next →</button>
+        </div>
+      </div>
+
+      {/* 7-column calendar grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 12 }}>
+        {/* Day labels */}
+        {DAY_LABELS.map((label, i) => (
+          <div key={`label-${i}`} style={{
+            textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-dim)',
+            padding: '6px 0', borderBottom: '1px solid var(--border)',
+          }}>
+            {label}
+          </div>
+        ))}
+
+        {/* Days */}
+        {weekDays.map((day) => {
+          const isExpanded = expandedDay === day.dateStr
+          const hasData = day.entryCount > 0
+          const colorIndicator = getCalorieColor(day.calories)
+          const isCurrentDay = isToday(day.date)
+
+          return (
+            <div key={day.dateStr}
+              onClick={() => {
+                if (isExpanded) {
+                  setExpandedDay(null)
+                  setDayLog(null)
+                } else {
+                  setExpandedDay(day.dateStr)
+                  loadDayLog(day.dateStr)
+                }
+              }}
+              style={{
+                background: isExpanded ? 'rgba(124,110,240,0.06)' : 'var(--surface)',
+                border: isCurrentDay ? '2px solid var(--accent2)' : isExpanded ? '2px solid rgba(124,110,240,0.4)' : '1px solid var(--border)',
+                borderRadius: 8, padding: 10, minHeight: 100,
+                display: 'flex', flexDirection: 'column', cursor: hasData ? 'pointer' : 'default',
+                transition: 'border-color 0.15s',
+                opacity: hasData ? 1 : 0.6,
+              }}>
+              {/* Date header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: isCurrentDay ? 700 : 500, color: isCurrentDay ? 'var(--accent2)' : 'var(--text)' }}>
+                    {day.date.getDate()}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>
+                    {day.date.toLocaleDateString('en-GB', { month: 'short' })}
+                  </div>
+                </div>
+                {/* Color indicator dot */}
+                <div style={{
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: colorIndicator,
+                  opacity: day.calories === 0 ? 0.3 : 1,
+                }} title={`${day.calories} kcal`} />
+              </div>
+
+              {/* Calories and entries */}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                  {day.calories > 0 ? day.calories : '—'}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>
+                  {day.entryCount > 0 ? `${day.entryCount} entries` : 'No data'}
+                </div>
+              </div>
+
+              {/* Click indicator */}
+              {hasData && (
+                <div style={{ fontSize: 9, color: 'var(--accent2)', marginTop: 4, textAlign: 'center', opacity: 0.7 }}>
+                  {isExpanded ? '▾ close' : '▸ details'}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Expanded day details */}
+      {expandedDay && dayLog && (
+        <div style={{
+          background: 'rgba(124,110,240,0.04)', border: '1px solid rgba(124,110,240,0.2)', borderRadius: 8,
+          padding: 12, marginTop: 12,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+            {new Date(expandedDay + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </div>
+
+          {/* Total macros */}
+          {dayLog.totals && (
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12,
+              padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: 6,
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Calories</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginTop: 2 }}>
+                  {Math.round(dayLog.totals.calories || 0)}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Protein</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#ec4899', marginTop: 2 }}>
+                  {Math.round(dayLog.totals.protein_g || 0)}g
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Carbs</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#eab308', marginTop: 2 }}>
+                  {Math.round(dayLog.totals.carbs_g || 0)}g
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Fat</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#f97316', marginTop: 2 }}>
+                  {Math.round(dayLog.totals.fat_g || 0)}g
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Meals */}
+          {dayLog.entries && dayLog.entries.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {dayLog.entries.map((entry, ei) => (
+                <div key={ei} style={{
+                  background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 6,
+                  padding: 8,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{ fontSize: 14 }}>{NP_MEAL_ICONS[entry.meal_type] || '🍽️'}</span>
+                    <span style={{ fontSize: 11, color: 'var(--accent2)', fontWeight: 600, textTransform: 'capitalize' }}>
+                      {NP_MEAL_LABELS[entry.meal_type] || entry.meal_type}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 500 }}>{entry.name || 'Food Item'}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-dim)', marginLeft: 'auto', fontFamily: "'Space Mono', monospace" }}>
+                      {Math.round(entry.calories || 0)} kcal
+                    </span>
+                  </div>
+                  {entry.macros && (
+                    <div style={{ fontSize: 10, color: 'var(--text-dim)', marginLeft: 20 }}>
+                      P: {Math.round(entry.macros.protein_g || 0)}g · C: {Math.round(entry.macros.carbs_g || 0)}g · F: {Math.round(entry.macros.fat_g || 0)}g
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 11, padding: 12 }}>
+              No meals logged for this day
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function CalendarOverview({ athletes, userData, setUserData, loading, toast, onRefresh, defaultAthlete }) {
   const [calAthlete, setCalAthlete] = useState(defaultAthlete || '')
   const [expandedDayKey, setExpandedDayKey] = useState(null) // dateStr of expanded day
@@ -2211,6 +2484,13 @@ export default function Dashboard() {
                           )}
                         </div>
                       </div>
+
+                      {/* Nutrition Calendar Tracker */}
+                      <NutritionCalendar
+                        athlete={selected}
+                        dailyCalories={athleteNutritionDetail.daily_calories}
+                        toast={toast}
+                      />
 
                       {/* Days */}
                       {(athleteNutritionDetail.days || []).map((day, di) => (

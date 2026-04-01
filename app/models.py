@@ -149,3 +149,9 @@ class RecipeFromIngredientsRequest(BaseModel):
     ingredients: list[str]
     preferences: str = ""
     target_calories: Optional[float] = None
+
+class FavouriteMeal(BaseModel):
+    id: Optional[str] = None
+    name: str
+    ingredients: list[FoodEntry]
+    created_at: Optional[str] = None

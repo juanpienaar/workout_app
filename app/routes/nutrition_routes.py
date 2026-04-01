@@ -17,7 +17,7 @@ from ..models import (
     NutritionTargets, SetNutritionTargetsRequest, FoodEntry,
     DailyLogRequest, FoodSearchRequest, RecipeSaveRequest,
     MealPlanGenerateRequest, RecipeFromIngredientsRequest,
-    NutritionProfile,
+    NutritionProfile, FavouriteMeal,
 )
 
 logger = logging.getLogger("numnum.nutrition")
@@ -30,14 +30,23 @@ router = APIRouter(prefix="/api/nutrition", tags=["nutrition"])
 # ────────────────────────────────────────────
 
 def _get_nutrition(user_data: dict) -> dict:
-    """Get or initialise the nutrition section of user data."""
+    """Get or initialise the nutrition section of user data.
+
+    Data Safety: Entries stored in logs, once saved, should never be silently
+    mutated or lost. All access to nutrition data must preserve existing entries
+    and maintain referential integrity (e.g., meal_id links, timestamps).
+    """
     if "nutrition" not in user_data:
         user_data["nutrition"] = {
             "targets": None,
             "logs": {},
             "recipes": [],
             "meal_plans": [],
+            "favourites": [],  # List of favourite meals for quick reuse
         }
+    # Ensure favourites list exists even if upgrading from old data
+    if "favourites" not in user_data["nutrition"]:
+        user_data["nutrition"]["favourites"] = []
     return user_data["nutrition"]
 
 
@@ -424,6 +433,144 @@ async def get_weekly_logs(
         days[d] = {"totals": log.get("totals", {}), "entry_count": len(log.get("entries", []))}
 
     return {"ok": True, "start_date": start_date, "days": days}
+
+
+# ────────────────────────────────────────────
+#  Meal reordering & metadata
+# ────────────────────────────────────────────
+
+class MealReorderRequest(BaseModel):
+    meal_order: list[str]  # List of meal IDs in desired order
+
+
+@router.put("/logs/{date}/reorder")
+async def reorder_meals(
+    date: str,
+    req: MealReorderRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Reorder meals for a specific date.
+
+    Body: {"meal_order": ["meal_id1", "meal_id2", ...]}
+    """
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+
+    day_log = nutrition["logs"].get(date)
+    if not day_log:
+        raise HTTPException(404, "No log for this date")
+
+    day_log["meal_order"] = req.meal_order
+    day_log["updated_at"] = _now_iso()
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True, "date": date, "meal_order": req.meal_order}
+
+
+class MealMetadataRequest(BaseModel):
+    meal_name: Optional[str] = None
+    time: Optional[str] = None  # HH:MM format
+
+
+@router.put("/logs/{date}/meal/{meal_id}")
+async def update_meal_metadata(
+    date: str,
+    meal_id: str,
+    req: MealMetadataRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Update meal metadata (name and/or time) for all entries in that meal."""
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+
+    day_log = nutrition["logs"].get(date)
+    if not day_log:
+        raise HTTPException(404, "No log for this date")
+
+    # Find all entries with this meal_id and update them
+    found_count = 0
+    for entry in day_log["entries"]:
+        if entry.get("meal_id") == meal_id:
+            if req.meal_name is not None:
+                entry["meal_name"] = req.meal_name
+            if req.time is not None:
+                # Update logged_at to preserve the time component of the date
+                date_part = entry.get("logged_at", _now_iso()).split("T")[0]
+                entry["logged_at"] = f"{date_part}T{req.time}:00Z"
+            found_count += 1
+
+    if found_count == 0:
+        raise HTTPException(404, "No entries found for this meal_id")
+
+    day_log["totals"] = _compute_day_totals(day_log["entries"])
+    day_log["updated_at"] = _now_iso()
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True, "updated_entries": found_count, "totals": day_log["totals"]}
+
+
+# ────────────────────────────────────────────
+#  Favourite meals
+# ────────────────────────────────────────────
+
+@router.get("/favourites")
+async def get_favourite_meals(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    username: Optional[str] = Query(None),
+):
+    """List all favourite meals for the athlete."""
+    target_user = username or current_user["name"]
+    if target_user != current_user["name"] and current_user.get("role") != "coach":
+        raise HTTPException(403, "Can only view own favourites")
+
+    user_data = load_user_data(target_user)
+    nutrition = _get_nutrition(user_data)
+    favourites = nutrition.get("favourites", [])
+    return {"ok": True, "favourites": favourites}
+
+
+@router.post("/favourites")
+async def save_favourite_meal(
+    req: FavouriteMeal,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Save a meal as a favourite for quick reuse.
+
+    The favourite stores the meal name and its ingredients with per-100g data.
+    When reused, quantities can be adjusted.
+    """
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+
+    # Create favourite record
+    fav_id = req.id or f"fav_{uuid.uuid4().hex[:8]}"
+    favourite = {
+        "id": fav_id,
+        "name": req.name,
+        "ingredients": [ing.model_dump() for ing in req.ingredients],
+        "created_at": req.created_at or _now_iso(),
+    }
+
+    nutrition["favourites"].append(favourite)
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True, "favourite": favourite}
+
+
+@router.delete("/favourites/{fav_id}")
+async def delete_favourite_meal(
+    fav_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Delete a favourite meal."""
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+
+    original_len = len(nutrition["favourites"])
+    nutrition["favourites"] = [f for f in nutrition["favourites"] if f.get("id") != fav_id]
+
+    if len(nutrition["favourites"]) == original_len:
+        raise HTTPException(404, "Favourite not found")
+
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True, "deleted_id": fav_id}
 
 
 # ────────────────────────────────────────────

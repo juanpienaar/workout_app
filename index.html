@@ -1416,8 +1416,8 @@ body {
 
 .nutrition-summary {
   background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: 16px;
+  border: 1px solid rgba(124,110,240,0.25);
+  border-radius: 14px;
   padding: 16px;
   margin-bottom: 20px;
 }
@@ -1471,23 +1471,23 @@ body {
 
 .meal-card {
   background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: 16px;
+  border: 1px solid rgba(124,110,240,0.25);
+  border-radius: 14px;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .meal-header {
-  padding: 14px 16px;
+  padding: 12px 14px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background 0.2s ease;
+  transition: background 0.15s;
 }
 
 .meal-header:hover {
-  background: rgba(124, 110, 240, 0.05);
+  background: rgba(124, 110, 240, 0.04);
 }
 
 .meal-header-left {
@@ -1518,15 +1518,14 @@ body {
   width: 32px;
   height: 32px;
   border: none;
-  background: var(--surface);
+  background: transparent;
   color: var(--text-dim);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
 }
 
 .meal-header-actions button:hover {
@@ -1535,7 +1534,7 @@ body {
 }
 
 .meal-content {
-  border-top: 1px solid var(--card-border);
+  border-top: 1px solid rgba(124,110,240,0.25);
   max-height: 500px;
   overflow-y: auto;
 }
@@ -1556,19 +1555,26 @@ body {
 }
 
 .meal-chevron {
-  transition: transform 0.2s ease;
+  transition: transform 0.15s;
   color: var(--text-muted);
-  font-size: 16px;
-  margin-left: 4px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
 }
 
-.meal-chevron.collapsed {
+.meal-chevron svg {
+  width: 100%;
+  height: 100%;
+}
+
+.meal-chevron.collapsed svg {
   transform: rotate(-90deg);
 }
 
 .food-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--card-border);
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(124,110,240,0.25);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1576,6 +1582,53 @@ body {
 
 .food-item:last-child {
   border-bottom: none;
+}
+
+.food-item-left {
+  flex: 1;
+}
+
+.food-item-name {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.food-item-amount {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.food-item-cals {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+  margin-bottom: 4px;
+}
+
+.food-item-delete {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-left: 12px;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.food-item-delete:hover {
+  color: #f87171;
+}
+
+.food-item-delete svg {
+  width: 16px;
+  height: 16px;
 }
 
 .food-item-left {
@@ -1621,14 +1674,14 @@ body {
 .add-food-btn {
   padding: 12px 16px;
   background: var(--surface);
-  border: 1px dashed var(--card-border);
+  border: 1px dashed rgba(124,110,240,0.25);
   color: var(--accent);
   text-align: center;
   cursor: pointer;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
   font-family: inherit;
 }
 
@@ -1647,13 +1700,17 @@ body {
   background: var(--accent);
   color: #fff;
   border: none;
-  font-size: 24px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 8px 20px rgba(124, 110, 240, 0.3);
   transition: all 0.2s ease;
+}
+
+.add-meal-btn svg {
+  width: 24px;
+  height: 24px;
 }
 
 .add-meal-btn:active {
@@ -1670,6 +1727,7 @@ body {
   display: flex;
   flex-direction: column;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 }
 
 .food-search-modal.hidden, .barcode-scanner.hidden, .photo-capture.hidden {
@@ -1678,10 +1736,16 @@ body {
 
 .modal-header {
   padding: 16px;
-  border-bottom: 1px solid var(--card-border);
+  border-bottom: 1px solid rgba(124,110,240,0.25);
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.modal-header h3 {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .modal-header h3 {
@@ -1694,14 +1758,24 @@ body {
   width: 32px;
   height: 32px;
   border: none;
-  background: var(--surface);
+  background: transparent;
   color: var(--text);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s;
+}
+
+.modal-close-btn:hover {
+  background: rgba(124, 110, 240, 0.1);
+  color: var(--accent);
+}
+
+.modal-close-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 #foodSearchSection {
@@ -1715,18 +1789,23 @@ body {
   padding: 12px 16px;
   margin: 0 16px;
   background: var(--input-bg);
-  border: 1px solid var(--card-border);
+  border: 1px solid rgba(124,110,240,0.25);
   color: var(--text);
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
   width: calc(100% - 32px);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
 }
 
 .search-results {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  padding: 12px 16px;
 }
 
 .search-input::placeholder {
@@ -1743,14 +1822,29 @@ body {
   flex: 1;
   padding: 10px 12px;
   background: var(--surface);
-  border: 1px solid var(--card-border);
+  border: 1px solid rgba(124,110,240,0.25);
   color: var(--text);
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
   font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.search-action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.search-action-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
 .search-action-btn:hover {
@@ -1767,12 +1861,17 @@ body {
 
 .search-result-item {
   background: var(--card);
-  border: 1px solid var(--card-border);
+  border: 1px solid rgba(124,110,240,0.25);
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
+}
+
+.search-result-item:hover {
+  background: rgba(124, 110, 240, 0.1);
+  border-color: var(--accent);
 }
 
 .search-result-item:hover {
@@ -1800,7 +1899,8 @@ body {
 
 .food-detail-panel {
   background: var(--card);
-  border-radius: 16px;
+  border: 1px solid rgba(124,110,240,0.25);
+  border-radius: 14px;
   padding: 16px;
   margin-bottom: 12px;
 }
@@ -1817,7 +1917,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid var(--card-border);
+  border-bottom: 1px solid rgba(124,110,240,0.25);
 }
 
 .food-detail-row:last-child {
@@ -1863,9 +1963,9 @@ body {
 }
 
 .food-detail-confirm button.cancel {
-  background: var(--surface);
+  background: transparent;
   color: var(--text);
-  border: 1px solid var(--card-border);
+  border: 1px solid rgba(124,110,240,0.25);
 }
 
 .camera-viewfinder {
@@ -1899,11 +1999,15 @@ body {
   background: var(--accent);
   color: #fff;
   cursor: pointer;
-  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+}
+
+.camera-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .camera-btn:active {
@@ -1911,7 +2015,8 @@ body {
 }
 
 .camera-btn.cancel {
-  background: var(--surface);
+  background: transparent;
+  border: 1px solid rgba(124,110,240,0.25);
   color: var(--text);
 }
 
@@ -1920,6 +2025,8 @@ body {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .form-group {
@@ -1937,7 +2044,7 @@ body {
 .form-group input {
   padding: 10px;
   background: var(--input-bg);
-  border: 1px solid var(--card-border);
+  border: 1px solid rgba(124,110,240,0.25);
   color: var(--text);
   border-radius: 8px;
   font-size: 14px;
@@ -1963,6 +2070,12 @@ body {
 .form-buttons button.submit {
   background: var(--accent);
   color: #fff;
+}
+
+.form-buttons button.cancel {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid rgba(124,110,240,0.25);
 }
 
 .form-buttons button.cancel {
@@ -2228,7 +2341,7 @@ body {
     <div id="nutritionContent" class="nutrition-content hidden">
       <div class="nutrition-summary" id="nutritionSummary"></div>
       <div id="mealsContainer"></div>
-      <button class="add-meal-btn" id="addMealBtn" onclick="addNewMeal()" title="Add meal">+</button>
+      <button class="add-meal-btn" id="addMealBtn" onclick="addNewMeal()" title="Add meal"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     </div>
   </div>
 
@@ -2236,15 +2349,15 @@ body {
   <div id="foodSearchModal" class="food-search-modal hidden">
     <div class="modal-header">
       <h3>Add Food</h3>
-      <button class="modal-close-btn" onclick="closeFoodSearch()">✕</button>
+      <button class="modal-close-btn" onclick="closeFoodSearch()" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <!-- Search section (hidden when food selected) -->
     <div id="foodSearchSection">
       <input type="text" class="search-input" id="foodSearchInput" placeholder="Search food by name..." oninput="debouncedFoodSearch(this.value)">
       <div class="search-actions">
-        <button class="search-action-btn" onclick="openBarcodeScanner()">📱 Scan Barcode</button>
-        <button class="search-action-btn" onclick="openPhotoCapture()">📷 Take Photo</button>
-        <button class="search-action-btn" onclick="openManualEntry()">✏️ Manual</button>
+        <button class="search-action-btn" onclick="openBarcodeScanner()" title="Scan barcode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg> Scan Barcode</button>
+        <button class="search-action-btn" onclick="openPhotoCapture()" title="Take photo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Take Photo</button>
+        <button class="search-action-btn" onclick="openManualEntry()" title="Manual entry"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Manual</button>
       </div>
       <div class="search-results" id="searchResults"></div>
     </div>
@@ -2284,7 +2397,7 @@ body {
   <div id="barcodeScannerOverlay" class="barcode-scanner hidden">
     <div class="modal-header">
       <h3>Scan Barcode</h3>
-      <button class="modal-close-btn" onclick="closeBarcodeScanner()">✕</button>
+      <button class="modal-close-btn" onclick="closeBarcodeScanner()" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="camera-viewfinder">
       <video id="barcodeVideo" playsinline></video>
@@ -2298,14 +2411,14 @@ body {
   <div id="photoCaptureOverlay" class="photo-capture hidden">
     <div class="modal-header">
       <h3>Capture Food Photo</h3>
-      <button class="modal-close-btn" onclick="closePhotoCapture()">✕</button>
+      <button class="modal-close-btn" onclick="closePhotoCapture()" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="camera-viewfinder">
       <video id="photoVideo" playsinline></video>
       <canvas id="photoCanvas" style="display:none;"></canvas>
     </div>
     <div class="camera-controls">
-      <button class="camera-btn" onclick="captureAndAnalyze()">📷</button>
+      <button class="camera-btn" onclick="captureAndAnalyze()" title="Capture photo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
       <button class="camera-btn cancel" onclick="closePhotoCapture()">Cancel</button>
     </div>
   </div>
@@ -2314,7 +2427,7 @@ body {
   <div id="manualEntryModal" class="food-search-modal hidden">
     <div class="modal-header">
       <h3>Manual Entry</h3>
-      <button class="modal-close-btn" onclick="closeManualEntry()">✕</button>
+      <button class="modal-close-btn" onclick="closeManualEntry()" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="manual-entry-form">
       <div class="form-group">
@@ -6549,7 +6662,10 @@ const nutritionState = {
   mealIdCounter: 0,
   barcodeDetector: null,
   currentStream: null,
-  targets: { calories: 2000, protein_g: 150, carbs_g: 200, fat_g: 70 }
+  targets: { calories: 2000, protein_g: 150, carbs_g: 200, fat_g: 70 },
+  favourites: [],
+  currentLogDate: null,
+  currentLogData: null
 };
 
 // Initialize barcode detector if available
@@ -6560,6 +6676,23 @@ try {
     });
   }
 } catch(e) { console.warn('BarcodeDetector not supported'); }
+
+// Load favourites on initialization
+async function loadFavourites() {
+  try {
+    const resp = await authFetch(`${SERVER_URL}/api/nutrition/favourites`);
+    if (resp.ok) {
+      const data = await resp.json();
+      nutritionState.favourites = data.favourites || [];
+    }
+  } catch (err) {
+    console.error('Error loading favourites:', err);
+    nutritionState.favourites = [];
+  }
+}
+
+// Initialize favourites
+loadFavourites();
 
 function switchDayMode(mode) {
   const workoutContent = document.getElementById('workoutContent');
@@ -6605,6 +6738,8 @@ async function loadNutritionLog(date) {
     if (!resp.ok) { console.error('Failed to load nutrition log:', resp.status); return; }
     const data = await resp.json();
     if (data.ok) {
+      nutritionState.currentLogDate = date;
+      nutritionState.currentLogData = data;
       // Try to load targets too
       try {
         const tResp = await authFetch(`${SERVER_URL}/api/nutrition/overview?username=${encodeURIComponent(currentUser)}`);
@@ -6646,18 +6781,23 @@ function renderNutritionLog(log, targets) {
   });
 
   if (mealOrder.length === 0) {
-    mealsContainer.innerHTML = '<div style="text-align:center;padding:48px 20px;color:var(--text-dim);"><div style="font-size:40px;margin-bottom:12px;opacity:0.4;">🍽️</div><div style="font-size:14px;margin-bottom:4px;">No meals logged yet</div><div style="font-size:12px;color:var(--text-muted);">Tap + to add a meal</div></div>';
+    mealsContainer.innerHTML = '<div style="text-align:center;padding:48px 20px;color:var(--text-dim);"><div style="font-size:40px;margin-bottom:12px;opacity:0.4;width:48px;height:48px;display:flex;align-items:center;justify-content:center;margin-left:auto;margin-right:auto;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2C9 2 7 4 7 4s-5 2-5 8c0 7 5 10 5 10h10s5-3 5-10c0-6-5-8-5-8s-2-2-5-2z"/><path d="M12 2v5"/></svg></div><div style="font-size:14px;margin-bottom:4px;">No meals logged yet</div><div style="font-size:12px;color:var(--text-muted);">Tap + to add a meal</div></div>';
     return;
   }
 
-  mealsContainer.innerHTML = mealOrder.map(mealId => {
+  mealsContainer.innerHTML = mealOrder.map((mealId, idx) => {
     const meal = meals[mealId];
     const escapedName = (meal.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const escapedId = (mealId || '').replace(/'/g, "\\'");
+    const isFavourited = nutritionState.favourites && nutritionState.favourites.some(f => f.name === meal.name);
     return `<div class="meal-card" data-meal-id="${mealId}">
       <div class="meal-header" onclick="toggleMealCollapse(this)">
         <div style="flex:1;min-width:0;">
           <div class="meal-header-name">${meal.name}</div>
-          <div class="meal-header-meta">${meal.time ? meal.time + ' · ' : ''}${Math.round(meal.calories)} cal</div>
+          <div class="meal-header-meta" style="cursor:pointer;padding:4px 0;" onclick="event.stopPropagation();editMealTime('${escapedId}','${(meal.time || '').replace(/:/g, '%3A')}')" title="Click to edit time">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>${meal.time ? meal.time + ' · ' : 'Set time · '}${Math.round(meal.calories)} cal</span>
+          </div>
           <div class="meal-header-macros">
             <span style="color:var(--green);">P: ${Math.round(meal.protein_g)}g</span>
             <span style="color:var(--yellow);">C: ${Math.round(meal.carbs_g)}g</span>
@@ -6665,15 +6805,18 @@ function renderNutritionLog(log, targets) {
           </div>
         </div>
         <div class="meal-header-actions">
-          <button onclick="event.stopPropagation();addFoodToMeal('${mealId}','${escapedName}')" title="Add food" style="background:none;border:none;color:var(--accent);font-size:20px;cursor:pointer;padding:4px 8px;">+</button>
-          <button onclick="event.stopPropagation();deleteMeal('${mealId}')" title="Delete" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:4px 8px;">🗑</button>
-          <span class="meal-chevron">▾</span>
+          ${idx > 0 ? `<button onclick="event.stopPropagation();moveMealUp('${escapedId}')" title="Move up" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>` : '<div style="width:28px;height:28px;"></div>'}
+          ${idx < mealOrder.length - 1 ? `<button onclick="event.stopPropagation();moveMealDown('${escapedId}')" title="Move down" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></button>` : '<div style="width:28px;height:28px;"></div>'}
+          <button onclick="event.stopPropagation();saveMealAsFavourite('${escapedId}')" title="Save as favourite" style="background:none;border:none;color:${isFavourited ? 'var(--yellow)' : 'var(--text-muted)'};cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="${isFavourited ? 'var(--yellow)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+          <button onclick="event.stopPropagation();addFoodToMeal('${escapedId}','${escapedName}')" title="Add ingredient" style="background:none;border:none;color:var(--accent);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button onclick="event.stopPropagation();deleteMeal('${escapedId}')" title="Delete" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          <span class="meal-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
       </div>
       <div class="meal-content">${meal.entries.map(e => `<div class="food-item">
           <div class="food-item-info"><div class="food-item-name">${e.food_name}</div><div class="food-item-meta">${e.amount || e.serving_grams || ''}g · P:${(e.protein_g||0).toFixed(0)}g C:${(e.carbs_g||0).toFixed(0)}g F:${(e.fat_g||0).toFixed(0)}g</div></div>
           <div class="food-item-cals">${Math.round(e.calories || 0)}</div>
-          <button class="food-item-delete" onclick="deleteFood('${e.id}')">✕</button>
+          <button class="food-item-delete" onclick="deleteFood('${e.id}')" style="display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>`).join('')}</div>
     </div>`;
   }).join('');
@@ -6718,19 +6861,306 @@ function getMealSuggestion() {
 }
 
 function addNewMeal() {
+  if (nutritionState.favourites && nutritionState.favourites.length > 0) {
+    showFavouritePicker();
+  } else {
+    createNewMeal();
+  }
+}
+
+function createNewMeal() {
   const mealName = prompt('Meal name:', getMealSuggestion());
   if (!mealName) return;
   nutritionState.mealIdCounter++;
   const mealId = `meal_${Date.now()}_${nutritionState.mealIdCounter}`;
   nutritionState.currentMealId = mealId;
   nutritionState.currentMealName = mealName;
-  openFoodSearch(mealId);
+  const date = getNutritionDate();
+
+  // Create meal entry with no foods yet
+  const entry = {
+    food_name: '',
+    amount: 0,
+    serving_size: '',
+    serving_grams: 0,
+    calories: 0,
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    fiber_g: 0,
+    source: 'meal_placeholder',
+    source_id: '',
+    meal_id: mealId,
+    meal_name: mealName,
+    meal_type: 'other',
+    is_meal_header: true
+  };
+
+  authFetch(`${SERVER_URL}/api/nutrition/logs/${date}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry)
+  }).then(resp => {
+    if (resp.ok) {
+      loadNutritionLog(date);
+    }
+  }).catch(err => console.error('Error creating meal:', err));
+}
+
+function showFavouritePicker() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'favouritePickerModal';
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: var(--card); border: 1px solid rgba(124,110,240,0.25); border-radius: 14px;
+    padding: 20px; max-width: 90%; max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  `;
+
+  content.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text);">Create Meal</h2>
+      <button onclick="document.getElementById('favouritePickerModal').remove()" style="
+        background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px;
+        display: flex; align-items: center; justify-content: center;
+      "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <button onclick="document.getElementById('favouritePickerModal').remove(); createNewMeal();" style="
+      width: 100%; background: linear-gradient(135deg, #7c6ef0, #a78bfa); color: #fff; border: none;
+      border-radius: 10px; padding: 12px; font-weight: 600; margin-bottom: 16px; cursor: pointer;
+    ">New Meal</button>
+    <div style="border-top: 1px solid var(--card-border); padding-top: 16px; margin-bottom: 12px; color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Load Favourite</div>
+    ${nutritionState.favourites.map(fav => `
+      <button onclick="loadFavouriteMeal('${(fav.id || '').replace(/'/g, "\\'")}')" style="
+        width: 100%; background: var(--card); border: 1px solid var(--card-border); color: var(--text);
+        border-radius: 10px; padding: 12px; margin-bottom: 8px; cursor: pointer; text-align: left;
+        transition: background 0.15s;
+      " onmouseover="this.style.background='rgba(124,110,240,0.08)'" onmouseout="this.style.background='var(--card)'">
+        <div style="font-weight: 600; font-size: 14px;">${fav.name}</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${fav.ingredients ? fav.ingredients.length : 0} items</div>
+      </button>
+    `).join('')}
+  `;
+
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+}
+
+async function saveMealAsFavourite(mealId) {
+  if (!nutritionState.currentLogData) return;
+  const entries = (nutritionState.currentLogData.log && nutritionState.currentLogData.log.entries) || [];
+  const mealEntries = entries.filter(e => e.meal_id === mealId);
+  if (mealEntries.length === 0) { alert('No ingredients in this meal'); return; }
+
+  const mealName = mealEntries[0].meal_name || 'Meal';
+  const ingredients = mealEntries.map(e => ({
+    food_name: e.food_name,
+    amount: e.amount,
+    serving_grams: e.serving_grams,
+    calories: e.calories,
+    protein_g: e.protein_g,
+    carbs_g: e.carbs_g,
+    fat_g: e.fat_g,
+    fiber_g: e.fiber_g,
+    source: e.source,
+    source_id: e.source_id
+  }));
+
+  try {
+    const resp = await authFetch(`${SERVER_URL}/api/nutrition/favourites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: mealName, ingredients })
+    });
+    if (resp.ok) {
+      alert('Meal saved to favourites');
+      loadFavourites();
+    } else {
+      alert('Failed to save favourite');
+    }
+  } catch (err) {
+    console.error('Error saving favourite:', err);
+    alert('Failed to save favourite');
+  }
+}
+
+async function loadFavouriteMeal(favId) {
+  const favourite = nutritionState.favourites.find(f => f.id === favId);
+  if (!favourite || !favourite.ingredients) return;
+
+  const date = getNutritionDate();
+  nutritionState.mealIdCounter++;
+  const mealId = `meal_${Date.now()}_${nutritionState.mealIdCounter}`;
+
+  try {
+    for (const ing of favourite.ingredients) {
+      const entry = {
+        food_name: ing.food_name,
+        amount: ing.amount,
+        serving_size: ing.serving_size || (ing.serving_grams + 'g'),
+        serving_grams: ing.serving_grams,
+        calories: ing.calories,
+        protein_g: ing.protein_g,
+        carbs_g: ing.carbs_g,
+        fat_g: ing.fat_g,
+        fiber_g: ing.fiber_g,
+        source: ing.source || 'manual',
+        source_id: ing.source_id || '',
+        meal_id: mealId,
+        meal_name: favourite.name,
+        meal_type: 'other'
+      };
+
+      await authFetch(`${SERVER_URL}/api/nutrition/logs/${date}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      });
+    }
+    loadNutritionLog(date);
+    document.getElementById('favouritePickerModal')?.remove();
+  } catch (err) {
+    console.error('Error loading favourite meal:', err);
+    alert('Failed to load favourite');
+  }
 }
 
 function addFoodToMeal(mealId, mealName) {
   nutritionState.currentMealId = mealId;
   nutritionState.currentMealName = mealName || getMealSuggestion();
   openFoodSearch(mealId);
+}
+
+async function moveMealUp(mealId) {
+  const date = getNutritionDate();
+  if (!nutritionState.currentLogData) return;
+  const entries = (nutritionState.currentLogData.log && nutritionState.currentLogData.log.entries) || [];
+  const meals = {};
+  const mealOrder = [];
+  entries.forEach(entry => {
+    const mid = entry.meal_id || 'ungrouped';
+    if (!meals[mid]) {
+      meals[mid] = true;
+      mealOrder.push(mid);
+    }
+  });
+
+  const idx = mealOrder.indexOf(mealId);
+  if (idx <= 0) return;
+
+  [mealOrder[idx - 1], mealOrder[idx]] = [mealOrder[idx], mealOrder[idx - 1]];
+
+  try {
+    await authFetch(`${SERVER_URL}/api/nutrition/logs/${date}/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meal_order: mealOrder })
+    });
+    loadNutritionLog(date);
+  } catch (err) { console.error('Reorder error:', err); }
+}
+
+async function moveMealDown(mealId) {
+  const date = getNutritionDate();
+  if (!nutritionState.currentLogData) return;
+  const entries = (nutritionState.currentLogData.log && nutritionState.currentLogData.log.entries) || [];
+  const meals = {};
+  const mealOrder = [];
+  entries.forEach(entry => {
+    const mid = entry.meal_id || 'ungrouped';
+    if (!meals[mid]) {
+      meals[mid] = true;
+      mealOrder.push(mid);
+    }
+  });
+
+  const idx = mealOrder.indexOf(mealId);
+  if (idx < 0 || idx >= mealOrder.length - 1) return;
+
+  [mealOrder[idx], mealOrder[idx + 1]] = [mealOrder[idx + 1], mealOrder[idx]];
+
+  try {
+    await authFetch(`${SERVER_URL}/api/nutrition/logs/${date}/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meal_order: mealOrder })
+    });
+    loadNutritionLog(date);
+  } catch (err) { console.error('Reorder error:', err); }
+}
+
+function editMealTime(mealId, currentTime) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'editMealTimeModal';
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: var(--card); border: 1px solid rgba(124,110,240,0.25); border-radius: 14px;
+    padding: 20px; width: 90%; max-width: 300px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  `;
+
+  content.innerHTML = `
+    <h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: var(--text);">Edit Meal Time</h2>
+    <input type="time" id="mealTimeInput" value="${currentTime || '12:00'}" style="
+      width: 100%; background: var(--input-bg); border: 1px solid var(--card-border);
+      border-radius: 8px; color: var(--text); font-size: 15px; padding: 10px;
+      box-sizing: border-box; margin-bottom: 16px;
+    ">
+    <div style="display: flex; gap: 8px;">
+      <button onclick="document.getElementById('editMealTimeModal').remove()" style="
+        flex: 1; background: var(--card); border: 1px solid var(--card-border); color: var(--text-dim);
+        border-radius: 10px; padding: 10px; cursor: pointer; font-weight: 600;
+      ">Cancel</button>
+      <button onclick="confirmMealTimeEdit('${mealId}')" style="
+        flex: 1; background: linear-gradient(135deg, #7c6ef0, #a78bfa); color: #fff; border: none;
+        border-radius: 10px; padding: 10px; cursor: pointer; font-weight: 600;
+      ">Save</button>
+    </div>
+  `;
+
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+  setTimeout(() => document.getElementById('mealTimeInput').focus(), 100);
+}
+
+async function confirmMealTimeEdit(mealId) {
+  const timeInput = document.getElementById('mealTimeInput');
+  if (!timeInput) return;
+  const newTime = timeInput.value;
+  const date = getNutritionDate();
+
+  try {
+    await authFetch(`${SERVER_URL}/api/nutrition/logs/${date}/meal/${mealId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ time: newTime })
+    });
+    loadNutritionLog(date);
+    document.getElementById('editMealTimeModal')?.remove();
+  } catch (err) {
+    console.error('Error updating meal time:', err);
+    alert('Failed to update time');
+  }
 }
 
 async function deleteMeal(mealId) {
@@ -6759,6 +7189,34 @@ function openFoodSearch() {
   modal.classList.remove('hidden');
   panel.style.display = 'none';
   searchSection.style.display = '';
+
+  // Load and display existing ingredients for this meal
+  let existingIngredientsSummary = '';
+  if (nutritionState.currentLogData && nutritionState.currentMealId) {
+    const entries = (nutritionState.currentLogData.log && nutritionState.currentLogData.log.entries) || [];
+    const mealEntries = entries.filter(e => e.meal_id === nutritionState.currentMealId && e.food_name);
+    if (mealEntries.length > 0) {
+      existingIngredientsSummary = `
+        <div style="background: rgba(124,110,240,0.08); border: 1px solid rgba(124,110,240,0.15); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; margin-bottom: 8px;">Current ingredients</div>
+          ${mealEntries.map(e => `<div style="font-size: 13px; color: var(--text-dim); margin-bottom: 4px; display: flex; justify-content: space-between;">
+            <span>${e.food_name}</span>
+            <span>${Math.round(e.calories || 0)} cal</span>
+          </div>`).join('')}
+        </div>
+      `;
+    }
+  }
+
+  const searchSectionEl = document.getElementById('foodSearchSection');
+  const searchInputContainer = searchSectionEl.querySelector('[id="foodSearchInput"]')?.parentElement;
+  if (searchInputContainer && !searchInputContainer.querySelector('.existing-ingredients-summary')) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'existing-ingredients-summary';
+    wrapper.innerHTML = existingIngredientsSummary;
+    searchInputContainer.parentElement.insertBefore(wrapper, searchInputContainer);
+  }
+
   document.getElementById('searchResults').innerHTML = '';
   document.getElementById('foodSearchInput').value = '';
   setTimeout(() => document.getElementById('foodSearchInput').focus(), 100);
