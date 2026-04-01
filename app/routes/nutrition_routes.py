@@ -508,6 +508,71 @@ async def update_meal_metadata(
 
 
 # ────────────────────────────────────────────
+#  Copy / Move meal between days
+# ────────────────────────────────────────────
+
+class CopyMoveMealRequest(BaseModel):
+    source_date: str         # e.g. "2026-04-01"
+    target_date: str         # e.g. "2026-04-03"
+    meal_id: str             # meal_id in source date
+    action: str = "copy"     # "copy" or "move"
+
+
+@router.post("/logs/copy-meal")
+async def copy_or_move_meal(
+    req: CopyMoveMealRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Copy or move a meal (all its entries) from one date to another.
+
+    action="copy" duplicates entries with new IDs on the target date.
+    action="move" copies to target then deletes from source.
+    """
+    if req.action not in ("copy", "move"):
+        raise HTTPException(400, "action must be 'copy' or 'move'")
+    if req.source_date == req.target_date:
+        raise HTTPException(400, "Source and target dates must be different")
+
+    user_data = load_user_data(current_user["name"])
+    nutrition = _get_nutrition(user_data)
+
+    source_log = nutrition["logs"].get(req.source_date)
+    if not source_log:
+        raise HTTPException(404, "No log for source date")
+
+    # Find entries for this meal
+    source_entries = [e for e in source_log["entries"] if e.get("meal_id") == req.meal_id]
+    if not source_entries:
+        raise HTTPException(404, "No entries found for this meal_id on source date")
+
+    # Prepare target log
+    if req.target_date not in nutrition["logs"]:
+        nutrition["logs"][req.target_date] = {"entries": [], "created_at": _now_iso()}
+    target_log = nutrition["logs"][req.target_date]
+
+    # Create copies with new IDs and a new meal_id
+    new_meal_id = f"meal_{uuid.uuid4().hex[:12]}"
+    for entry in source_entries:
+        new_entry = copy.deepcopy(entry)
+        new_entry["id"] = f"food_{uuid.uuid4().hex[:8]}"
+        new_entry["meal_id"] = new_meal_id
+        new_entry["logged_at"] = _now_iso()
+        target_log["entries"].append(new_entry)
+
+    target_log["totals"] = _compute_day_totals(target_log["entries"])
+    target_log["updated_at"] = _now_iso()
+
+    # If move, remove from source
+    if req.action == "move":
+        source_log["entries"] = [e for e in source_log["entries"] if e.get("meal_id") != req.meal_id]
+        source_log["totals"] = _compute_day_totals(source_log["entries"])
+        source_log["updated_at"] = _now_iso()
+
+    save_user_data(current_user["name"], user_data)
+    return {"ok": True, "action": req.action, "new_meal_id": new_meal_id}
+
+
+# ────────────────────────────────────────────
 #  Favourite meals
 # ────────────────────────────────────────────
 

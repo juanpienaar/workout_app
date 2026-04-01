@@ -3353,6 +3353,11 @@ function changeDay(delta) {
       }
     }
     renderDay();
+    // Reload nutrition log if nutrition tab is active
+    const nutritionContent = document.getElementById('nutritionContent');
+    if (nutritionContent && !nutritionContent.classList.contains('hidden')) {
+      loadNutritionLog(getNutritionDate());
+    }
   }
 }
 
@@ -6807,9 +6812,10 @@ function renderNutritionLog(log, targets) {
         <div class="meal-header-actions">
           ${idx > 0 ? `<button onclick="event.stopPropagation();moveMealUp('${escapedId}')" title="Move up" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>` : '<div style="width:28px;height:28px;"></div>'}
           ${idx < mealOrder.length - 1 ? `<button onclick="event.stopPropagation();moveMealDown('${escapedId}')" title="Move down" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></button>` : '<div style="width:28px;height:28px;"></div>'}
-          <button onclick="event.stopPropagation();saveMealAsFavourite('${escapedId}')" title="Save as favourite" style="background:none;border:none;color:${isFavourited ? 'var(--yellow)' : 'var(--text-muted)'};cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="${isFavourited ? 'var(--yellow)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
           <button onclick="event.stopPropagation();addFoodToMeal('${escapedId}','${escapedName}')" title="Add ingredient" style="background:none;border:none;color:var(--accent);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-          <button onclick="event.stopPropagation();deleteMeal('${escapedId}')" title="Delete" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          <div style="position:relative;display:inline-block;">
+            <button onclick="event.stopPropagation();toggleMealMenu(this,'${escapedId}','${escapedName}',${isFavourited})" title="More actions" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+          </div>
           <span class="meal-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
       </div>
@@ -7177,6 +7183,156 @@ async function deleteMeal(mealId) {
     }
     loadNutritionLog(date);
   } catch (err) { console.error('Delete meal error:', err); }
+}
+
+// ── Copy / Move Meal Between Days ──
+
+function showCopyMoveMealModal(mealId, mealName, action) {
+  const sourceDate = getNutritionDate();
+  const userInfo = programData && programData.users ? programData.users[currentUser] : null;
+  const startDate = userInfo && userInfo.startDate ? new Date(userInfo.startDate + 'T00:00:00') : null;
+
+  // Build list of available days (program days)
+  let dayOptions = '';
+  if (startDate && allDays && allDays.length > 0) {
+    for (let i = 0; i < allDays.length; i++) {
+      const d = new Date(startDate.getTime() + i * 86400000);
+      const dateStr = d.toISOString().split('T')[0];
+      if (dateStr === sourceDate) continue; // skip current day
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const weekDay = `Week ${allDays[i].week}, Day ${allDays[i].day}`;
+      dayOptions += `<option value="${dateStr}">${weekDay} - ${dayLabel}</option>`;
+    }
+  } else {
+    // Fallback: offer ±7 days from today
+    const today = new Date();
+    for (let offset = -7; offset <= 7; offset++) {
+      const d = new Date(today.getTime() + offset * 86400000);
+      const dateStr = d.toISOString().split('T')[0];
+      if (dateStr === sourceDate) continue;
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      dayOptions += `<option value="${dateStr}">${dayLabel}</option>`;
+    }
+  }
+
+  const actionLabel = action === 'copy' ? 'Copy' : 'Move';
+  const actionIcon = action === 'copy'
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'copyMoveMealModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+
+  const content = document.createElement('div');
+  content.style.cssText = 'background:var(--card);border:1px solid rgba(124,110,240,0.25);border-radius:14px;padding:20px;width:90%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.4);';
+
+  content.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;">${actionIcon} ${actionLabel} Meal</h2>
+      <button onclick="document.getElementById('copyMoveMealModal').remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">${actionLabel} <strong style="color:var(--text);">${(mealName || 'Meal').replace(/</g, '&lt;')}</strong> to:</div>
+    <select id="copyMoveDateSelect" style="width:100%;background:var(--input-bg);border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-size:14px;padding:10px;box-sizing:border-box;margin-bottom:16px;">
+      ${dayOptions}
+    </select>
+    <div style="display:flex;gap:8px;">
+      <button onclick="document.getElementById('copyMoveMealModal').remove()" style="flex:1;background:var(--card);border:1px solid var(--card-border);color:var(--text-dim);border-radius:10px;padding:10px;cursor:pointer;font-weight:600;">Cancel</button>
+      <button onclick="executeCopyMoveMeal('${mealId.replace(/'/g, "\\'")}','${action}')" style="flex:1;background:linear-gradient(135deg,#7c6ef0,#a78bfa);color:#fff;border:none;border-radius:10px;padding:10px;cursor:pointer;font-weight:600;">${actionLabel}</button>
+    </div>
+  `;
+
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+async function executeCopyMoveMeal(mealId, action) {
+  const select = document.getElementById('copyMoveDateSelect');
+  if (!select) return;
+  const targetDate = select.value;
+  const sourceDate = getNutritionDate();
+
+  try {
+    const resp = await authFetch(`${SERVER_URL}/api/nutrition/logs/copy-meal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source_date: sourceDate,
+        target_date: targetDate,
+        meal_id: mealId,
+        action: action
+      })
+    });
+    if (resp.ok) {
+      document.getElementById('copyMoveMealModal')?.remove();
+      // Reload current day (especially important for move)
+      loadNutritionLog(sourceDate);
+      const actionLabel = action === 'copy' ? 'copied' : 'moved';
+      // Brief confirmation
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid rgba(124,110,240,0.3);color:var(--text);padding:10px 20px;border-radius:10px;font-size:13px;z-index:10000;box-shadow:0 8px 24px rgba(0,0,0,0.3);';
+      toast.textContent = `Meal ${actionLabel} successfully`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      alert(err.detail || 'Failed to ' + action + ' meal');
+    }
+  } catch (err) {
+    console.error(`${action} meal error:`, err);
+    alert('Failed to ' + action + ' meal');
+  }
+}
+
+// ── Meal Overflow Menu ──
+
+function toggleMealMenu(btn, mealId, mealName, isFavourited) {
+  // Remove any existing menu
+  const existing = document.getElementById('mealOverflowMenu');
+  if (existing) { existing.remove(); return; }
+
+  const menu = document.createElement('div');
+  menu.id = 'mealOverflowMenu';
+  menu.style.cssText = 'position:fixed;background:var(--card);border:1px solid rgba(124,110,240,0.25);border-radius:10px;padding:6px 0;min-width:180px;box-shadow:0 12px 40px rgba(0,0,0,0.4);z-index:9999;';
+
+  const items = [
+    { label: isFavourited ? 'Saved as favourite' : 'Save as favourite', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="' + (isFavourited ? 'var(--yellow)' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>', action: () => saveMealAsFavourite(mealId), color: isFavourited ? 'var(--yellow)' : 'var(--text-dim)' },
+    { label: 'Copy to another day', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>', action: () => showCopyMoveMealModal(mealId, mealName, 'copy'), color: 'var(--text-dim)' },
+    { label: 'Move to another day', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>', action: () => showCopyMoveMealModal(mealId, mealName, 'move'), color: 'var(--text-dim)' },
+    { label: 'Delete meal', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>', action: () => deleteMeal(mealId), color: '#f87171' },
+  ];
+
+  menu.innerHTML = items.map((item, i) =>
+    `<button data-menu-idx="${i}" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 16px;background:none;border:none;color:${item.color};cursor:pointer;font-size:13px;text-align:left;transition:background 0.15s;" onmouseover="this.style.background='rgba(124,110,240,0.08)'" onmouseout="this.style.background='none'">${item.icon} ${item.label}</button>`
+  ).join('');
+
+  // Position near button
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = Math.min(rect.bottom + 4, window.innerHeight - 200) + 'px';
+  menu.style.right = Math.max(4, window.innerWidth - rect.right) + 'px';
+
+  document.body.appendChild(menu);
+
+  // Attach click handlers
+  menu.querySelectorAll('button').forEach((b, i) => {
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.remove();
+      items[i].action();
+    });
+  });
+
+  // Close on outside click
+  setTimeout(() => {
+    const closeHandler = (e) => {
+      if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', closeHandler); }
+    };
+    document.addEventListener('click', closeHandler);
+  }, 10);
 }
 
 // ── Food Search ──
