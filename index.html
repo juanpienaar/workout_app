@@ -1544,6 +1544,28 @@ body {
   display: none;
 }
 
+.meal-header-macros {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.meal-header-macros span {
+  opacity: 0.85;
+}
+
+.meal-chevron {
+  transition: transform 0.2s ease;
+  color: var(--text-muted);
+  font-size: 16px;
+  margin-left: 4px;
+}
+
+.meal-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
 .food-item {
   padding: 12px 16px;
   border-bottom: 1px solid var(--card-border);
@@ -6633,10 +6655,19 @@ function renderNutritionLog(log, targets) {
     const escapedName = (meal.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     return `<div class="meal-card" data-meal-id="${mealId}">
       <div class="meal-header" onclick="toggleMealCollapse(this)">
-        <div><div class="meal-header-name">${meal.name}</div><div class="meal-header-meta">${meal.time ? meal.time + ' · ' : ''}${Math.round(meal.calories)} cal</div></div>
+        <div style="flex:1;min-width:0;">
+          <div class="meal-header-name">${meal.name}</div>
+          <div class="meal-header-meta">${meal.time ? meal.time + ' · ' : ''}${Math.round(meal.calories)} cal</div>
+          <div class="meal-header-macros">
+            <span style="color:var(--green);">P: ${Math.round(meal.protein_g)}g</span>
+            <span style="color:var(--yellow);">C: ${Math.round(meal.carbs_g)}g</span>
+            <span style="color:#f87171;">F: ${Math.round(meal.fat_g)}g</span>
+          </div>
+        </div>
         <div class="meal-header-actions">
           <button onclick="event.stopPropagation();addFoodToMeal('${mealId}','${escapedName}')" title="Add food" style="background:none;border:none;color:var(--accent);font-size:20px;cursor:pointer;padding:4px 8px;">+</button>
           <button onclick="event.stopPropagation();deleteMeal('${mealId}')" title="Delete" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:4px 8px;">🗑</button>
+          <span class="meal-chevron">▾</span>
         </div>
       </div>
       <div class="meal-content">${meal.entries.map(e => `<div class="food-item">
@@ -6671,7 +6702,9 @@ function renderDailySummary(totals, targets) {
 
 function toggleMealCollapse(header) {
   const content = header.nextElementSibling;
+  const chevron = header.querySelector('.meal-chevron');
   if (content) content.classList.toggle('collapsed');
+  if (chevron) chevron.classList.toggle('collapsed');
 }
 
 function getMealSuggestion() {
