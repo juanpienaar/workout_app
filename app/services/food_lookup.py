@@ -166,6 +166,54 @@ def _search_openfoodfacts_sync(query: str, max_results: int = 10) -> list[dict]:
 
 
 # ────────────────────────────────────────────
+#  Open Food Facts — Barcode lookup
+# ────────────────────────────────────────────
+
+def _barcode_lookup_sync(barcode: str) -> Optional[dict]:
+    """Look up a product by barcode on Open Food Facts."""
+    url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+    try:
+        req = urllib.request.Request(url, method="GET")
+        req.add_header("User-Agent", "NumNumWorkout/1.0 (numnum.fit)")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+
+        if data.get("status") != 1:
+            return None
+
+        product = data.get("product", {})
+        n = product.get("nutriments", {})
+        name = product.get("product_name", "")
+        if not name:
+            return None
+
+        brand = product.get("brands", "")
+        display_name = f"{name} ({brand})" if brand else name
+
+        return {
+            "food_name": display_name,
+            "source": "barcode",
+            "source_id": barcode,
+            "serving_size": product.get("serving_size", "100g"),
+            "serving_grams": float(product.get("serving_quantity", 100) or 100),
+            "calories": round(float(n.get("energy-kcal_100g", 0) or 0), 1),
+            "protein_g": round(float(n.get("proteins_100g", 0) or 0), 1),
+            "carbs_g": round(float(n.get("carbohydrates_100g", 0) or 0), 1),
+            "fat_g": round(float(n.get("fat_100g", 0) or 0), 1),
+            "fiber_g": round(float(n.get("fiber_100g", 0) or 0), 1),
+            "micros": {
+                "sodium_mg": round(float(n.get("sodium_100g", 0) or 0) * 1000, 1),
+                "sugar_g": round(float(n.get("sugars_100g", 0) or 0), 1),
+            },
+            "brand": brand,
+            "image_url": product.get("image_front_small_url", ""),
+        }
+    except Exception as e:
+        logger.error(f"Barcode lookup error: {e}")
+        return None
+
+
+# ────────────────────────────────────────────
 #  Claude fallback (text-based food recognition)
 # ────────────────────────────────────────────
 
@@ -376,3 +424,16 @@ async def recognize_from_photo(image_bytes: bytes, content_type: str, descriptio
     loop = asyncio.get_event_loop()
     results = await loop.run_in_executor(None, partial(_claude_vision_sync, image_bytes, content_type, description))
     return results
+
+
+async def lookup_barcode(barcode: str) -> Optional[dict]:
+    """Look up a product by barcode."""
+    cache_key = f"barcode:{barcode}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached[0] if cached else None
+
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, partial(_barcode_lookup_sync, barcode))
+    _cache_set(cache_key, [result] if result else [])
+    return result

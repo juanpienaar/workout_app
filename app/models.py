@@ -93,6 +93,7 @@ class SetNutritionTargetsRequest(BaseModel):
 class FoodEntry(BaseModel):
     id: Optional[str] = None
     food_name: str
+    amount: Optional[float] = None  # user-entered weight in grams
     serving_size: str = ""
     serving_grams: Optional[float] = None
     calories: float = 0
@@ -101,8 +102,10 @@ class FoodEntry(BaseModel):
     fat_g: float = 0
     fiber_g: Optional[float] = None
     micros: Optional[dict[str, float]] = None
-    source: str = "manual"  # "usda" | "openfoodfacts" | "claude" | "manual"
+    source: str = "manual"  # "usda" | "openfoodfacts" | "claude" | "manual" | "barcode"
     source_id: Optional[str] = None
+    meal_id: Optional[str] = None  # groups entries into meals
+    meal_name: Optional[str] = None  # e.g. "Breakfast", "Post-workout snack"
     meal_type: str = "other"  # "breakfast" | "lunch" | "dinner" | "snack" | "other"
     logged_at: Optional[str] = None
 

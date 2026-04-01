@@ -452,6 +452,19 @@ async def recognize_food_text(
     return {"ok": True, "results": results}
 
 
+@router.get("/lookup/barcode/{barcode}")
+async def lookup_barcode(
+    barcode: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Look up a product by barcode (Open Food Facts)."""
+    from ..services.food_lookup import lookup_barcode as _lookup_barcode
+    result = await _lookup_barcode(barcode)
+    if not result:
+        raise HTTPException(404, "Product not found for this barcode")
+    return {"ok": True, "product": result}
+
+
 @router.post("/lookup/photo")
 async def recognize_food_photo(
     file: UploadFile = File(...),
