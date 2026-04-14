@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 
 from ..auth import require_coach, hash_password
-from ..data import load_users, save_users, load_user_data, save_user_data, get_user_file, with_user_data
+from ..data import load_users, save_users, load_user_data, save_user_data, get_user_file, with_user_data, bump_program_version
 from ..ai_builder import generate_program, modify_program as ai_modify_program, load_costs as load_ai_costs, MODELS
 from ..logger import log_event, get_logs
 from .. import config
@@ -278,7 +278,8 @@ async def update_athlete_program(username: str, body: dict, coach: Annotated[dic
             data["assigned_program"] = program
         elif "assigned_program" not in data:
             raise HTTPException(400, "Athlete has no assigned program")
-    return {"ok": True}
+        version = bump_program_version(data)
+    return {"ok": True, "program_version": version}
 
 
 @router.get("/debug/data-status")
@@ -544,6 +545,7 @@ async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depen
         user_data["assigned_program_name"] = req.program
         user_data["assigned_program_date"] = new_start_str
         user_data["workout_logs"] = existing_logs
+        bump_program_version(user_data)
         # Audit trail of past program assignments
         history = user_data.setdefault("program_history", [])
         history.append({
@@ -652,9 +654,10 @@ async def move_workout_for_athlete(username: str, req: MoveWorkoutRequest, coach
         if not program:
             raise HTTPException(404, "Athlete has no assigned program")
         summary = _apply_move_on_program(program, req)
+        version = bump_program_version(user_data)
         import copy as _copy
         updated_program = _copy.deepcopy(program)
-    return {"ok": True, "program": updated_program, **summary}
+    return {"ok": True, "program": updated_program, "program_version": version, **summary}
 
 
 # ══════════════════════════════════════════════════════════════════

@@ -140,6 +140,22 @@ def save_user_data(user_key: str, data: dict):
     _atomic_write_json(f, data)
 
 
+def bump_program_version(user_data: dict) -> int:
+    """Increment the program_version (ms timestamp) on a user_data dict.
+
+    Call this inside a `with_user_data` block whenever `assigned_program`
+    (or any field the athlete app displays from the program) is mutated,
+    so the PWA can detect a change via `/api/program-version` and
+    invalidate its in-memory cache.
+    """
+    prev = int(user_data.get("program_version") or 0)
+    now_ms = int(time.time() * 1000)
+    # Guarantee monotonic increase even if clock regresses.
+    new_val = max(prev + 1, now_ms)
+    user_data["program_version"] = new_val
+    return new_val
+
+
 @contextmanager
 def with_user_data(user_key: str) -> Iterator[dict]:
     """Context manager: atomically load → yield mutable dict → save on exit.

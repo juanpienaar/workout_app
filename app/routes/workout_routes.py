@@ -36,19 +36,27 @@ async def get_data(current_user: Annotated[dict, Depends(get_current_user)]):
 
 @router.get("/my-program")
 async def get_my_program(current_user: Annotated[dict, Depends(get_current_user)]):
-    """Return the athlete's assigned program (deep copy) or fall back to global library."""
+    """Return the athlete's assigned program (deep copy) or fall back to global library.
+
+    The returned program dict is annotated with `_program_version` (int ms) so
+    the PWA can compare against `/api/program-version` and detect changes made
+    from the admin dashboard.
+    """
     user_key = current_user["name"]
     user_data = load_user_data(user_key)
+    version = int(user_data.get("program_version") or 0)
 
     # Check for deep-copied assigned program first (Phase 3)
     if "assigned_program" in user_data:
-        return user_data["assigned_program"]
+        program = dict(user_data["assigned_program"])  # shallow copy so we can annotate
+        program["_program_version"] = version
+        return program
 
     # Fall back to global program library
     users = load_users()
     program_name = users.get(current_user["sub"], {}).get("program", "")
     if not program_name:
-        return {"weeks": []}
+        return {"weeks": [], "_program_version": version}
 
     # Load from program.json
     if config.PROGRAM_FILE.exists():
@@ -56,9 +64,20 @@ async def get_my_program(current_user: Annotated[dict, Depends(get_current_user)
             pdata = json.load(f)
             programs = pdata.get("programs", {})
             if program_name in programs:
-                return programs[program_name]
+                out = dict(programs[program_name])
+                out["_program_version"] = version
+                return out
 
-    return {"weeks": []}
+    return {"weeks": [], "_program_version": version}
+
+
+@router.get("/program-version")
+async def get_program_version(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Lightweight endpoint so the PWA can poll for program changes without
+    downloading the full program JSON on every check."""
+    user_key = current_user["name"]
+    user_data = load_user_data(user_key)
+    return {"program_version": int(user_data.get("program_version") or 0)}
 
 
 @router.post("/save-day")

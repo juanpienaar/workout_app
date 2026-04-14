@@ -2822,13 +2822,18 @@ async function doLogin() {
 }
 
 // ==================== LOAD ATHLETE PROGRAM (Phase 3) ====================
-async function loadAthleteProgram() {
+// Program version tracking — lets the PWA detect changes made on the admin
+// dashboard and invalidate its in-memory copy without a hard reload.
+let _knownProgramVersion = 0;
+let _programSyncTimer = null;
+
+async function loadAthleteProgram(opts = {}) {
   /**Load athlete's assigned program from /my-program endpoint.
-   * This supports Phase 3: deep-copied programs in user_data.
+   * Pass { force: true } to bypass the in-memory cache and re-fetch from server.
    */
   if (!accessToken || !currentUser) return null;
 
-  if (athletePrograms[currentUser]) {
+  if (!opts.force && athletePrograms[currentUser]) {
     return athletePrograms[currentUser];
   }
 
@@ -2842,11 +2847,75 @@ async function loadAthleteProgram() {
     }
     const program = await resp.json();
     athletePrograms[currentUser] = program;
+    _knownProgramVersion = Number(program._program_version) || 0;
+    try { localStorage.setItem('nn_program_version_' + currentUser, String(_knownProgramVersion)); } catch {}
     return program;
   } catch (e) {
     console.warn('[program] Error loading from /my-program:', e);
     return null;
   }
+}
+
+async function checkProgramVersion() {
+  /** Lightweight poll: if the server's program_version is newer than what
+   * we have in memory, invalidate the cache and re-render the current day
+   * so the athlete sees changes made from the admin dashboard. */
+  if (!accessToken || !currentUser) return;
+  try {
+    const resp = await fetchWithTimeout(`${SERVER_URL}/api/program-version`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    }, 8000);
+    if (!resp.ok) return;
+    const { program_version } = await resp.json();
+    const remote = Number(program_version) || 0;
+    if (remote > _knownProgramVersion) {
+      console.log(`[program-sync] server version ${remote} > local ${_knownProgramVersion} — refreshing program`);
+      const wasKnown = _knownProgramVersion > 0;
+      delete athletePrograms[currentUser];
+      const freshProgram = await loadAthleteProgram({ force: true });
+      if (freshProgram && freshProgram.weeks) {
+        // Rebuild allDays / weekMap from the new program so renderDay picks it up.
+        allDays = [];
+        weekMap = [];
+        let dayIdx = 0;
+        for (const week of freshProgram.weeks) {
+          const startIdx = dayIdx;
+          for (const day of week.days) {
+            allDays.push({ ...day, week: week.week });
+            dayIdx++;
+          }
+          weekMap.push({ weekNum: week.week, startDayIndex: startIdx, endDayIndex: dayIdx - 1 });
+        }
+        try { if (typeof renderDay === 'function') renderDay(); } catch (e) { console.warn('[program-sync] render failed:', e); }
+        try { if (typeof renderWeekOverview === 'function') renderWeekOverview(); } catch {}
+        if (wasKnown) {
+          try {
+            const banner = document.createElement('div');
+            banner.textContent = 'Your coach updated the program — refreshed.';
+            banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#2d7cff;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 6px 24px rgba(0,0,0,0.3);';
+            document.body.appendChild(banner);
+            setTimeout(() => banner.remove(), 4000);
+          } catch {}
+        }
+      }
+    }
+  } catch (e) {
+    // Silent — will retry on next tick/visibility change.
+  }
+}
+
+function startProgramVersionPolling() {
+  if (_programSyncTimer) clearInterval(_programSyncTimer);
+  // Check every 60s while the tab is visible.
+  _programSyncTimer = setInterval(() => {
+    if (document.visibilityState === 'visible') checkProgramVersion();
+  }, 60000);
+  // Also check immediately whenever the tab regains focus or comes online.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkProgramVersion();
+  });
+  window.addEventListener('focus', checkProgramVersion);
+  window.addEventListener('online', checkProgramVersion);
 }
 
 // ==================== EMAIL VERIFICATION ====================
@@ -2989,6 +3058,8 @@ async function selectUser(name) {
     if (athleteProgram && athleteProgram.weeks) {
       program = athleteProgram;
     }
+    // Start background polling for coach-side program changes.
+    try { startProgramVersionPolling(); } catch {}
   }
 
   // Fallback to global program library
