@@ -643,13 +643,18 @@ async def move_workout_in_program(name: str, req: MoveWorkoutRequest, coach: Ann
 
 @router.post("/users/{username}/move-workout")
 async def move_workout_for_athlete(username: str, req: MoveWorkoutRequest, coach: Annotated[dict, Depends(require_coach)]):
-    """Swap or move a workout between two days in an athlete's assigned program."""
+    """Swap or move a workout between two days in an athlete's assigned program.
+
+    Returns the updated program so the admin UI can refresh without a full reload.
+    """
     with with_user_data(username) as user_data:
         program = user_data.get("assigned_program")
         if not program:
             raise HTTPException(404, "Athlete has no assigned program")
         summary = _apply_move_on_program(program, req)
-    return {"ok": True, **summary}
+        import copy as _copy
+        updated_program = _copy.deepcopy(program)
+    return {"ok": True, "program": updated_program, **summary}
 
 
 # ══════════════════════════════════════════════════════════════════

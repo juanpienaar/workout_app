@@ -703,6 +703,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
   const [replaceTo, setReplaceTo] = useState('')
   const [replaceFromDate, setReplaceFromDate] = useState('')
   const [movingEx, setMovingEx] = useState(null) // { weekIdx, dayIdx, groupIdx, exIdx, exercise }
+  const [moveWorkoutModal, setMoveWorkoutModal] = useState(null) // { srcWeekNum, srcDayNum, srcDateStr }
   const [expandedExKey, setExpandedExKey] = useState(null) // exKey of expanded exercise in modal
   const [reviewModal, setReviewModal] = useState(null) // { type: 'daily'|'weekly', loading, data, error }
   const [reviewContent, setReviewContent] = useState('')
@@ -1089,6 +1090,43 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
     saveProgram(updated)
   }
 
+  // Move/swap an ENTIRE workout day (all exercises) from one week/day to another.
+  // Uses the server-side endpoint so the saved program + audit trail stay consistent.
+  async function applyMoveWorkout(srcWeek, srcDay, dstWeek, dstDay, action) {
+    if (!calAthlete) return
+    if (Number(srcWeek) === Number(dstWeek) && Number(srcDay) === Number(dstDay)) {
+      setMoveWorkoutModal(null)
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await API.moveWorkoutForAthlete(calAthlete, {
+        source_week: Number(srcWeek),
+        source_day: Number(srcDay),
+        target_week: Number(dstWeek),
+        target_day: Number(dstDay),
+        action,
+      })
+      if (res && res.program) {
+        setUserData(prev => ({
+          ...prev,
+          [calAthlete]: { ...prev[calAthlete], assigned_program: res.program }
+        }))
+        toast(action === 'swap' ? 'Workouts swapped' : 'Workout moved')
+      } else if (res && res.ok === false) {
+        toast(res.error || 'Move failed', 'error')
+      } else {
+        // Fallback: reload user data
+        onRefresh?.()
+        toast(action === 'swap' ? 'Workouts swapped' : 'Workout moved')
+      }
+    } catch (e) {
+      toast('Move failed', 'error')
+    }
+    setSaving(false)
+    setMoveWorkoutModal(null)
+  }
+
   // Get all unique exercise names in program (for autocomplete/suggestions)
   const allExerciseNames = useMemo(() => {
     if (!program) return []
@@ -1337,15 +1375,37 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                                     {cd.date.toLocaleDateString('en-GB', { month: 'short' })}
                                   </span>
                                 </div>
-                                {completion !== null && (
-                                  <span style={{
-                                    fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 4,
-                                    background: completion === 100 ? 'rgba(45,212,191,0.15)' : completion >= 50 ? 'rgba(255,193,7,0.15)' : 'rgba(124,110,240,0.1)',
-                                    color: completion === 100 ? 'var(--teal)' : completion >= 50 ? '#ffc107' : 'var(--accent2)',
-                                  }}>
-                                    {completion}%
-                                  </span>
-                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  {completion !== null && (
+                                    <span style={{
+                                      fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 4,
+                                      background: completion === 100 ? 'rgba(45,212,191,0.15)' : completion >= 50 ? 'rgba(255,193,7,0.15)' : 'rgba(124,110,240,0.1)',
+                                      color: completion === 100 ? 'var(--teal)' : completion >= 50 ? '#ffc107' : 'var(--accent2)',
+                                    }}>
+                                      {completion}%
+                                    </span>
+                                  )}
+                                  {day && program && (() => {
+                                    const srcWeekNum = program.weeks?.[cd.weekIdx]?.week ?? (cd.weekIdx + 1)
+                                    const srcDayNum = day.day ?? (cd.dayIdx + 1)
+                                    return (
+                                      <button
+                                        title="Move or swap this day's workout with another day"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setMoveWorkoutModal({
+                                            srcWeekNum, srcDayNum, srcDateStr: cd.dateStr,
+                                          })
+                                        }}
+                                        style={{
+                                          fontSize: 11, padding: '0 4px', lineHeight: 1.2,
+                                          background: 'none', border: 'none', color: 'var(--text-dim)',
+                                          cursor: 'pointer', borderRadius: 3,
+                                        }}
+                                      >⇄</button>
+                                    )
+                                  })()}
+                                </div>
                               </div>
 
                               {/* Rest day */}
@@ -1705,6 +1765,80 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
           </div>
         </div>
       )}
+
+      {/* Move/swap workout modal */}
+      {moveWorkoutModal && program && (
+        <MoveWorkoutDayModal
+          program={program}
+          moveModal={moveWorkoutModal}
+          onClose={() => setMoveWorkoutModal(null)}
+          onApply={applyMoveWorkout}
+          saving={saving}
+        />
+      )}
+    </div>
+  )
+}
+
+function MoveWorkoutDayModal({ program, moveModal, onClose, onApply, saving }) {
+  const [dstWeek, setDstWeek] = useState(moveModal.srcWeekNum)
+  const [dstDay, setDstDay] = useState('')
+  const [action, setAction] = useState('swap')
+  const weeks = program?.weeks || []
+  const destWeekObj = weeks.find(w => Number(w.week) === Number(dstWeek))
+  const destDays = destWeekObj ? (destWeekObj.days || []) : []
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--modal-bg, rgba(18,18,28,0.98))', border: '1px solid var(--border)', borderRadius: 12, padding: 20, width: '90%', maxWidth: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text)' }}>Move workout — W{moveModal.srcWeekNum}D{moveModal.srcDayNum}</h3>
+          <button onClick={onClose} style={{ fontSize: 16, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>✕</button>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <label style={{ flex: 1, fontSize: 13 }}>
+            <div style={{ color: 'var(--text-dim)', marginBottom: 4 }}>Target week</div>
+            <select value={dstWeek} onChange={e => { setDstWeek(Number(e.target.value)); setDstDay('') }}
+              style={{ width: '100%', padding: 8, background: 'var(--input-bg, #0e0e1a)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }}>
+              {weeks.map(w => <option key={w.week} value={w.week}>Week {w.week}</option>)}
+            </select>
+          </label>
+          <label style={{ flex: 1, fontSize: 13 }}>
+            <div style={{ color: 'var(--text-dim)', marginBottom: 4 }}>Target day</div>
+            <select value={dstDay} onChange={e => setDstDay(Number(e.target.value))}
+              style={{ width: '100%', padding: 8, background: 'var(--input-bg, #0e0e1a)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }}>
+              <option value="">Select day…</option>
+              {destDays.map(d => {
+                const isSelf = Number(dstWeek) === Number(moveModal.srcWeekNum) && Number(d.day) === Number(moveModal.srcDayNum)
+                return <option key={d.day} value={d.day} disabled={isSelf}>Day {d.day}{d.isRest ? ' (rest)' : ''}</option>
+              })}
+            </select>
+          </label>
+        </div>
+        <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--text)' }}>
+          <div style={{ color: 'var(--text-dim)', marginBottom: 6 }}>Action</div>
+          <label style={{ marginRight: 16 }}>
+            <input type="radio" name="moveWorkoutAction" checked={action === 'swap'} onChange={() => setAction('swap')} /> Swap (exchange contents)
+          </label>
+          <label>
+            <input type="radio" name="moveWorkoutAction" checked={action === 'move'} onChange={() => setAction('move')} /> Move (source becomes rest)
+          </label>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} disabled={saving}
+            style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 13 }}>
+            Cancel
+          </button>
+          <button
+            onClick={() => onApply(moveModal.srcWeekNum, moveModal.srcDayNum, dstWeek, dstDay, action)}
+            disabled={!dstDay || saving}
+            style={{ padding: '8px 14px', borderRadius: 6, border: 'none', background: dstDay ? 'var(--accent2, #7c6ef0)' : 'var(--border)', color: '#fff', fontWeight: 600, cursor: dstDay ? 'pointer' : 'default', fontSize: 13 }}>
+            {saving ? '…' : (action === 'swap' ? 'Swap days' : 'Move to this day')}
+          </button>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)' }}>
+          Saves directly to the athlete's program. Logged workouts for past dates are preserved.
+        </div>
+      </div>
     </div>
   )
 }
