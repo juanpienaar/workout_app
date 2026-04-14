@@ -29,6 +29,8 @@ export default function ProgramEditor({ program, onSave }) {
   const [editValue, setEditValue] = useState('')
   const [localProgram, setLocalProgram] = useState(() => addIds(program))
   const [activeId, setActiveId] = useState(null)
+  // Move-workout modal: { srcWeek, srcDay, action }
+  const [moveModal, setMoveModal] = useState(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
   const weeks = localProgram.weeks || []
@@ -113,6 +115,42 @@ export default function ProgramEditor({ program, onSave }) {
     }
   }
 
+  // Swap or move the full contents (exerciseGroups + rest flag) of one day
+  // into another. Operates on localProgram — user still has to hit Save Changes.
+  function applyMoveWorkout(srcWeek, srcDay, dstWeek, dstDay, action) {
+    if (srcWeek === dstWeek && srcDay === dstDay) return
+    const updated = JSON.parse(JSON.stringify(localProgram))
+    const findDay = (wNum, dNum) => {
+      const w = (updated.weeks || []).find(x => Number(x.week) === Number(wNum))
+      if (!w) return null
+      return (w.days || []).find(x => Number(x.day) === Number(dNum)) || null
+    }
+    const src = findDay(srcWeek, srcDay)
+    const dst = findDay(dstWeek, dstDay)
+    if (!src || !dst) return
+
+    const CONTENT = ['exerciseGroups', 'isRest', 'label', 'title', 'notes', 'restNote']
+    const srcCopy = {}; const dstCopy = {}
+    for (const k of CONTENT) {
+      if (k in src) srcCopy[k] = JSON.parse(JSON.stringify(src[k]))
+      if (k in dst) dstCopy[k] = JSON.parse(JSON.stringify(dst[k]))
+    }
+    // Clear
+    for (const k of CONTENT) { delete src[k]; delete dst[k] }
+
+    if (action === 'swap') {
+      Object.assign(src, dstCopy)
+      Object.assign(dst, srcCopy)
+    } else {
+      // move: destination takes src content; source becomes empty rest day
+      Object.assign(dst, srcCopy)
+      src.exerciseGroups = []
+      src.isRest = true
+    }
+    setLocalProgram(updated)
+    setMoveModal(null)
+  }
+
   function doSave() {
     // Strip _id fields before saving
     const clean = JSON.parse(JSON.stringify(localProgram))
@@ -149,7 +187,15 @@ export default function ProgramEditor({ program, onSave }) {
             const exercises = getAllExercisesForDay(day)
             return (
               <div key={day.day} className="day-column">
-                <div className="day-column-header">Day {day.day}{day.isRest ? ' (Rest)' : ''}</div>
+                <div className="day-column-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Day {day.day}{day.isRest ? ' (Rest)' : ''}</span>
+                  <button
+                    className="btn-icon"
+                    title="Move or swap this workout with another day"
+                    style={{ fontSize: 12, padding: '2px 6px', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}
+                    onClick={() => setMoveModal({ srcWeek: currentWeek.week, srcDay: day.day, action: 'swap' })}
+                  >⇄</button>
+                </div>
                 {day.isRest ? (
                   <div style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>{day.restNote || 'Rest'}</div>
                 ) : (
@@ -178,6 +224,71 @@ export default function ProgramEditor({ program, onSave }) {
 
       <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
         <button className="btn btn-primary" onClick={doSave}>Save Changes</button>
+      </div>
+
+      {moveModal && (
+        <MoveWorkoutModal
+          weeks={weeks}
+          moveModal={moveModal}
+          setMoveModal={setMoveModal}
+          onApply={applyMoveWorkout}
+        />
+      )}
+    </div>
+  )
+}
+
+function MoveWorkoutModal({ weeks, moveModal, setMoveModal, onApply }) {
+  const [dstWeek, setDstWeek] = useState(moveModal.srcWeek)
+  const [dstDay, setDstDay] = useState('')
+  const [action, setAction] = useState(moveModal.action || 'swap')
+
+  const destWeekObj = (weeks || []).find(w => Number(w.week) === Number(dstWeek))
+  const destDays = destWeekObj ? destWeekObj.days : []
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setMoveModal(null)}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', border: '1px solid var(--card-border)', borderRadius: 12, padding: 20, width: '90%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>Move workout — W{moveModal.srcWeek}D{moveModal.srcDay}</h3>
+          <button className="btn-icon" onClick={() => setMoveModal(null)} style={{ fontSize: 16, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>✕</button>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <label style={{ flex: 1, fontSize: 13 }}>
+            <div style={{ color: 'var(--text-dim)', marginBottom: 4 }}>Target week</div>
+            <select value={dstWeek} onChange={e => { setDstWeek(Number(e.target.value)); setDstDay('') }} style={{ width: '100%', padding: 8, background: 'var(--bg-input)', border: '1px solid var(--card-border)', borderRadius: 6, color: 'var(--text)' }}>
+              {(weeks || []).map(w => <option key={w.week} value={w.week}>Week {w.week}</option>)}
+            </select>
+          </label>
+          <label style={{ flex: 1, fontSize: 13 }}>
+            <div style={{ color: 'var(--text-dim)', marginBottom: 4 }}>Target day</div>
+            <select value={dstDay} onChange={e => setDstDay(Number(e.target.value))} style={{ width: '100%', padding: 8, background: 'var(--bg-input)', border: '1px solid var(--card-border)', borderRadius: 6, color: 'var(--text)' }}>
+              <option value="">Select day…</option>
+              {destDays.map(d => {
+                const isSelf = Number(dstWeek) === Number(moveModal.srcWeek) && Number(d.day) === Number(moveModal.srcDay)
+                return <option key={d.day} value={d.day} disabled={isSelf}>Day {d.day}{d.isRest ? ' (rest)' : ''}</option>
+              })}
+            </select>
+          </label>
+        </div>
+        <div style={{ marginBottom: 16, fontSize: 13 }}>
+          <div style={{ color: 'var(--text-dim)', marginBottom: 6 }}>Action</div>
+          <label style={{ marginRight: 16 }}>
+            <input type="radio" name="moveAction" checked={action === 'swap'} onChange={() => setAction('swap')} /> Swap (exchange contents)
+          </label>
+          <label>
+            <input type="radio" name="moveAction" checked={action === 'move'} onChange={() => setAction('move')} /> Move (source becomes rest)
+          </label>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="btn btn-secondary" onClick={() => setMoveModal(null)}>Cancel</button>
+          <button className="btn btn-primary" disabled={!dstDay} onClick={() => onApply(moveModal.srcWeek, moveModal.srcDay, dstWeek, dstDay, action)}>
+            {action === 'swap' ? 'Swap days' : 'Move to this day'}
+          </button>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)' }}>
+          Changes are applied locally. Hit Save Changes to persist to the program.
+        </div>
       </div>
     </div>
   )

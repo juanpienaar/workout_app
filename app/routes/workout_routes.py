@@ -1,7 +1,16 @@
-"""Workout data routes: load, save-day, sync-all, save-whoop."""
+"""Workout data routes: load, save-day, sync-all, save-whoop.
+
+Durability notes:
+- All writes go through `with_user_data` (per-user lock + atomic write +
+  rolling backup) so concurrent saves from multiple devices cannot clobber
+  each other mid-request.
+- `save-day` honours a monotonic `client_ts` field so late-arriving requests
+  cannot overwrite newer data.
+"""
 
 import json
 import base64
+import logging
 from datetime import datetime, timezone
 from typing import Annotated
 
@@ -9,9 +18,11 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 
 from ..auth import get_current_user
-from ..data import load_user_data, save_user_data, load_users
+from ..data import load_user_data, save_user_data, load_users, with_user_data
 from ..models import SaveDayRequest, SyncAllRequest, SaveWhoopRequest
 from .. import config
+
+logger = logging.getLogger("numnum.workout")
 
 router = APIRouter(prefix="/api", tags=["workout"])
 
@@ -52,31 +63,68 @@ async def get_my_program(current_user: Annotated[dict, Depends(get_current_user)
 
 @router.post("/save-day")
 async def save_day(req: SaveDayRequest, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Persist a single day's exercise data.
+
+    Concurrency-safe: wrapped in per-user lock and atomic write.
+    Stale-write protection: if the request carries `client_ts` older than the
+    currently-stored `client_ts`, the write is rejected (HTTP 409).
+    """
     user_key = current_user["name"]
-    user_data = load_user_data(user_key)
-    user_data["workout_logs"][req.day_key] = {
-        "data": req.data,
-        "meta": req.meta,
-        "saved_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-    save_user_data(user_key, user_data)
-    return {"ok": True}
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    with with_user_data(user_key) as user_data:
+        logs = user_data.setdefault("workout_logs", {})
+        existing = logs.get(req.day_key)
+
+        # Reject stale writes if we have a newer client_ts on file.
+        if req.client_ts is not None and existing is not None:
+            existing_ts = existing.get("client_ts")
+            if isinstance(existing_ts, int) and existing_ts > req.client_ts:
+                logger.warning(
+                    "[save-day] stale write rejected for %s/%s (client_ts=%s < stored=%s)",
+                    user_key, req.day_key, req.client_ts, existing_ts,
+                )
+                return {
+                    "ok": False,
+                    "stale": True,
+                    "server_ts": existing_ts,
+                    "saved_at": existing.get("saved_at"),
+                }
+
+        logs[req.day_key] = {
+            "data": req.data,
+            "meta": req.meta,
+            "saved_at": now_iso,
+            "client_ts": req.client_ts,
+            "request_id": req.request_id,
+        }
+
+    return {"ok": True, "saved_at": now_iso, "client_ts": req.client_ts}
 
 
 @router.post("/sync-all")
 async def sync_all(req: SyncAllRequest, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Bulk-upload days that were captured offline.
+
+    Never overwrites days that already exist on the server — the client-side
+    pull will reconcile those.
+    """
     user_key = current_user["name"]
-    user_data = load_user_data(user_key)
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     count = 0
-    for day_key, day_info in req.days.items():
-        if day_info.get("data") and day_key not in user_data["workout_logs"]:
-            user_data["workout_logs"][day_key] = {
-                "data": day_info["data"],
-                "meta": day_info.get("meta", {}),
-                "saved_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            }
-            count += 1
-    save_user_data(user_key, user_data)
+
+    with with_user_data(user_key) as user_data:
+        logs = user_data.setdefault("workout_logs", {})
+        for day_key, day_info in req.days.items():
+            if day_info.get("data") and day_key not in logs:
+                logs[day_key] = {
+                    "data": day_info["data"],
+                    "meta": day_info.get("meta", {}),
+                    "saved_at": now_iso,
+                    "client_ts": day_info.get("client_ts"),
+                }
+                count += 1
+
     return {"ok": True, "synced": count}
 
 
@@ -90,10 +138,9 @@ async def get_messages(current_user: Annotated[dict, Depends(get_current_user)])
 @router.post("/messages/mark-read")
 async def mark_messages_read(current_user: Annotated[dict, Depends(get_current_user)]):
     user_key = current_user["name"]
-    user_data = load_user_data(user_key)
-    for msg in user_data.get("messages", []):
-        msg["read"] = True
-    save_user_data(user_key, user_data)
+    with with_user_data(user_key) as user_data:
+        for msg in user_data.get("messages", []):
+            msg["read"] = True
     return {"ok": True}
 
 
@@ -108,8 +155,6 @@ async def reply_message(req: AthleteReplyRequest, current_user: Annotated[dict, 
     user_key = current_user["name"]
     if not req.message.strip():
         raise HTTPException(400, "Message cannot be empty")
-    user_data = load_user_data(user_key)
-    msgs = user_data.setdefault("messages", [])
     msg = {
         "id": f"msg_{int(datetime.now(timezone.utc).timestamp()*1000)}",
         "text": req.message.strip(),
@@ -120,22 +165,22 @@ async def reply_message(req: AthleteReplyRequest, current_user: Annotated[dict, 
         "read": False,
         "reply_to": req.reply_to,
     }
-    msgs.append(msg)
-    if len(msgs) > 200:
-        user_data["messages"] = msgs[-200:]
-    save_user_data(user_key, user_data)
+    with with_user_data(user_key) as user_data:
+        msgs = user_data.setdefault("messages", [])
+        msgs.append(msg)
+        if len(msgs) > 200:
+            user_data["messages"] = msgs[-200:]
     return {"ok": True, "message": msg}
 
 
 @router.post("/save-whoop")
 async def save_whoop(req: SaveWhoopRequest, current_user: Annotated[dict, Depends(get_current_user)]):
     user_key = current_user["name"]
-    user_data = load_user_data(user_key)
     snapshot = req.snapshot
     snapshot["saved_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    user_data.setdefault("whoop_snapshots", []).append(snapshot)
-    user_data["whoop_snapshots"] = user_data["whoop_snapshots"][-90:]
-    save_user_data(user_key, user_data)
+    with with_user_data(user_key) as user_data:
+        user_data.setdefault("whoop_snapshots", []).append(snapshot)
+        user_data["whoop_snapshots"] = user_data["whoop_snapshots"][-90:]
     return {"ok": True}
 
 

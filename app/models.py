@@ -39,6 +39,11 @@ class SaveDayRequest(BaseModel):
     day_key: str
     data: dict[str, Any]
     meta: dict[str, Any] = {}
+    # Client-side ordering token (ms timestamp). When present, server will
+    # refuse writes that appear older than the currently-stored copy.
+    client_ts: Optional[int] = None
+    # Optional idempotency key to deduplicate retries of the same save.
+    request_id: Optional[str] = None
 
 class SyncAllRequest(BaseModel):
     days: dict[str, Any]

@@ -99,14 +99,50 @@ function ProgramsTab() {
     } catch { toast('Failed to load athletes', 'error') }
   }
 
+  // Attempt to assign the current program to a single athlete. Handles the
+  // 409 program_overlap response by prompting the coach to confirm overwrite.
+  async function assignSingle(name, force) {
+    const resp = await API.assignProgram({
+      athlete: name,
+      program: assignModal.programName,
+      startDate: assignStartDate,
+      force: !!force,
+    })
+    if (resp.ok) return { name, assigned: true }
+    if (resp.status === 409) {
+      const body = await resp.json().catch(() => ({}))
+      const detail = body.detail || {}
+      const msg = detail.message
+        || `${name} already has a program that will be overwritten from ${assignStartDate} onwards.\n\nOverwrite?`
+      const proceed = window.confirm(msg + '\n\nAny workouts you have already logged will be preserved.')
+      if (!proceed) return { name, assigned: false, skipped: true }
+      const forced = await API.assignProgram({
+        athlete: name,
+        program: assignModal.programName,
+        startDate: assignStartDate,
+        force: true,
+      })
+      if (forced.ok) return { name, assigned: true, forced: true }
+      return { name, assigned: false, error: `HTTP ${forced.status}` }
+    }
+    return { name, assigned: false, error: `HTTP ${resp.status}` }
+  }
+
   async function doAssign() {
     if (selectedAthletes.length === 0) { toast('Select at least one user', 'error'); return }
     setAssigning(true)
     try {
-      await Promise.all(selectedAthletes.map(name =>
-        API.assignProgram({ athlete: name, program: assignModal.programName, startDate: assignStartDate })
-      ))
-      toast(`Assigned to ${selectedAthletes.length} user(s)`)
+      const results = []
+      // Sequential so overlap prompts appear one at a time rather than stacked.
+      for (const name of selectedAthletes) {
+        try { results.push(await assignSingle(name)) }
+        catch (e) { results.push({ name, assigned: false, error: String(e) }) }
+      }
+      const assignedCount = results.filter(r => r.assigned).length
+      const skippedCount = results.filter(r => r.skipped).length
+      const failedCount = results.length - assignedCount - skippedCount
+      if (assignedCount > 0) toast(`Assigned to ${assignedCount} user(s)${skippedCount ? ` (${skippedCount} skipped)` : ''}`)
+      if (failedCount > 0) toast(`${failedCount} assignment(s) failed`, 'error')
       setAssignModal(null)
     } catch { toast('Assign failed', 'error') }
     setAssigning(false)

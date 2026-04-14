@@ -52,7 +52,11 @@ export const API = {
   createProgram: (data) => authFetch('/api/admin/programs', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
   deleteProgram: (name) => authFetch(`/api/admin/programs/${encodeURIComponent(name)}`, { method: 'DELETE' }).then(r => r.json()),
   duplicateProgram: (name, newName) => authFetch(`/api/admin/programs/${encodeURIComponent(name)}/duplicate`, { method: 'POST', body: JSON.stringify({ new_name: newName }) }).then(r => r.json()),
-  assignProgram: (data) => authFetch('/api/admin/assign-program', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
+  // Returns the raw Response so callers can inspect 409 (program_overlap)
+  // and re-submit with force: true after user confirmation.
+  assignProgram: (data) => authFetch('/api/admin/assign-program', { method: 'POST', body: JSON.stringify(data) }),
+  moveWorkoutInProgram: (programName, data) => authFetch(`/api/admin/programs/${encodeURIComponent(programName)}/move-workout`, { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
+  moveWorkoutForAthlete: (athlete, data) => authFetch(`/api/admin/users/${encodeURIComponent(athlete)}/move-workout`, { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
 
   // Exercises
   getExercises: () => authFetch('/api/admin/exercises').then(r => r.json()),

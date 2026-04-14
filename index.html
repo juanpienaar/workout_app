@@ -3086,6 +3086,9 @@ async function selectUser(name) {
     initWhoop();
     if (program) {
       syncAllToServer();
+      // Drain any save-day payloads queued from a prior session that never
+      // reached the server (offline, crashed tab, etc.)
+      drainPendingSync();
       updateRestoreExVisibility();
     }
     // Initialize coach athlete bar if user is a coach
@@ -4572,8 +4575,61 @@ function saveDayData(dayIndex, data) {
   syncDayToServer(dayIndex, data);
 }
 
-function syncDayToServer(dayIndex, data) {
-  if (serverAvailable === false || !accessToken) return;
+// ── Robust day-sync: debounce + retry queue ──
+// Problem we're solving: the app used to fire /api/save-day on every keystroke,
+// no retry, no dedup. Flaky networks could silently lose data.
+//
+// Strategy:
+// 1. Payloads are stamped with a monotonic client_ts (ms). The server refuses
+//    to overwrite newer data with older.
+// 2. Saves are debounced per day (800 ms after the last edit) so rapid typing
+//    doesn't flood the network.
+// 3. Every save snapshot is persisted in `_pending_sync` in localStorage
+//    *before* attempting the network call. On failure we retry with
+//    exponential backoff and on app startup / visibility change we drain
+//    whatever is still pending.
+// 4. localStorage (and the in-flight queue) is ALWAYS the source of truth —
+//    we only clear a pending payload after the server confirms it received it.
+
+const SYNC_DEBOUNCE_MS = 800;
+const SYNC_MAX_BACKOFF_MS = 30_000;
+const _syncTimers = {};          // dayIndex -> timeout id
+const _syncInFlight = {};        // dayIndex -> boolean
+const _syncBackoff = {};         // dayIndex -> current backoff ms
+
+function _pendingKey() { return `_pending_sync_${currentUser || 'anon'}`; }
+
+function _getPending() {
+  try {
+    const raw = localStorage.getItem(_pendingKey());
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function _setPending(obj) {
+  try { localStorage.setItem(_pendingKey(), JSON.stringify(obj)); }
+  catch (e) { console.warn('[sync] failed to persist pending queue:', e); }
+}
+
+function _queuePending(dayIndex, payload) {
+  const pending = _getPending();
+  // Only keep the most recent payload per day — older ones are superseded.
+  pending[`day_${dayIndex}`] = payload;
+  _setPending(pending);
+}
+
+function _clearPending(dayIndex, clientTs) {
+  const pending = _getPending();
+  const key = `day_${dayIndex}`;
+  const current = pending[key];
+  // Only clear if the pending entry is the same (or older) client_ts we just sent.
+  if (current && current.client_ts === clientTs) {
+    delete pending[key];
+    _setPending(pending);
+  }
+}
+
+function _buildSavePayload(dayIndex, data) {
   const day = allDays[dayIndex];
   const meta = day ? {week: day.week, day: day.day, label: day.label || ''} : {};
   const userInfo = programData?.users?.[currentUser];
@@ -4581,8 +4637,6 @@ function syncDayToServer(dayIndex, data) {
     const start = new Date(userInfo.startDate + 'T00:00:00');
     meta.date = new Date(start.getTime() + dayIndex * 86400000).toISOString().split('T')[0];
   }
-  // Include hidden (deleted), custom exercises, and exercise order so dashboard can display them
-  // and data survives cache clears / device changes
   try {
     const hidden = JSON.parse(localStorage.getItem(`hidden_exercises_${currentUser}_day${dayIndex}`) || '[]');
     if (hidden.length > 0) meta.hidden_exercises = hidden;
@@ -4595,11 +4649,88 @@ function syncDayToServer(dayIndex, data) {
     const order = JSON.parse(localStorage.getItem(`exercise_order_${currentUser}_day${dayIndex}`) || '[]');
     if (order.length > 0) meta.exercise_order = order;
   } catch {}
-  authFetch(`${SERVER_URL}/api/save-day`, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({day_key: `day_${dayIndex}`, data, meta}),
-  }).catch(e => console.warn('[sync] save-day failed:', e));
+  return {
+    day_key: `day_${dayIndex}`,
+    data,
+    meta,
+    client_ts: Date.now(),
+    request_id: `${currentUser}-day${dayIndex}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  };
+}
+
+async function _sendPayload(dayIndex, payload) {
+  if (_syncInFlight[dayIndex]) return; // already in-flight; retry will pick up latest pending
+  _syncInFlight[dayIndex] = true;
+  try {
+    const resp = await authFetch(`${SERVER_URL}/api/save-day`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    if (!resp || !resp.ok) throw new Error(`HTTP ${resp ? resp.status : 'network'}`);
+    const result = await resp.json().catch(() => ({}));
+    // If server reports stale, we just drop this payload — server has newer.
+    if (result.stale) {
+      console.warn(`[sync] server has newer data for day_${dayIndex}; discarding retry`);
+      _clearPending(dayIndex, payload.client_ts);
+      _syncBackoff[dayIndex] = 0;
+      return;
+    }
+    _clearPending(dayIndex, payload.client_ts);
+    _syncBackoff[dayIndex] = 0;
+  } catch (e) {
+    console.warn(`[sync] save-day failed for day_${dayIndex}:`, e && e.message ? e.message : e);
+    // Leave in pending queue — scheduleRetry will drain it on next opportunity.
+    _syncBackoff[dayIndex] = Math.min(SYNC_MAX_BACKOFF_MS, (_syncBackoff[dayIndex] || 1000) * 2);
+    setTimeout(() => drainPendingSync(), _syncBackoff[dayIndex]);
+  } finally {
+    _syncInFlight[dayIndex] = false;
+    // If new data was queued while we were in-flight, flush it now
+    const latest = _getPending()[`day_${dayIndex}`];
+    if (latest && latest.client_ts !== payload.client_ts) {
+      _sendPayload(dayIndex, latest);
+    }
+  }
+}
+
+function syncDayToServer(dayIndex, data) {
+  if (!accessToken) return;
+  const payload = _buildSavePayload(dayIndex, data);
+  _queuePending(dayIndex, payload);
+  // Debounce per-day
+  if (_syncTimers[dayIndex]) clearTimeout(_syncTimers[dayIndex]);
+  _syncTimers[dayIndex] = setTimeout(() => {
+    _syncTimers[dayIndex] = null;
+    if (serverAvailable === false) {
+      // Still try; checkServer may have just flipped. If it truly fails we
+      // fall back to retry queue.
+    }
+    const latest = _getPending()[`day_${dayIndex}`];
+    if (latest) _sendPayload(dayIndex, latest);
+  }, SYNC_DEBOUNCE_MS);
+}
+
+// Drain any pending payloads (called on startup, visibility change, online event).
+async function drainPendingSync() {
+  if (!accessToken) return;
+  const pending = _getPending();
+  const keys = Object.keys(pending);
+  if (keys.length === 0) return;
+  for (const key of keys) {
+    const match = key.match(/^day_(\d+)$/);
+    if (!match) continue;
+    const idx = parseInt(match[1]);
+    if (_syncInFlight[idx]) continue;
+    await _sendPayload(idx, pending[key]);
+  }
+}
+
+// Drain on startup, when tab becomes visible, and when network reconnects.
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => drainPendingSync());
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') drainPendingSync();
+  });
 }
 
 function saveCurrentDay() {

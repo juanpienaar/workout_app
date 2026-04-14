@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 
 from ..auth import require_coach, hash_password
-from ..data import load_users, save_users, load_user_data, save_user_data, get_user_file
+from ..data import load_users, save_users, load_user_data, save_user_data, get_user_file, with_user_data
 from ..ai_builder import generate_program, modify_program as ai_modify_program, load_costs as load_ai_costs, MODELS
 from ..logger import log_event, get_logs
 from .. import config
@@ -75,6 +75,20 @@ class ProgramAssignRequest(BaseModel):
     athlete: str
     program: str
     startDate: str = ""
+    # If the athlete already has a program that would overlap the new one,
+    # the endpoint returns 409 unless force=True. Setting force=True
+    # acknowledges the overlap and performs the overwrite. Any workout_logs
+    # that were already captured are preserved either way.
+    force: bool = False
+
+
+class MoveWorkoutRequest(BaseModel):
+    """Move or swap a workout between two days within a program."""
+    source_week: int      # 1-indexed
+    source_day: int       # 1-indexed within the week
+    target_week: int
+    target_day: int
+    action: str = "swap"  # "swap" or "move" (move clears source)
 
 class SendMessageRequest(BaseModel):
     message: str
@@ -200,17 +214,22 @@ async def get_user_full_data(username: str, coach: Annotated[dict, Depends(requi
 
 @router.put("/users/{username}/workout-day/{day_key}")
 async def update_user_workout_day(username: str, day_key: str, body: dict, coach: Annotated[dict, Depends(require_coach)]):
-    """Coach can update a specific workout day's data/meta for an athlete (e.g. restore hidden exercises)."""
-    data = load_user_data(username)
-    if day_key not in data.get("workout_logs", {}):
-        data.setdefault("workout_logs", {})[day_key] = {}
-    entry = data["workout_logs"][day_key]
-    if "data" in body:
-        entry["data"] = body["data"]
-    if "meta" in body:
-        entry["meta"] = body["meta"]
-    entry["saved_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    save_user_data(username, data)
+    """Coach can update a specific workout day's data/meta for an athlete (e.g. restore hidden exercises).
+
+    Uses per-user lock + atomic write so concurrent athlete saves cannot be
+    silently clobbered.
+    """
+    with with_user_data(username) as data:
+        logs = data.setdefault("workout_logs", {})
+        entry = logs.setdefault(day_key, {})
+        if "data" in body:
+            entry["data"] = body["data"]
+        if "meta" in body:
+            entry["meta"] = body["meta"]
+        entry["saved_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # Stamp server-side client_ts so subsequent athlete writes with
+        # older client_ts are rejected.
+        entry["client_ts"] = int(datetime.now(timezone.utc).timestamp() * 1000)
     return {"ok": True}
 
 
@@ -242,9 +261,8 @@ async def set_target_weights(username: str, body: dict, coach: Annotated[dict, D
     users = load_users()
     if username not in users:
         raise HTTPException(404, "User not found")
-    data = load_user_data(username)
-    data["target_weights"] = body.get("target_weights", {})
-    save_user_data(username, data)
+    with with_user_data(username) as data:
+        data["target_weights"] = body.get("target_weights", {})
     return {"ok": True}
 
 
@@ -254,13 +272,12 @@ async def update_athlete_program(username: str, body: dict, coach: Annotated[dic
     users = load_users()
     if username not in users:
         raise HTTPException(404, "User not found")
-    data = load_user_data(username)
     program = body.get("program")
-    if program:
-        data["assigned_program"] = program
-    elif "assigned_program" not in data:
-        raise HTTPException(400, "Athlete has no assigned program")
-    save_user_data(username, data)
+    with with_user_data(username) as data:
+        if program:
+            data["assigned_program"] = program
+        elif "assigned_program" not in data:
+            raise HTTPException(400, "Athlete has no assigned program")
     return {"ok": True}
 
 
@@ -443,10 +460,27 @@ async def delete_template(name: str, coach: Annotated[dict, Depends(require_coac
     return {"ok": True}
 
 
+def _program_total_days(program: dict) -> int:
+    """Count the number of days in a program across all weeks."""
+    total = 0
+    for week in (program.get("weeks") or []):
+        total += len(week.get("days") or [])
+    return total
+
+
 @router.post("/assign-program")
 async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depends(require_coach)]):
-    """Deep-copy a program into the athlete's user_data file (Phase 3)."""
-    from datetime import datetime
+    """Assign a program to an athlete.
+
+    Safety rules:
+    1. Previously-logged workouts (workout_logs) are ALWAYS preserved — the
+       athlete's history is never erased by a program reassignment.
+    2. If the athlete already has an assigned program whose range overlaps the
+       new startDate, the endpoint returns HTTP 409 with overlap details unless
+       the request specifies force=True. This ensures the coach explicitly
+       confirms overwriting the remaining days of an in-progress program.
+    """
+    from datetime import datetime, date as _date
     import copy
 
     # 1. Load the program from the library
@@ -456,34 +490,166 @@ async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depen
         raise HTTPException(404, f"Program '{req.program}' not found")
 
     program_data = copy.deepcopy(programs[req.program])
+    new_start_str = req.startDate or datetime.now().strftime("%Y-%m-%d")
 
-    # 2. Load user data (use raw name — get_user_file handles sanitization)
+    # 2. Check for overlap with an existing assignment
     user_key = req.athlete
-    user_data = load_user_data(user_key)
+    current_data = load_user_data(user_key)
+    existing_program = current_data.get("assigned_program")
+    existing_name = current_data.get("assigned_program_name")
+    existing_start_str = current_data.get("assigned_program_date")
 
-    # 3. Preserve existing workout logs
-    existing_logs = user_data.get("workout_logs", {})
+    if existing_program and existing_start_str and not req.force:
+        try:
+            existing_start = datetime.strptime(existing_start_str, "%Y-%m-%d").date()
+            new_start = datetime.strptime(new_start_str, "%Y-%m-%d").date()
+            existing_length = _program_total_days(existing_program)
+            # End date is inclusive — last day is start + (length - 1)
+            if existing_length > 0:
+                from datetime import timedelta
+                existing_end = existing_start + timedelta(days=existing_length - 1)
+                today = datetime.now().date()
+                # Overlap if the new start falls within the existing program's
+                # active range AND the existing program has not already ended.
+                if new_start <= existing_end and today <= existing_end:
+                    raise HTTPException(
+                        status_code=409,
+                        detail={
+                            "code": "program_overlap",
+                            "message": (
+                                f"{req.athlete} already has '{existing_name}' assigned from "
+                                f"{existing_start_str} to {existing_end.isoformat()}. "
+                                f"Assigning '{req.program}' starting {new_start_str} will "
+                                f"overwrite the remaining days. Confirm to proceed."
+                            ),
+                            "existing_program": existing_name,
+                            "existing_start": existing_start_str,
+                            "existing_end": existing_end.isoformat(),
+                            "new_program": req.program,
+                            "new_start": new_start_str,
+                        },
+                    )
+        except HTTPException:
+            raise
+        except Exception:
+            # If we can't parse dates, skip overlap check rather than blocking.
+            pass
 
-    # 4. Deep copy program into user data
-    user_data["assigned_program"] = program_data
-    user_data["assigned_program_name"] = req.program
-    user_data["assigned_program_date"] = req.startDate or datetime.now().strftime("%Y-%m-%d")
+    # 3. Perform assignment inside the per-user lock so concurrent saves
+    #    (e.g. athlete logging a set at the same moment) cannot be lost.
+    with with_user_data(user_key) as user_data:
+        # Preserve existing workout logs (explicit, defensive)
+        existing_logs = user_data.get("workout_logs", {})
+        user_data["assigned_program"] = program_data
+        user_data["assigned_program_name"] = req.program
+        user_data["assigned_program_date"] = new_start_str
+        user_data["workout_logs"] = existing_logs
+        # Audit trail of past program assignments
+        history = user_data.setdefault("program_history", [])
+        history.append({
+            "program": req.program,
+            "start_date": new_start_str,
+            "assigned_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "assigned_by": coach.get("sub"),
+            "forced_overwrite": bool(req.force),
+            "replaced": existing_name,
+        })
 
-    # 5. Make sure workout logs are preserved
-    user_data["workout_logs"] = existing_logs
-
-    # 6. Save user data
-    save_user_data(user_key, user_data)
-
-    # 7. Also update users.json reference (for display purposes)
+    # 4. Also update users.json reference (for display purposes)
     users = load_users()
     if req.athlete in users:
         users[req.athlete]["program"] = req.program
-        if req.startDate:
-            users[req.athlete]["startDate"] = req.startDate
+        users[req.athlete]["startDate"] = new_start_str
         save_users(users)
 
-    return {"ok": True, "message": f"Program '{req.program}' assigned to {req.athlete}"}
+    return {
+        "ok": True,
+        "message": f"Program '{req.program}' assigned to {req.athlete}",
+        "forced_overwrite": bool(req.force and existing_program),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════
+# MOVE / SWAP WORKOUT BETWEEN DAYS
+# ══════════════════════════════════════════════════════════════════
+
+def _find_day(program: dict, week_num: int, day_num: int) -> tuple[dict, dict] | None:
+    """Find a week/day in a program. Returns (week_obj, day_obj) or None."""
+    for week in (program.get("weeks") or []):
+        if int(week.get("week", 0)) == int(week_num):
+            for day in (week.get("days") or []):
+                if int(day.get("day", 0)) == int(day_num):
+                    return week, day
+    return None
+
+
+def _apply_move_on_program(program: dict, req: "MoveWorkoutRequest") -> dict:
+    """Mutate program in place to move or swap workout between days.
+
+    Returns a summary of what happened.
+    """
+    import copy
+    src = _find_day(program, req.source_week, req.source_day)
+    dst = _find_day(program, req.target_week, req.target_day)
+    if src is None:
+        raise HTTPException(404, f"Source W{req.source_week}D{req.source_day} not found in program")
+    if dst is None:
+        raise HTTPException(404, f"Target W{req.target_week}D{req.target_day} not found in program")
+
+    src_week, src_day = src
+    dst_week, dst_day = dst
+
+    if src_day is dst_day:
+        raise HTTPException(400, "Source and target day are the same")
+
+    # Fields that describe the workout content (everything except the day index)
+    CONTENT_FIELDS = ("exerciseGroups", "isRest", "label", "title", "notes")
+
+    src_content = {k: copy.deepcopy(src_day.get(k)) for k in CONTENT_FIELDS if k in src_day}
+    dst_content = {k: copy.deepcopy(dst_day.get(k)) for k in CONTENT_FIELDS if k in dst_day}
+
+    if req.action == "swap":
+        # Clear current content fields from both, then re-apply swapped
+        for k in CONTENT_FIELDS:
+            src_day.pop(k, None)
+            dst_day.pop(k, None)
+        src_day.update(dst_content)
+        dst_day.update(src_content)
+    elif req.action == "move":
+        # Source content moves to target; source becomes empty rest day
+        for k in CONTENT_FIELDS:
+            dst_day.pop(k, None)
+            src_day.pop(k, None)
+        dst_day.update(src_content)
+        src_day["exerciseGroups"] = []
+        src_day["isRest"] = True
+    else:
+        raise HTTPException(400, "action must be 'swap' or 'move'")
+
+    return {"source": f"W{req.source_week}D{req.source_day}", "target": f"W{req.target_week}D{req.target_day}", "action": req.action}
+
+
+@router.post("/programs/{name}/move-workout")
+async def move_workout_in_program(name: str, req: MoveWorkoutRequest, coach: Annotated[dict, Depends(require_coach)]):
+    """Swap or move a workout between two days in a program library entry."""
+    pdata = _load_program_json()
+    programs = pdata.get("programs", {})
+    if name not in programs:
+        raise HTTPException(404, f"Program '{name}' not found")
+    summary = _apply_move_on_program(programs[name], req)
+    _save_program_json(pdata)
+    return {"ok": True, **summary}
+
+
+@router.post("/users/{username}/move-workout")
+async def move_workout_for_athlete(username: str, req: MoveWorkoutRequest, coach: Annotated[dict, Depends(require_coach)]):
+    """Swap or move a workout between two days in an athlete's assigned program."""
+    with with_user_data(username) as user_data:
+        program = user_data.get("assigned_program")
+        if not program:
+            raise HTTPException(404, "Athlete has no assigned program")
+        summary = _apply_move_on_program(program, req)
+    return {"ok": True, **summary}
 
 
 # ══════════════════════════════════════════════════════════════════
