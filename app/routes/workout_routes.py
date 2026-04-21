@@ -48,7 +48,12 @@ async def get_my_program(current_user: Annotated[dict, Depends(get_current_user)
 
     # Check for deep-copied assigned program first (Phase 3)
     if "assigned_program" in user_data:
-        program = dict(user_data["assigned_program"])  # shallow copy so we can annotate
+        ap = user_data["assigned_program"]
+        if isinstance(ap, dict):
+            program = dict(ap)  # shallow copy so we can annotate
+        else:
+            # Safety: if assigned_program was somehow stored as non-dict, wrap it
+            program = {"weeks": ap if isinstance(ap, list) else []}
         program["_program_version"] = version
         return program
 

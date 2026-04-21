@@ -345,11 +345,15 @@ async def list_programs(coach: Annotated[dict, Depends(require_coach)]):
     programs = pdata.get("programs", {})
     result = []
     for name, prog in programs.items():
+        if not isinstance(prog, dict):
+            # Guard against corrupted entries (list instead of dict, etc.)
+            result.append({"name": name, "weeks": 0, "days_per_week": 0})
+            continue
         weeks = prog.get("weeks", [])
         result.append({
             "name": name,
             "weeks": len(weeks),
-            "days_per_week": len(weeks[0]["days"]) if weeks else 0,
+            "days_per_week": len(weeks[0].get("days", [])) if weeks and isinstance(weeks[0], dict) else 0,
         })
     return {"programs": result}
 
@@ -461,11 +465,14 @@ async def delete_template(name: str, coach: Annotated[dict, Depends(require_coac
     return {"ok": True}
 
 
-def _program_total_days(program: dict) -> int:
+def _program_total_days(program) -> int:
     """Count the number of days in a program across all weeks."""
+    if not isinstance(program, dict):
+        return 0
     total = 0
     for week in (program.get("weeks") or []):
-        total += len(week.get("days") or [])
+        if isinstance(week, dict):
+            total += len(week.get("days") or [])
     return total
 
 
@@ -575,11 +582,17 @@ async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depen
 # MOVE / SWAP WORKOUT BETWEEN DAYS
 # ══════════════════════════════════════════════════════════════════
 
-def _find_day(program: dict, week_num: int, day_num: int) -> tuple[dict, dict] | None:
+def _find_day(program, week_num: int, day_num: int) -> tuple[dict, dict] | None:
     """Find a week/day in a program. Returns (week_obj, day_obj) or None."""
+    if not isinstance(program, dict):
+        return None
     for week in (program.get("weeks") or []):
+        if not isinstance(week, dict):
+            continue
         if int(week.get("week", 0)) == int(week_num):
             for day in (week.get("days") or []):
+                if not isinstance(day, dict):
+                    continue
                 if int(day.get("day", 0)) == int(day_num):
                     return week, day
     return None

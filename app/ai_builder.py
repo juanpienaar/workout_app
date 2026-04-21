@@ -755,9 +755,13 @@ Apply the changes to these weeks and return them as {{"weeks": [...]}} with all 
 
     json_text = _extract_json(response_text.strip())
     parsed = json.loads(json_text)
-    modified_weeks = parsed.get("weeks", parsed.get("Weeks", []))
-    if not modified_weeks and isinstance(parsed, list):
+    # Claude may return {"weeks": [...]}, {"Weeks": [...]}, or just a bare list [...].
+    if isinstance(parsed, list):
         modified_weeks = parsed
+    elif isinstance(parsed, dict):
+        modified_weeks = parsed.get("weeks", parsed.get("Weeks", []))
+    else:
+        modified_weeks = []
     return modified_weeks, input_tokens, output_tokens
 
 
