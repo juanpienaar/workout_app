@@ -67,8 +67,16 @@ HYROX-SPECIFIC FORMAT:
 
 def load_costs() -> dict:
     if COST_FILE.exists():
-        with open(COST_FILE) as f:
-            return json.load(f)
+        try:
+            with open(COST_FILE) as f:
+                data = json.load(f)
+            if isinstance(data, dict) and "requests" in data:
+                return data
+            # Corrupted format (e.g. bare list) — rebuild from whatever we have
+            if isinstance(data, list):
+                return {"total_cost_usd": sum(r.get("cost_usd", 0) for r in data if isinstance(r, dict)), "requests": data}
+        except (json.JSONDecodeError, OSError):
+            pass
     return {"total_cost_usd": 0.0, "requests": []}
 
 
@@ -79,20 +87,24 @@ def save_costs(costs: dict):
 
 
 def track_usage(input_tokens: int, output_tokens: int, model_key: str, description: str = "") -> float:
-    costs = load_costs()
     model_info = MODELS.get(model_key, MODELS["sonnet"])
     cost = (input_tokens / 1_000_000) * model_info["input_per_m"] + \
            (output_tokens / 1_000_000) * model_info["output_per_m"]
-    costs["total_cost_usd"] = costs.get("total_cost_usd", 0.0) + cost
-    costs["requests"].append({
-        "timestamp": datetime.now().isoformat(),
-        "model": model_key,
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "cost_usd": round(cost, 6),
-        "description": description,
-    })
-    save_costs(costs)
+    try:
+        costs = load_costs()
+        costs["total_cost_usd"] = costs.get("total_cost_usd", 0.0) + cost
+        costs.setdefault("requests", []).append({
+            "timestamp": datetime.now().isoformat(),
+            "model": model_key,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cost_usd": round(cost, 6),
+            "description": description,
+        })
+        save_costs(costs)
+    except Exception:
+        # Never let cost tracking kill the actual API workflow
+        pass
     return cost
 
 
