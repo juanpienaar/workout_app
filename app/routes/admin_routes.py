@@ -548,6 +548,25 @@ async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depen
     with with_user_data(user_key) as user_data:
         # Preserve existing workout logs (explicit, defensive)
         existing_logs = user_data.get("workout_logs", {})
+
+        # Snapshot the outgoing program so the calendar can still render
+        # past dates under the old program structure.
+        old_prog = user_data.get("assigned_program")
+        old_name = user_data.get("assigned_program_name")
+        old_start = user_data.get("assigned_program_date")
+        if old_prog and old_start:
+            import copy as _copy
+            past = user_data.setdefault("past_programs", [])
+            past.append({
+                "program": _copy.deepcopy(old_prog),
+                "name": old_name,
+                "start_date": old_start,
+                "replaced_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            })
+            # Keep only the last 5 past programs to avoid unbounded growth
+            if len(past) > 5:
+                user_data["past_programs"] = past[-5:]
+
         user_data["assigned_program"] = program_data
         user_data["assigned_program_name"] = req.program
         user_data["assigned_program_date"] = new_start_str

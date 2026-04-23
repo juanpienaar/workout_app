@@ -168,7 +168,23 @@ Apply this philosophy throughout the program design.""")
 Tailor the program to this athlete's specific needs and goals.""")
 
     prompt_parts.append(f'Generate a {weeks}-week {type_labels} training program called "{name}".')
-    prompt_parts.append(f"""
+
+    # When a day plan is provided, the coach has explicitly chosen which days are
+    # training vs rest — the AI must NOT override those choices.
+    has_day_plan = day_plan and any(items for items in day_plan.values() if items)
+    if has_day_plan:
+        prompt_parts.append(f"""
+Common details:
+- Experience: {experience}
+- Training days per week: {days_per_week}
+- Total days per week: 7
+- Maximum session duration: {session_time} minutes
+- IMPORTANT: The coach has assigned a day-by-day plan below. Follow it EXACTLY for EVERY week.
+  Days with exercises assigned are TRAINING days. Only days explicitly marked "Rest Day" are rest days.
+  Do NOT add extra rest days or skip assigned exercises.
+{f'- Additional notes: {notes}' if notes else ''}""")
+    else:
+        prompt_parts.append(f"""
 Common details:
 - Experience: {experience}
 - Training days per week: {days_per_week} (scatter {7 - days_per_week} rest days across the 7-day week)
@@ -260,7 +276,9 @@ SWIMMING:
             dp_lines.append(f"\n{day_name}:")
             dp_lines.extend(item_strs)
 
-        dp_lines.append("\nRULES FOR DAY PLAN:")
+        dp_lines.append("\nRULES FOR DAY PLAN (MANDATORY — DO NOT DEVIATE):")
+        dp_lines.append("- You MUST follow this plan for EVERY week. Each day listed above that has exercises MUST be a TRAINING day — never make it a rest day.")
+        dp_lines.append("- ONLY days marked 'Rest Day' in the plan above should be rest days. Do NOT add extra rest days.")
         dp_lines.append("- Items marked [MAIN movement] are the primary lifts — keep these every week, apply progressive overload.")
         dp_lines.append("- Items marked [ACCESSORY movement] are supplementary — these can be rotated or varied across weeks if the progression style is 'varied'.")
         dp_lines.append("- Items like '[Strength: Back]' mean the coach wants exercises targeting that muscle group — YOU choose appropriate exercises.")

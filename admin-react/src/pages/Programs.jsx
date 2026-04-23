@@ -1468,10 +1468,21 @@ function AIBuilderTab() {
   async function saveToLibrary() {
     if (!program || saving) return
     setSaving(true)
+    const progName = program.name || name
     try {
-      await API.createProgram({ name: program.name || name, weeks: program.weeks || [] })
+      // Try create first; if the program already exists (from initial generation), update instead
+      const createResult = await API.createProgram({ name: progName, weeks: program.weeks || [] })
+      if (createResult.detail || createResult.error) {
+        // Program already exists — update it with the current (possibly edited) version
+        const updateResult = await API.updateProgram(progName, { name: progName, weeks: program.weeks || [] })
+        if (updateResult.detail || updateResult.error) {
+          toast('Save failed: ' + (updateResult.detail || updateResult.error), 'error')
+          setSaving(false)
+          return
+        }
+      }
       toast('Saved to library!')
-    } catch { toast('Save failed', 'error') }
+    } catch (e) { toast('Save failed: ' + e.message, 'error') }
     setSaving(false)
   }
 

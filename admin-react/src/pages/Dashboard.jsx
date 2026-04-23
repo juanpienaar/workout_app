@@ -864,8 +864,18 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
 
     // Program exists — calculate week range from program start to program end
     const programEndDate = addDays(startDate, allProgramDays.length - 1)
-    const firstMonday = getMonday(startDate)
+    let firstMonday = getMonday(startDate)
     const lastMonday = getMonday(programEndDate)
+
+    // Extend range to include past programs so old workout data is visible
+    const pastProgs = athleteData?.past_programs || []
+    for (const pp of pastProgs) {
+      if (pp.start_date) {
+        const ppStart = new Date(pp.start_date + 'T00:00:00')
+        const ppMon = getMonday(ppStart)
+        if (ppMon < firstMonday) firstMonday = ppMon
+      }
+    }
 
     // Also include current week if it's outside program range
     const earliest = firstMonday <= todayMonday ? firstMonday : todayMonday
@@ -892,6 +902,25 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
           programDay = match.day
           weekIdx = match.weekIdx
           dayIdx = match.dayIdx
+        } else if (daysSinceStart < 0) {
+          // Before current program — check past_programs for this date
+          const pastProgs = athleteData?.past_programs || []
+          for (let pi = pastProgs.length - 1; pi >= 0; pi--) {
+            const pp = pastProgs[pi]
+            if (!pp.start_date || !pp.program?.weeks) continue
+            const ppStart = new Date(pp.start_date + 'T00:00:00')
+            const ppDays = []
+            for (const w of pp.program.weeks) {
+              for (const d of (w.days || [])) ppDays.push(d)
+            }
+            const ppOffset = Math.round((date - ppStart) / (1000 * 60 * 60 * 24))
+            if (ppOffset >= 0 && ppOffset < ppDays.length) {
+              programDay = ppDays[ppOffset]
+              weekIdx = -1  // mark as past-program day (not editable)
+              dayIdx = -1
+              break
+            }
+          }
         }
 
         const logs = athleteData?.workout_logs || {}
