@@ -1,10 +1,13 @@
 """Admin CRUD routes — coach-only endpoints for managing users, programs, exercises."""
 
 import json
+import logging
 import subprocess
 import sys
 from datetime import datetime, timezone
 from typing import Annotated, Any, Optional
+
+logger = logging.getLogger("numnum.admin")
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
@@ -550,22 +553,98 @@ async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depen
         existing_logs = user_data.get("workout_logs", {})
 
         # Snapshot the outgoing program so the calendar can still render
-        # past dates under the old program structure.
+        # past dates under the old program structure — but only for dates
+        # BEFORE the new program starts (no overlap).
         old_prog = user_data.get("assigned_program")
         old_name = user_data.get("assigned_program_name")
         old_start = user_data.get("assigned_program_date")
         if old_prog and old_start:
             import copy as _copy
-            past = user_data.setdefault("past_programs", [])
-            past.append({
-                "program": _copy.deepcopy(old_prog),
-                "name": old_name,
-                "start_date": old_start,
-                "replaced_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            })
+            # Trim the old program so it only covers dates before new_start_str.
+            # This prevents past_programs from bleeding into the new window.
+            try:
+                old_start_dt = datetime.strptime(old_start, "%Y-%m-%d").date()
+                new_start_dt2 = datetime.strptime(new_start_str, "%Y-%m-%d").date()
+                days_to_keep = (new_start_dt2 - old_start_dt).days
+                if days_to_keep > 0:
+                    # Keep only the weeks/days that fit before the new start
+                    trimmed_prog = _copy.deepcopy(old_prog)
+                    kept = 0
+                    new_weeks = []
+                    for week in (trimmed_prog.get("weeks") or []):
+                        if not isinstance(week, dict):
+                            continue
+                        old_days = week.get("days") or []
+                        remaining = days_to_keep - kept
+                        if remaining <= 0:
+                            break
+                        if remaining >= len(old_days):
+                            new_weeks.append(week)
+                            kept += len(old_days)
+                        else:
+                            trimmed_week = {**week, "days": old_days[:remaining]}
+                            new_weeks.append(trimmed_week)
+                            kept += remaining
+                            break
+                    trimmed_prog["weeks"] = new_weeks
+                    past = user_data.setdefault("past_programs", [])
+                    past.append({
+                        "program": trimmed_prog,
+                        "name": old_name,
+                        "start_date": old_start,
+                        "replaced_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    })
+                # else: old program starts on or after new — nothing to preserve
+            except Exception:
+                # Fallback: just store the full old program
+                past = user_data.setdefault("past_programs", [])
+                past.append({
+                    "program": _copy.deepcopy(old_prog),
+                    "name": old_name,
+                    "start_date": old_start,
+                    "replaced_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                })
             # Keep only the last 5 past programs to avoid unbounded growth
+            past = user_data.get("past_programs", [])
             if len(past) > 5:
                 user_data["past_programs"] = past[-5:]
+
+        # ── Clear the new program's date window ──────────────────────
+        # The user wants a clean slate for the new program's entire range
+        # so there is no bleed-through from old program data.
+        from datetime import timedelta
+        new_total_days = _program_total_days(program_data)
+        if new_total_days > 0:
+            try:
+                new_start_dt = datetime.strptime(new_start_str, "%Y-%m-%d").date()
+                new_end_dt = new_start_dt + timedelta(days=new_total_days - 1)
+                # Remove any workout_log entries whose meta.date falls in the window
+                keys_to_remove = []
+                for lk, lv in existing_logs.items():
+                    log_date_str = (lv.get("meta") or {}).get("date", "") if isinstance(lv, dict) else ""
+                    if log_date_str:
+                        try:
+                            log_dt = datetime.strptime(log_date_str, "%Y-%m-%d").date()
+                            if new_start_dt <= log_dt <= new_end_dt:
+                                keys_to_remove.append(lk)
+                        except ValueError:
+                            pass
+                for k in keys_to_remove:
+                    del existing_logs[k]
+                # Also clear day_N keys for N = 0..total-1 (the indices the
+                # new program will use) in case they have no meta.date
+                for i in range(new_total_days):
+                    dk = f"day_{i}"
+                    if dk in existing_logs and dk not in keys_to_remove:
+                        existing_logs.pop(dk, None)
+                if keys_to_remove:
+                    logger.info(
+                        "[assign-program] cleared %d log entries in window %s–%s for %s",
+                        len(keys_to_remove), new_start_str,
+                        new_end_dt.isoformat(), user_key,
+                    )
+            except Exception as e:
+                logger.warning("[assign-program] window-clear failed: %s", e)
 
         user_data["assigned_program"] = program_data
         user_data["assigned_program_name"] = req.program
