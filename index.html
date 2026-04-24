@@ -3265,11 +3265,16 @@ function renderWeekOverview() {
       : DAY_NAMES[(day.day - 1) % 7] || `Day ${day.day}`;
 
     if (day.isRest) {
+      let customForDay = [];
+      try { customForDay = JSON.parse(localStorage.getItem(`custom_exercises_${currentUser}_day${i}`) || '[]'); } catch {}
+      const customBadge = customForDay.length > 0
+        ? `<span style="font-size:10px;background:var(--teal);color:#fff;padding:1px 6px;border-radius:4px;margin-left:6px;">+${customForDay.length}</span>`
+        : '';
       cardsHtml.push(`
-        <div class="day-card rest-card ${isToday ? 'today-card' : ''}">
+        <div class="day-card rest-card ${isToday ? 'today-card' : ''}" onclick="openDay(${i})" style="cursor:pointer;">
           <div class="day-card-header">
             <div>
-              <div class="day-card-title">Day ${day.day} · Rest</div>
+              <div class="day-card-title">Day ${day.day} · Rest${customBadge}</div>
               <div class="day-card-weekday">${weekdayName}</div>
             </div>
           </div>
@@ -3458,14 +3463,72 @@ function renderDay() {
 
   const content = document.getElementById('workoutContent');
 
-  if (day.isRest) {
+  // Check for custom exercises on rest days
+  const restDayCustomKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
+  let restDayCustoms = [];
+  try { restDayCustoms = JSON.parse(localStorage.getItem(restDayCustomKey) || '[]'); } catch {}
+
+  if (day.isRest && restDayCustoms.length === 0) {
     document.getElementById('dayDetailStats').innerHTML = '';
-    content.innerHTML = `
+    const disabled = isViewOnly ? 'disabled' : '';
+    let restHtml = `
       <div class="rest-day">
         <div class="rest-icon"><img src="${REST_DOG_IMG}" alt="Rest day"></div>
         <h2>Rest Day</h2>
         <p>${day.restNote || 'Take it easy today. Recovery is where growth happens.'}</p>
       </div>`;
+    // Add exercise button even on rest days
+    if (!isViewOnly) {
+      restHtml += `<div style="margin-top:16px;text-align:center;">
+        <button id="addExToggleBtn" onclick="toggleAddExPanel()"
+          style="background:none;border:1px dashed var(--border);border-radius:10px;padding:10px 20px;color:var(--text-dim);font-size:13px;cursor:pointer;width:100%;transition:all 0.2s;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Exercise
+        </button>
+      </div>
+      <div id="addExExpandedPanel" style="display:none;margin-top:8px;">
+        <div class="group-container">
+          <div style="display:flex;gap:0;margin-bottom:0;">
+            <button id="addTabStrength" onclick="switchAddTab('strength')"
+              style="flex:1;padding:10px;border:1px solid var(--border);border-bottom:none;border-radius:8px 0 0 0;background:var(--accent);color:#fff;font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6.5 6.5v11M17.5 6.5v11M2 9v6M22 9v6M6.5 12h11M2 12h4.5M17.5 12H22"/></svg> Strength
+            </button>
+          </div>
+          <div id="addPanelStrength" class="exercise-card" style="border-top-left-radius:0;border-top-right-radius:0;margin-top:0;">
+            <div style="margin-bottom:10px;">
+              <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Exercise Name</label>
+              <input id="customExName" type="text" placeholder="e.g. Dumbbell Curl"
+                style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;"
+                list="exerciseLibraryList" autocomplete="off" oninput="filterExerciseLibrary(this.value)" ${disabled}>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div>
+                <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Sets</label>
+                <input id="customExSets" type="number" inputmode="numeric" placeholder="3" value="3"
+                  style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+              </div>
+              <div>
+                <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Reps</label>
+                <input id="customExReps" type="number" inputmode="numeric" placeholder="10" value="10"
+                  style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+              </div>
+              <div>
+                <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Tempo</label>
+                <input id="customExTempo" type="text" placeholder="e.g. 3-1-2-0"
+                  style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+              </div>
+              <div>
+                <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:2px;">Rest (sec)</label>
+                <input id="customExRest" type="text" inputmode="numeric" placeholder="60"
+                  style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:14px;">
+              </div>
+            </div>
+            <button onclick="addCustomExercise()"
+              style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;">+ Add Exercise</button>
+          </div>
+        </div>
+      </div>`;
+    }
+    content.innerHTML = restHtml;
     return;
   }
 
@@ -3481,7 +3544,7 @@ function renderDay() {
   const customKeyStats = `custom_exercises_${currentUser}_day${currentDayIndex}`;
   let customExStats = [];
   try { customExStats = JSON.parse(localStorage.getItem(customKeyStats) || '[]'); } catch {}
-  const allExGroups = [...day.exerciseGroups];
+  const allExGroups = day.isRest ? [] : [...day.exerciseGroups];
   if (customExStats.length > 0) {
     allExGroups.push({exercises: customExStats.map(ce => ({
       order: ce.order, name: ce.name, sets: ce.sets, reps: String(ce.reps)
@@ -3534,13 +3597,21 @@ function renderDay() {
   const disabled = isViewOnly ? 'disabled' : '';
   let html = '<button class="focus-back-btn" onclick="exitFocusMode()">&#8249; All exercises</button>';
 
+  // Show rest day banner if this is a rest day with custom exercises
+  if (day.isRest) {
+    html += `<div style="text-align:center;padding:12px;margin-bottom:12px;border-radius:10px;background:rgba(124,110,240,0.06);border:1px solid rgba(124,110,240,0.15);">
+      <span style="font-size:14px;color:var(--text-dim);font-style:italic;">Rest Day</span>
+      <span style="font-size:11px;color:var(--text-dim);display:block;margin-top:2px;">${day.restNote || 'Recovery is where growth happens.'}</span>
+    </div>`;
+  }
+
   // Include custom exercises added by the athlete
   const customKey = `custom_exercises_${currentUser}_day${currentDayIndex}`;
   let customExercises = [];
   try { customExercises = JSON.parse(localStorage.getItem(customKey) || '[]'); } catch {}
 
   // Add custom exercises as individual groups (one per exercise for independent collapse)
-  const allGroups = [...day.exerciseGroups];
+  const allGroups = [...(day.exerciseGroups || [])];
   if (customExercises.length > 0) {
     for (const ce of customExercises) {
       allGroups.push({

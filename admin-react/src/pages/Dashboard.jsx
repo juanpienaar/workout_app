@@ -1040,6 +1040,55 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
     saveProgram(updated)
   }
 
+  // Add a custom exercise to any day (rest day, no-program day, or program day)
+  // Saves via workout-day endpoint into meta.custom_exercises
+  async function addCustomExerciseToDay() {
+    if (!calAthlete || !expandedData || !newExName.trim()) return
+    const dateStr = expandedData.dateStr
+    // Determine day key: use existing logDayKey or fall back to date-based key
+    const dayKey = expandedData.logDayKey || `date_${dateStr}`
+    const existingMeta = expandedData.logEntry?.meta || {}
+    const existingData = expandedData.logEntry?.data || {}
+    const customs = [...(existingMeta.custom_exercises || [])]
+    // Determine next order number
+    let maxOrder = 0
+    for (const c of customs) {
+      const o = parseInt(c.order) || 0
+      if (o > maxOrder) maxOrder = o
+    }
+    if (expandedData.programDay) {
+      for (const g of (expandedData.programDay.exerciseGroups || [])) {
+        for (const ex of (g.exercises || [])) {
+          const o = parseInt(ex.order) || 0
+          if (o > maxOrder) maxOrder = o
+        }
+      }
+    }
+    customs.push({
+      order: String(maxOrder + 1),
+      name: newExName.trim(),
+      sets: '3', reps: '10', tempo: '', rest: '90', rpe: '', instruction: ''
+    })
+    const newMeta = { ...existingMeta, custom_exercises: customs, date: dateStr }
+    try {
+      const resp = await authFetch(`/api/admin/users/${calAthlete}/workout-day/${dayKey}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: existingData, meta: newMeta })
+      })
+      if (resp.ok) {
+        setNewExName('')
+        toast.success(`Added ${newExName.trim()}`)
+        onRefresh()
+      } else {
+        const errText = await resp.text().catch(() => resp.status)
+        toast.error(`Failed to add exercise (${resp.status}): ${errText}`)
+      }
+    } catch (err) {
+      toast.error('Failed to add exercise: ' + (err.message || err))
+    }
+  }
+
   // Bulk replace exercise name across program
   async function bulkReplace() {
     if (!program || !replaceFrom.trim() || !replaceTo.trim()) return
@@ -1197,19 +1246,21 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
   }, [expandedDayKey, weeks])
 
   const expandedExercises = useMemo(() => {
-    if (!expandedData?.programDay) return []
+    if (!expandedData) return []
     const hiddenExercises = expandedData.logEntry?.meta?.hidden_exercises || []
     const customExercises = expandedData.logEntry?.meta?.custom_exercises || []
     const exerciseOrder = expandedData.logEntry?.meta?.exercise_order || []
     let exs = []
-    for (const [gi, group] of (expandedData.programDay.exerciseGroups || []).entries()) {
-      for (const [ei, ex] of (group.exercises || []).entries()) {
-        const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_')
-        const isHidden = hiddenExercises.includes(exKey)
-        exs.push({ ...ex, _gi: gi, _ei: ei, _hidden: isHidden })
+    if (expandedData.programDay) {
+      for (const [gi, group] of (expandedData.programDay.exerciseGroups || []).entries()) {
+        for (const [ei, ex] of (group.exercises || []).entries()) {
+          const exKey = ex.order + '_' + ex.name.replace(/\s+/g, '_')
+          const isHidden = hiddenExercises.includes(exKey)
+          exs.push({ ...ex, _gi: gi, _ei: ei, _hidden: isHidden })
+        }
       }
     }
-    // Append custom exercises
+    // Always append custom exercises (even on rest/no-program days)
     for (const cex of customExercises) {
       exs.push({ ...cex, _isCustom: true, _hidden: false, _gi: -1, _ei: -1 })
     }
@@ -1362,13 +1413,13 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                                 exercises.push({ ...ex, _gi: gi, _ei: ei, _hidden: isHidden })
                               }
                             }
-                            // Append custom (added) exercises
-                            for (const cex of customExercises) {
-                              exercises.push({ ...cex, _isCustom: true, _hidden: false })
-                            }
-                            // Apply exercise order from app
-                            exercises = applyExerciseOrder(exercises, exerciseOrder)
                           }
+                          // Always append custom exercises (even on rest/no-program days)
+                          for (const cex of customExercises) {
+                            exercises.push({ ...cex, _isCustom: true, _hidden: false })
+                          }
+                          // Apply exercise order from app
+                          if (exerciseOrder.length > 0) exercises = applyExerciseOrder(exercises, exerciseOrder)
                           const hasLog = !!cd.logEntry
                           const completion = hasLog ? getCompletionPct(cd.logEntry.data || {}) : null
 
@@ -1381,7 +1432,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                                 if (movingEx && day) {
                                   if (!isMovingSource) moveExerciseToDay(cd.weekIdx, cd.dayIdx)
                                   else setMovingEx(null)
-                                } else if (day && (exercises.length > 0 || !isRest)) {
+                                } else {
                                   setExpandedDayKey(isExpanded ? null : cd.dateStr)
                                 }
                               }}
@@ -1391,7 +1442,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                                 borderRadius: 10, padding: 10, minHeight: 150,
                                 opacity: !day && past && !movingEx ? 0.35 : 1,
                                 display: 'flex', flexDirection: 'column',
-                                cursor: (movingEx && day) ? 'pointer' : (day && (exercises.length > 0 || !isRest)) ? 'pointer' : 'default',
+                                cursor: 'pointer',
                                 transition: 'border-color 0.15s',
                               }}>
                               {/* Date header */}
@@ -1438,16 +1489,21 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                               </div>
 
                               {/* Rest day */}
-                              {isRest && (
-                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {isRest && exercises.length === 0 && (
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                                   <span style={{ fontSize: 11, color: 'var(--text-dim)', fontStyle: 'italic' }}>Rest Day</span>
+                                  <span style={{ fontSize: 9, color: 'var(--accent2)', opacity: 0.6 }}>+ add exercise</span>
                                 </div>
+                              )}
+                              {isRest && exercises.length > 0 && (
+                                <div style={{ fontSize: 11, color: 'var(--text-dim)', fontStyle: 'italic', marginBottom: 4, textAlign: 'center' }}>Rest Day</div>
                               )}
 
                               {/* No program day */}
-                              {!day && (
-                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {!day && exercises.length === 0 && (
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                                   <span style={{ fontSize: 11, color: 'var(--muted2)' }}>—</span>
+                                  <span style={{ fontSize: 9, color: 'var(--accent2)', opacity: 0.6 }}>+ add exercise</span>
                                 </div>
                               )}
 
@@ -1480,7 +1536,7 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
           )}
 
           {/* Expanded day editor (modal overlay) */}
-          {expandedDayKey && expandedData && expandedData.programDay && (
+          {expandedDayKey && expandedData && (
             <div style={{
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
               background: 'rgba(0,0,0,0.6)', zIndex: 100,
@@ -1499,7 +1555,11 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                       {expandedData.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </h3>
                     <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                      Day {expandedData.dayIdx + 1} · Week {expandedData.weekIdx + 1}
+                      {expandedData.programDay
+                        ? expandedData.programDay.isRest
+                          ? `Rest Day · Week ${expandedData.weekIdx + 1}`
+                          : `Day ${expandedData.dayIdx + 1} · Week ${expandedData.weekIdx + 1}`
+                        : 'No program assigned'}
                     </span>
                   </div>
                   <button onClick={() => setExpandedDayKey(null)}
@@ -1686,10 +1746,22 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                 {/* Add exercise */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
                   <input value={newExName} onChange={e => setNewExName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') addExercise(expandedData.weekIdx, expandedData.dayIdx) }}
+                    onKeyDown={e => { if (e.key === 'Enter') {
+                      if (expandedData.programDay && !expandedData.programDay.isRest && expandedData.weekIdx >= 0) {
+                        addExercise(expandedData.weekIdx, expandedData.dayIdx)
+                      } else {
+                        addCustomExerciseToDay()
+                      }
+                    }}}
                     placeholder="Add exercise..."
                     style={{ flex: 1, fontSize: 13, padding: '6px 10px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
-                  <button onClick={() => addExercise(expandedData.weekIdx, expandedData.dayIdx)}
+                  <button onClick={() => {
+                      if (expandedData.programDay && !expandedData.programDay.isRest && expandedData.weekIdx >= 0) {
+                        addExercise(expandedData.weekIdx, expandedData.dayIdx)
+                      } else {
+                        addCustomExerciseToDay()
+                      }
+                    }}
                     disabled={!newExName.trim()}
                     style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: newExName.trim() ? 'var(--accent2)' : 'var(--border)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: newExName.trim() ? 'pointer' : 'default' }}>
                     + Add
