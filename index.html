@@ -2874,6 +2874,18 @@ async function checkProgramVersion() {
       delete athletePrograms[currentUser];
       const freshProgram = await loadAthleteProgram({ force: true });
       if (freshProgram && freshProgram.weeks) {
+        // Clear stale localStorage custom exercises / hidden / order from old program
+        if (wasKnown) {
+          const keysToRemove = [];
+          for (let k = 0; k < localStorage.length; k++) {
+            const key = localStorage.key(k);
+            if (key && key.startsWith(`custom_exercises_${currentUser}_`)) keysToRemove.push(key);
+            if (key && key.startsWith(`hidden_exercises_${currentUser}_`)) keysToRemove.push(key);
+            if (key && key.startsWith(`exercise_order_${currentUser}_`)) keysToRemove.push(key);
+          }
+          keysToRemove.forEach(k => localStorage.removeItem(k));
+          console.log(`[program-sync] cleared ${keysToRemove.length} stale localStorage keys`);
+        }
         // Rebuild allDays / weekMap from the new program so renderDay picks it up.
         allDays = [];
         weekMap = [];
@@ -3133,6 +3145,19 @@ async function selectUser(name) {
     } catch (e) {
       console.warn('[init] pullDataFromServer failed, continuing with local data:', e);
     }
+  }
+
+  // One-time cleanup of stale custom exercises (v2 migration)
+  const cleanupKey = `_custom_ex_cleanup_v2_${currentUser}`;
+  if (!localStorage.getItem(cleanupKey)) {
+    const keysToRemove = [];
+    for (let k = 0; k < localStorage.length; k++) {
+      const key = localStorage.key(k);
+      if (key && key.startsWith(`custom_exercises_${currentUser}_`)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem(cleanupKey, '1');
+    console.log(`[cleanup] wiped ${keysToRemove.length} stale custom exercise keys`);
   }
 
   showWorkout();

@@ -1230,6 +1230,26 @@ async def delete_message(username: str, msg_id: str, coach: Annotated[dict, Depe
 # LOGS
 # ══════════════════════════════════════════════════════════════════
 
+@router.post("/wipe-custom-exercises")
+async def wipe_custom_exercises(coach: Annotated[dict, Depends(require_coach)]):
+    """Remove all custom_exercises from every user's workout_logs meta.
+    One-time cleanup endpoint."""
+    users = load_users()
+    cleaned = 0
+    for username in users:
+        try:
+            with with_user_data(username) as data:
+                logs = data.get("workout_logs", {})
+                for day_key, entry in logs.items():
+                    meta = entry.get("meta")
+                    if meta and "custom_exercises" in meta:
+                        del meta["custom_exercises"]
+                        cleaned += 1
+        except Exception as e:
+            logger.warning("wipe-custom-exercises: error on %s: %s", username, e)
+    return {"ok": True, "cleaned_entries": cleaned}
+
+
 @router.get("/logs")
 async def get_admin_logs(coach: Annotated[dict, Depends(require_coach)], limit: int = 50, type: str = None):
     """Get recent application logs."""
