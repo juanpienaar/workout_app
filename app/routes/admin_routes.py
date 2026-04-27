@@ -650,6 +650,8 @@ async def assign_program(req: ProgramAssignRequest, coach: Annotated[dict, Depen
         user_data["assigned_program_name"] = req.program
         user_data["assigned_program_date"] = new_start_str
         user_data["workout_logs"] = existing_logs
+        # Timestamp so the PWA can detect a fresh assignment and wipe stale local data
+        user_data["program_assigned_at"] = int(datetime.now(timezone.utc).timestamp() * 1000)
         bump_program_version(user_data)
         # Audit trail of past program assignments
         history = user_data.setdefault("program_history", [])

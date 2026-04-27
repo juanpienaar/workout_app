@@ -2874,18 +2874,27 @@ async function checkProgramVersion() {
       delete athletePrograms[currentUser];
       const freshProgram = await loadAthleteProgram({ force: true });
       if (freshProgram && freshProgram.weeks) {
-        // Clear stale localStorage custom exercises / hidden / order from old program
-        if (wasKnown) {
+        // Clear ALL stale localStorage workout data from old program
+        {
           const keysToRemove = [];
           for (let k = 0; k < localStorage.length; k++) {
             const key = localStorage.key(k);
-            if (key && key.startsWith(`custom_exercises_${currentUser}_`)) keysToRemove.push(key);
-            if (key && key.startsWith(`hidden_exercises_${currentUser}_`)) keysToRemove.push(key);
-            if (key && key.startsWith(`exercise_order_${currentUser}_`)) keysToRemove.push(key);
+            if (!key || !key.includes(currentUser)) continue;
+            if (key.startsWith(`workout_${currentUser}_day`) ||
+                key.startsWith(`custom_exercises_${currentUser}_`) ||
+                key.startsWith(`hidden_exercises_${currentUser}_`) ||
+                key.startsWith(`exercise_order_${currentUser}_`) ||
+                key.startsWith(`skips_${currentUser}_`) ||
+                key.startsWith(`skipped_exercises_${currentUser}_`) ||
+                key.startsWith(`cardio_active_${currentUser}_`)) {
+              keysToRemove.push(key);
+            }
           }
           keysToRemove.forEach(k => localStorage.removeItem(k));
           console.log(`[program-sync] cleared ${keysToRemove.length} stale localStorage keys`);
         }
+        // Re-pull from server to restore any data the server still has
+        try { await pullDataFromServer(); } catch (e) { console.warn('[program-sync] re-pull failed:', e); }
         // Rebuild allDays / weekMap from the new program so renderDay picks it up.
         allDays = [];
         weekMap = [];
@@ -3145,19 +3154,6 @@ async function selectUser(name) {
     } catch (e) {
       console.warn('[init] pullDataFromServer failed, continuing with local data:', e);
     }
-  }
-
-  // One-time cleanup of stale custom exercises (v2 migration)
-  const cleanupKey = `_custom_ex_cleanup_v2_${currentUser}`;
-  if (!localStorage.getItem(cleanupKey)) {
-    const keysToRemove = [];
-    for (let k = 0; k < localStorage.length; k++) {
-      const key = localStorage.key(k);
-      if (key && key.startsWith(`custom_exercises_${currentUser}_`)) keysToRemove.push(key);
-    }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-    localStorage.setItem(cleanupKey, '1');
-    console.log(`[cleanup] wiped ${keysToRemove.length} stale custom exercise keys`);
   }
 
   showWorkout();
@@ -4909,7 +4905,12 @@ function saveCurrentDay() {
 }
 
 // Pull workout data from server (for cross-device access and recovery)
-// Strategy: APP IS MASTER for completed workouts. Server provides backup for empty local data.
+//
+// Strategy:
+// - If the server's `program_assigned_at` is newer than what we've seen,
+//   a new program was assigned → wipe ALL localStorage workout data and
+//   restore exclusively from the server (server is master after assign).
+// - Otherwise: merge server data into local (app is master for completed sets).
 async function pullDataFromServer() {
   if (!(await checkServer()) || !accessToken) return;
   try {
@@ -4921,48 +4922,85 @@ async function pullDataFromServer() {
       window._targetWeights = serverData.target_weights;
       localStorage.setItem(`target_weights_${currentUser}`, JSON.stringify(serverData.target_weights));
     }
+
+    // ── Detect fresh program assignment ─────────────────────────
+    const serverAssignedAt = Number(serverData.program_assigned_at) || 0;
+    const localAssignedAt = Number(localStorage.getItem(`_program_assigned_at_${currentUser}`)) || 0;
+    const freshAssign = serverAssignedAt > 0 && serverAssignedAt > localAssignedAt;
+
+    if (freshAssign) {
+      // Wipe ALL localStorage workout/meta keys for this user — server is master
+      const keysToRemove = [];
+      for (let k = 0; k < localStorage.length; k++) {
+        const key = localStorage.key(k);
+        if (!key || !key.includes(currentUser)) continue;
+        if (key.startsWith(`workout_${currentUser}_day`) ||
+            key.startsWith(`custom_exercises_${currentUser}_`) ||
+            key.startsWith(`hidden_exercises_${currentUser}_`) ||
+            key.startsWith(`exercise_order_${currentUser}_`) ||
+            key.startsWith(`skips_${currentUser}_`) ||
+            key.startsWith(`skipped_exercises_${currentUser}_`) ||
+            key.startsWith(`cardio_active_${currentUser}_`)) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      console.log(`[sync] Fresh program assign detected — wiped ${keysToRemove.length} localStorage keys`);
+      localStorage.setItem(`_program_assigned_at_${currentUser}`, String(serverAssignedAt));
+    }
+
     const logs = serverData.workout_logs || {};
     let merged = 0;
-    for (const [dayKey, entry] of Object.entries(logs)) {
-      const match = dayKey.match(/^day_(\d+)$/);
-      if (!match) continue;
-      const idx = parseInt(match[1]);
-      const localData = loadDayData(idx);
-      const localKeys = Object.keys(localData).filter(k => k !== 'notes');
-      const serverHasData = entry.data && Object.keys(entry.data).filter(k => k !== 'notes').length > 0;
 
-      if (localKeys.length === 0 && serverHasData) {
-        // Local is empty — restore from server (handles cache clears, new device, deploys)
-        localStorage.setItem(getStorageKey(idx), JSON.stringify(entry.data));
-        merged++;
-      } else if (localKeys.length > 0 && serverHasData) {
-        // BOTH have data — merge intelligently (app is master for completed sets)
-        const mergedData = { ...entry.data }; // start with server
-        for (const [exKey, exData] of Object.entries(localData)) {
-          if (!mergedData[exKey]) {
-            mergedData[exKey] = exData; // local has exercise server doesn't
-          } else {
-            // Merge set-by-set: prefer local data (app is master)
-            for (const [setKey, setVal] of Object.entries(exData)) {
-              if (setKey === 'notes') {
-                // Keep whichever notes are non-empty, prefer local
-                if (setVal) mergedData[exKey].notes = setVal;
-              } else {
-                // For sets: local (app) is always master
-                mergedData[exKey][setKey] = setVal;
-              }
-            }
-          }
-        }
-        const mergedStr = JSON.stringify(mergedData);
-        if (mergedStr !== JSON.stringify(localData)) {
-          localStorage.setItem(getStorageKey(idx), mergedStr);
+    if (freshAssign) {
+      // Server is master — restore everything from server, no merge
+      for (const [dayKey, entry] of Object.entries(logs)) {
+        const match = dayKey.match(/^day_(\d+)$/);
+        if (!match) continue;
+        const idx = parseInt(match[1]);
+        if (entry.data && Object.keys(entry.data).length > 0) {
+          localStorage.setItem(getStorageKey(idx), JSON.stringify(entry.data));
           merged++;
         }
       }
+    } else {
+      // Normal merge — app is master for completed sets
+      for (const [dayKey, entry] of Object.entries(logs)) {
+        const match = dayKey.match(/^day_(\d+)$/);
+        if (!match) continue;
+        const idx = parseInt(match[1]);
+        const localData = loadDayData(idx);
+        const localKeys = Object.keys(localData).filter(k => k !== 'notes');
+        const serverHasData = entry.data && Object.keys(entry.data).filter(k => k !== 'notes').length > 0;
+
+        if (localKeys.length === 0 && serverHasData) {
+          localStorage.setItem(getStorageKey(idx), JSON.stringify(entry.data));
+          merged++;
+        } else if (localKeys.length > 0 && serverHasData) {
+          const mergedData = { ...entry.data };
+          for (const [exKey, exData] of Object.entries(localData)) {
+            if (!mergedData[exKey]) {
+              mergedData[exKey] = exData;
+            } else {
+              for (const [setKey, setVal] of Object.entries(exData)) {
+                if (setKey === 'notes') {
+                  if (setVal) mergedData[exKey].notes = setVal;
+                } else {
+                  mergedData[exKey][setKey] = setVal;
+                }
+              }
+            }
+          }
+          const mergedStr = JSON.stringify(mergedData);
+          if (mergedStr !== JSON.stringify(localData)) {
+            localStorage.setItem(getStorageKey(idx), mergedStr);
+            merged++;
+          }
+        }
+      }
     }
-    // Always restore hidden/custom/order exercises from server meta
-    // Use smart merge: combine server + local arrays
+
+    // Restore meta (hidden/custom/order) from server — always trust server
     let metaRestored = 0;
     for (const [dayKey, entry] of Object.entries(logs)) {
       const match = dayKey.match(/^day_(\d+)$/);
@@ -4970,7 +5008,6 @@ async function pullDataFromServer() {
       const idx = parseInt(match[1]);
       const meta = entry.meta || {};
 
-      // Hidden exercises — always trust server (coach may have restored exercises)
       if (meta.hidden_exercises !== undefined) {
         const hk = `hidden_exercises_${currentUser}_day${idx}`;
         const serverVal = JSON.stringify(meta.hidden_exercises);
@@ -4979,29 +5016,23 @@ async function pullDataFromServer() {
           metaRestored++;
         }
       }
-      // Custom exercises — always restore from server if local is empty
       if (meta.custom_exercises && meta.custom_exercises.length > 0) {
         const ck = `custom_exercises_${currentUser}_day${idx}`;
-        const existing = localStorage.getItem(ck);
-        if (!existing || existing === '[]') {
+        if (freshAssign || !localStorage.getItem(ck) || localStorage.getItem(ck) === '[]') {
           localStorage.setItem(ck, JSON.stringify(meta.custom_exercises));
           metaRestored++;
         }
       }
-      // Exercise order — always restore from server if local is empty
       if (meta.exercise_order && meta.exercise_order.length > 0) {
         const ok = `exercise_order_${currentUser}_day${idx}`;
-        const existing = localStorage.getItem(ok);
-        if (!existing || existing === '[]') {
+        if (freshAssign || !localStorage.getItem(ok) || localStorage.getItem(ok) === '[]') {
           localStorage.setItem(ok, JSON.stringify(meta.exercise_order));
           metaRestored++;
         }
       }
-      // Skipped exercises
       if (meta.skipped_exercises) {
         const sk = `skipped_exercises_${currentUser}_day${idx}`;
-        const existing = localStorage.getItem(sk);
-        if (!existing || existing === '{}') {
+        if (freshAssign || !localStorage.getItem(sk) || localStorage.getItem(sk) === '{}') {
           localStorage.setItem(sk, JSON.stringify(meta.skipped_exercises));
           metaRestored++;
         }
