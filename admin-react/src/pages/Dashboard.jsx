@@ -1298,6 +1298,20 @@ function CalendarOverview({ athletes, userData, setUserData, loading, toast, onR
                 ↻ Refresh
               </button>
             )}
+            <button onClick={async () => {
+              if (!confirm('Remove all custom exercises from all athletes? This cannot be undone.')) return
+              try {
+                const resp = await authFetch('/api/admin/wipe-custom-exercises', { method: 'POST' })
+                if (resp.ok) {
+                  const data = await resp.json()
+                  toast.success(`Wiped ${data.cleaned_entries} custom exercise entries`)
+                  onRefresh?.()
+                } else { toast.error('Wipe failed') }
+              } catch (e) { toast.error('Wipe failed: ' + e.message) }
+            }} title="Remove all custom exercises from server data"
+              style={{ background: 'none', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 6, color: '#dc2626', cursor: 'pointer', padding: '4px 10px', fontSize: 11 }}>
+              🧹 Wipe Custom Ex
+            </button>
             {calAthlete && (
               <button onClick={async () => {
                 try {
