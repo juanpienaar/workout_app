@@ -19,7 +19,7 @@ from ..auth import (
     clear_sso_cookie, create_access_token, create_refresh_token,
     decode_token, get_current_user, hash_password, set_sso_cookie,
 )
-from ..data import load_users, save_users, find_user_by_email
+from ..data import load_user_data, load_users, save_users, find_user_by_email
 from .. import config
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -73,6 +73,62 @@ async def sso_refresh(response: Response,
     """
     set_sso_cookie(response, current_user["name"], current_user.get("email", ""))
     return {"ok": True}
+
+
+@router.get("/sso-profile")
+async def sso_profile(request: Request):
+    """The little a sibling NumNum app needs to set someone up.
+
+    Authenticated by the shared sign-in token itself - the same cookie the
+    browser already holds, or the same value as a bearer for a server-to-server
+    call. Deliberately narrow: what a nutrition goal is built from, and nothing
+    about their training, their coach or their history.
+    """
+    raw = request.cookies.get(config.SSO_COOKIE_NAME)
+    if not raw:
+        header = request.headers.get("authorization", "")
+        if header.lower().startswith("bearer "):
+            raw = header[7:].strip()
+    if not raw:
+        raise HTTPException(status_code=401, detail="No sign-in token")
+    payload = decode_token(raw, expected_type="sso")
+    user_name = payload.get("sub")
+    users = load_users()
+    info = users.get(user_name)
+    if not info:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_data = load_user_data(user_name)
+    nutrition = user_data.get("nutrition") or {}
+    profile = nutrition.get("profile") or {}
+    targets = nutrition.get("targets") or None
+
+    weight = profile.get("current_weight_kg")
+    for m in reversed(user_data.get("metrics") or []):       # a fresher number
+        if m.get("weight"):
+            weight = m["weight"]
+            break
+
+    return {
+        "name": user_name,
+        "email": (info.get("email") or "").lower(),
+        "targets": {
+            "calories": targets.get("daily_calories"),
+            "protein_g": targets.get("daily_protein_g"),
+            "fat_g": targets.get("daily_fat_g"),
+            "carb_g": targets.get("daily_carbs_g"),
+        } if targets else None,
+        "profile": {
+            "sex": profile.get("sex"),
+            "age": profile.get("age"),
+            "height_cm": profile.get("height_cm"),
+            "current_weight_kg": weight,
+            "target_weight_kg": profile.get("target_weight_kg"),
+            "target_weeks": profile.get("target_weeks"),
+            "activity_level": profile.get("activity_level"),
+            "goal_type": profile.get("goal"),
+        } if (profile or weight) else None,
+    }
 
 
 @router.post("/sso-logout")
