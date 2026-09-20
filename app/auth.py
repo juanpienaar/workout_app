@@ -61,7 +61,7 @@ def create_refresh_token(data: dict, remember: bool = False) -> str:
     return jwt.encode(to_encode, config.SECRET_KEY, algorithm=config.ALGORITHM)
 
 
-def create_sso_token(user_name: str, email: str) -> str:
+def create_sso_token(user_name: str, email: str, verified: bool = True) -> str:
     """A long-lived token for the shared .numnum.fit sign-in cookie.
 
     Deliberately separate from the 15-minute access token: it is only ever
@@ -70,14 +70,14 @@ def create_sso_token(user_name: str, email: str) -> str:
     """
     expire = datetime.now(timezone.utc) + timedelta(days=config.SSO_TOKEN_EXPIRE_DAYS)
     return jwt.encode({"sub": user_name, "email": (email or "").lower(),
-                       "type": "sso", "exp": expire},
+                       "type": "sso", "ev": bool(verified), "exp": expire},
                       config.SECRET_KEY, algorithm=config.ALGORITHM)
 
 
-def set_sso_cookie(response, user_name: str, email: str):
+def set_sso_cookie(response, user_name: str, email: str, verified: bool = True):
     response.set_cookie(
         key=config.SSO_COOKIE_NAME,
-        value=create_sso_token(user_name, email),
+        value=create_sso_token(user_name, email, verified),
         max_age=config.SSO_TOKEN_EXPIRE_DAYS * 24 * 3600,
         httponly=True, secure=True, samesite="lax",
         # unset locally, ".numnum.fit" in production, so sibling subdomains

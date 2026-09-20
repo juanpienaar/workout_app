@@ -50,8 +50,11 @@ async def login(request: Request, response: Response, req: LoginRequest):
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data, remember=req.remember)
 
-    # one sign-in for every NumNum app under numnum.fit
-    set_sso_cookie(response, user_name, user_info.get("email", ""))
+    # One sign-in for every NumNum app under numnum.fit - but only once the
+    # address has been verified. An unverified account proves nothing about
+    # who owns that email, and the sibling apps key their accounts on it.
+    if user_info.get("email_verified"):
+        set_sso_cookie(response, user_name, user_info.get("email", ""))
 
     return LoginResponse(
         access_token=access_token,
@@ -71,6 +74,10 @@ async def sso_refresh(response: Response,
     that has not - would otherwise have to sign out and back in before the
     sibling apps recognised them.
     """
+    if not current_user.get("email_verified"):
+        clear_sso_cookie(response)
+        raise HTTPException(status_code=403,
+                            detail="Verify your email address first")
     set_sso_cookie(response, current_user["name"], current_user.get("email", ""))
     return {"ok": True}
 

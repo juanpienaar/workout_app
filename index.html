@@ -2147,6 +2147,7 @@ body {
     </div>
     <div class="login-title">Verify Your Email</div>
     <div class="login-subtitle" id="verifySubtitle">We've sent a 6-digit code to your email</div>
+    <p id="verifySibling" style="display:none;margin:10px 0 0;font-size:13px;color:var(--accent2,#E8475F);"></p>
     <div class="login-form">
       <div class="login-field">
         <label for="verifyCode">Verification Code</label>
@@ -2159,7 +2160,7 @@ body {
       <div style="text-align:center;margin-top:12px;">
         <button onclick="resendVerification()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;text-decoration:underline;">Resend code</button>
         <span style="color:var(--text-dim);margin:0 8px;">·</span>
-        <button onclick="skipVerification()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;">Skip for now</button>
+        <button id="skipVerifyBtn" onclick="skipVerification()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;">Skip for now</button>
       </div>
     </div>
   </div>
@@ -2964,6 +2965,13 @@ function showVerificationScreen(userName, email) {
   document.getElementById('verifySubtitle').textContent = `We've sent a 6-digit code to ${masked}`;
   document.getElementById('verifyCode').value = '';
   document.getElementById('verifyError').textContent = '';
+  const sib = document.getElementById('verifySibling');
+  if (sessionStorage.getItem('nn_next')) {
+    // they were on their way somewhere - say why this stands in the way
+    sib.textContent = 'NumNum Meals needs a verified email before it can let you in.';
+    sib.style.display = 'block';
+    document.getElementById('skipVerifyBtn').textContent = 'Carry on in Workout instead';
+  } else { sib.style.display = 'none'; }
   sendVerificationCode();
 }
 
@@ -3016,6 +3024,14 @@ async function submitVerification() {
         programData.users[pendingVerifyUser].email_verified = true;
       }
       document.getElementById('verifyScreen').classList.add('hidden');
+      // the sign-in could not set the shared cookie until now
+      try {
+        await fetch(`${SERVER_URL}/api/auth/sso-refresh`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        });
+      } catch {}
+      if (await returnToSiblingApp()) return;
       await selectUser(pendingVerifyUser);
     } else {
       errorEl.textContent = data.error || 'Verification failed.';
@@ -3025,7 +3041,22 @@ async function submitVerification() {
   }
 }
 
+let _skipWarned = false;
 async function skipVerification() {
+  // They came here to get into another NumNum app, and that needs a verified
+  // address. Say so once; if they still want to skip, let them - but the
+  // pending hand-over is only dropped at that point, so entering the code
+  // in the meantime still takes them where they were going.
+  if (sessionStorage.getItem('nn_next') && !_skipWarned) {
+    _skipWarned = true;
+    const el = document.getElementById('verifySibling');
+    if (el) { el.textContent = 'NumNum Meals needs a verified email. Enter the code '
+      + 'above, or press again to carry on in Workout without it.';
+      el.style.display = 'block'; }
+    document.getElementById('skipVerifyBtn').textContent = 'Carry on without it';
+    return;
+  }
+  sessionStorage.removeItem('nn_next');
   document.getElementById('verifyScreen').classList.add('hidden');
   await selectUser(pendingVerifyUser);
 }
@@ -5631,12 +5662,21 @@ function openMeals() { window.location.href = MEALS_URL; }
 // afterwards (?next=...). Only our own apps are ever honoured - anything
 // else would make this an open redirect.
 const SIBLING_ORIGINS = ['https://meals.numnum.fit'];
+function isSiblingOrigin(origin) {
+  if (SIBLING_ORIGINS.includes(origin)) return true;
+  // running both apps on this machine: same host, different port
+  const here = window.location.hostname;
+  if (here === 'localhost' || here === '127.0.0.1') {
+    try { return new URL(origin).hostname === here; } catch { return false; }
+  }
+  return false;
+}
 function rememberReturnTarget() {
   try {
     const next = new URLSearchParams(window.location.search).get('next');
     if (!next) return;
     const origin = new URL(next, window.location.href).origin;
-    if (SIBLING_ORIGINS.includes(origin)) sessionStorage.setItem('nn_next', origin);
+    if (isSiblingOrigin(origin)) sessionStorage.setItem('nn_next', origin);
     // clean the URL so a refresh does not bounce them again
     window.history.replaceState({}, '', window.location.pathname);
   } catch {}
