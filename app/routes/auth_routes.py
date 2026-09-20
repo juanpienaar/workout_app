@@ -6,14 +6,15 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from ..models import LoginRequest, LoginResponse, RefreshRequest, TokenResponse, ForgotPasswordRequest, ResetPasswordRequest
 from ..auth import (
     verify_password, needs_rehash, upgrade_password,
-    create_access_token, create_refresh_token, decode_token, hash_password,
+    clear_sso_cookie, create_access_token, create_refresh_token,
+    decode_token, hash_password, set_sso_cookie,
 )
 from ..data import load_users, save_users, find_user_by_email
 from .. import config
@@ -28,7 +29,7 @@ RESET_TOKENS: dict = {}
 
 @router.post("/login", response_model=LoginResponse)
 @limiter.limit("5/minute")
-async def login(request: Request, req: LoginRequest):
+async def login(request: Request, response: Response, req: LoginRequest):
     user_name, user_info = find_user_by_email(req.email)
     if not user_name or not user_info:
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -46,12 +47,22 @@ async def login(request: Request, req: LoginRequest):
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data, remember=req.remember)
 
+    # one sign-in for every NumNum app under numnum.fit
+    set_sso_cookie(response, user_name, user_info.get("email", ""))
+
     return LoginResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         user_name=user_name,
         role=role,
     )
+
+
+@router.post("/sso-logout")
+async def sso_logout(response: Response):
+    """Drop the shared sign-in cookie, signing the other NumNum apps out too."""
+    clear_sso_cookie(response)
+    return {"ok": True}
 
 
 @router.post("/refresh", response_model=TokenResponse)

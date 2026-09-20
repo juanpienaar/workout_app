@@ -15,6 +15,13 @@ APP_URL = os.environ.get("APP_URL", f"http://localhost:{PORT}")
 SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_urlsafe(64))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
+
+# Shared sign-in across numnum.fit and its sibling apps (meals.numnum.fit).
+# SSO_COOKIE_DOMAIN must be the parent domain with a leading dot in
+# production, and left unset anywhere else.
+SSO_COOKIE_NAME = os.environ.get("SSO_COOKIE_NAME", "nn_sso")
+SSO_COOKIE_DOMAIN = os.environ.get("SSO_COOKIE_DOMAIN", "")
+SSO_TOKEN_EXPIRE_DAYS = int(os.environ.get("SSO_TOKEN_EXPIRE_DAYS", "30"))
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 REFRESH_TOKEN_REMEMBER_DAYS = 90  # "Stay logged in" gets a much longer refresh token
 

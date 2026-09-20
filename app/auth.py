@@ -61,6 +61,35 @@ def create_refresh_token(data: dict, remember: bool = False) -> str:
     return jwt.encode(to_encode, config.SECRET_KEY, algorithm=config.ALGORITHM)
 
 
+def create_sso_token(user_name: str, email: str) -> str:
+    """A long-lived token for the shared .numnum.fit sign-in cookie.
+
+    Deliberately separate from the 15-minute access token: it is only ever
+    exchanged for a session by a sibling NumNum service, and it carries the
+    email address, which is what the other services key their accounts on.
+    """
+    expire = datetime.now(timezone.utc) + timedelta(days=config.SSO_TOKEN_EXPIRE_DAYS)
+    return jwt.encode({"sub": user_name, "email": (email or "").lower(),
+                       "type": "sso", "exp": expire},
+                      config.SECRET_KEY, algorithm=config.ALGORITHM)
+
+
+def set_sso_cookie(response, user_name: str, email: str):
+    response.set_cookie(
+        key=config.SSO_COOKIE_NAME,
+        value=create_sso_token(user_name, email),
+        max_age=config.SSO_TOKEN_EXPIRE_DAYS * 24 * 3600,
+        httponly=True, secure=True, samesite="lax",
+        # unset locally, ".numnum.fit" in production, so sibling subdomains
+        # are sent the cookie and nobody else is
+        domain=config.SSO_COOKIE_DOMAIN or None, path="/")
+
+
+def clear_sso_cookie(response):
+    response.delete_cookie(key=config.SSO_COOKIE_NAME, path="/",
+                           domain=config.SSO_COOKIE_DOMAIN or None)
+
+
 def decode_token(token: str, expected_type: str = "access") -> dict:
     """Decode and validate a JWT token. Returns payload or raises."""
     try:

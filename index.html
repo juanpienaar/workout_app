@@ -2216,6 +2216,11 @@ body {
             Whoop
           </button>
           <div class="settings-dropdown-divider"></div>
+          <button class="settings-dropdown-item" onclick="openMeals(); closeSettingsDropdown();">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v8a3 3 0 0 0 6 0V3M7 11v10"/><path d="M17 3c-1.7 1.2-2.5 3.2-2.5 5.5S15.3 13 17 14v7"/></svg>
+            NumNum Meals
+          </button>
+          <div class="settings-dropdown-divider"></div>
           <button class="settings-dropdown-item danger" onclick="confirmLogout(); closeSettingsDropdown();">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Sign Out
@@ -5612,8 +5617,16 @@ function renderCardioHistoryDetail(exerciseName, ex) {
   return html;
 }
 
+// the sibling app: one sign-in covers both, so this is just a link
+const MEALS_URL = 'https://meals.numnum.fit/';
+function openMeals() { window.location.href = MEALS_URL; }
+
 function logout() {
   if (!isViewOnly) saveCurrentDay();
+  // drop the shared cookie as well, so signing out here signs out of Meals
+  try {
+    fetch(`${SERVER_URL}/api/auth/sso-logout`, { method: 'POST', credentials: 'same-origin' });
+  } catch {}
   clearTokens();
   isViewOnly = false;
   viewMode = 'week';
