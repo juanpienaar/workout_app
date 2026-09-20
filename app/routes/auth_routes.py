@@ -6,7 +6,10 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from typing import Annotated
+
+from fastapi import (APIRouter, Depends, HTTPException, Request,
+                     Response)
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -14,7 +17,7 @@ from ..models import LoginRequest, LoginResponse, RefreshRequest, TokenResponse,
 from ..auth import (
     verify_password, needs_rehash, upgrade_password,
     clear_sso_cookie, create_access_token, create_refresh_token,
-    decode_token, hash_password, set_sso_cookie,
+    decode_token, get_current_user, hash_password, set_sso_cookie,
 )
 from ..data import load_users, save_users, find_user_by_email
 from .. import config
@@ -56,6 +59,20 @@ async def login(request: Request, response: Response, req: LoginRequest):
         user_name=user_name,
         role=role,
     )
+
+
+@router.post("/sso-refresh")
+async def sso_refresh(response: Response,
+                      current_user: Annotated[dict, Depends(get_current_user)]):
+    """Re-issue the shared sign-in cookie for someone already signed in here.
+
+    The cookie is normally written at login, so anyone with a live session
+    from before this existed - or whose cookie has expired under a session
+    that has not - would otherwise have to sign out and back in before the
+    sibling apps recognised them.
+    """
+    set_sso_cookie(response, current_user["name"], current_user.get("email", ""))
+    return {"ok": True}
 
 
 @router.post("/sso-logout")

@@ -2693,6 +2693,9 @@ async function init() {
   // Load exercises database for muscle mapping
   loadExercisesDB();
 
+  // A sibling app may have sent them here to sign in
+  rememberReturnTarget();
+
   // Check for coach impersonation via URL params (?impersonate=1&at=...&rt=...&user=...)
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('impersonate') === '1') {
@@ -2725,6 +2728,7 @@ async function init() {
     if (programData.users[userName]) {
       // Log in immediately with stored credentials — don't wait for network
       isViewOnly = false;
+      if (await returnToSiblingApp()) return;
       await selectUser(userName);
       // Validate token in background — refresh if needed, but don't show login
       validateTokenBackground();
@@ -2813,6 +2817,8 @@ async function doLogin() {
     const userInfo = programData.users[data.user_name];
     if (userInfo && !userInfo.email_verified) {
       showVerificationScreen(data.user_name, userInfo.email || email);
+    } else if (await returnToSiblingApp()) {
+      return;                       // signed in; the app that sent them takes over
     } else {
       await selectUser(data.user_name);
     }
@@ -5620,6 +5626,36 @@ function renderCardioHistoryDetail(exerciseName, ex) {
 // the sibling app: one sign-in covers both, so this is just a link
 const MEALS_URL = 'https://meals.numnum.fit/';
 function openMeals() { window.location.href = MEALS_URL; }
+
+// A sibling app can send someone here to sign in and ask to have them back
+// afterwards (?next=...). Only our own apps are ever honoured - anything
+// else would make this an open redirect.
+const SIBLING_ORIGINS = ['https://meals.numnum.fit'];
+function rememberReturnTarget() {
+  try {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (!next) return;
+    const origin = new URL(next, window.location.href).origin;
+    if (SIBLING_ORIGINS.includes(origin)) sessionStorage.setItem('nn_next', origin);
+    // clean the URL so a refresh does not bounce them again
+    window.history.replaceState({}, '', window.location.pathname);
+  } catch {}
+}
+async function returnToSiblingApp() {
+  const dest = sessionStorage.getItem('nn_next');
+  if (!dest) return false;
+  sessionStorage.removeItem('nn_next');
+  // make sure the shared cookie is current before handing over, otherwise
+  // the other app sends them straight back here and it loops
+  try {
+    await fetchWithTimeout(`${SERVER_URL}/api/auth/sso-refresh`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    }, 8000);
+  } catch {}
+  window.location.replace(dest);
+  return true;
+}
 
 function logout() {
   if (!isViewOnly) saveCurrentDay();
