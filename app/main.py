@@ -23,6 +23,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import RedirectResponse
 
 from . import config
+from .routes import checkin_routes
 from .encryption import migrate_tokens_file
 from .logger import log_event
 from .routes import auth_routes, workout_routes, metrics_routes, coach_routes, verify_routes, whoop_routes, admin_routes, review_routes, nutrition_routes
@@ -81,6 +82,7 @@ app.include_router(coach_routes.router)
 app.include_router(verify_routes.router)
 app.include_router(whoop_routes.router)
 app.include_router(admin_routes.router)
+app.include_router(checkin_routes.router)
 app.include_router(review_routes.router)
 app.include_router(nutrition_routes.router)
 
